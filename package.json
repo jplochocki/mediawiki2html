@@ -1,0 +1,31 @@
+{
+  "name": "mediawiki2html",
+  "version": "0.0.1 ALPHA",
+  "description": "MediaWiki wiki markup to HTML converter",
+  "main": "src/mwparser.js",
+  "scripts": {
+    "test": "karma start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jplochocki/mediawiki2html.git"
+  },
+  "keywords": [
+    "MediaWiki",
+    "wiki",
+    "html"
+  ],
+  "author": "Jacek Płochocki <jplochocki@op.pl>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jplochocki/mediawiki2html/issues"
+  },
+  "homepage": "https://github.com/jplochocki/mediawiki2html#readme",
+  "devDependencies": {
+    "jasmine": "^3.5.0",
+    "jasmine-jquery": "^2.1.1",
+    "karma": "^4.4.1",
+    "karma-firefox-launcher": "^1.2.0",
+    "karma-jasmine": "^2.0.1"
+  }
+}
