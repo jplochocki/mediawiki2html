@@ -30,8 +30,8 @@ class MWParser {
                 indent_level = matches[1].length; // wcięcia (: dla kolejnych poziomów)
 
                 // FIXME $attributes = $this->mStripState->unstripBoth( $matches[2] );
-                // FIXME $attributes = Sanitizer::fixTagAttributes( $attributes, 'table' );
                 let attributes = matches[2];
+                attributes = Sanitizer.fixTagAttributes(attributes, 'table');
 
                 line = '<dl><dd>'.repeat(indent_level) + `<table ${ attributes }>`;
 
@@ -69,8 +69,8 @@ class MWParser {
 
                 //Whats after the tag is now only attributes
                 // FIXME $attributes = $this->mStripState->unstripBoth( $line );
-                // FIXME $attributes = Sanitizer::fixTagAttributes( $attributes, 'tr' );
                 let attributes = line;
+                attributes = Sanitizer.fixTagAttributes(attributes, 'tr');
                 tr_attributes.pop();
                 tr_attributes.push(attributes);
 
@@ -143,8 +143,9 @@ class MWParser {
                         cell = `${ previous }<${ last_tag }>${ cell_data[0].trim() }`;
                     else {
                         // $attributes = $this->mStripState->unstripBoth( $cell_data[0] );
-                        // $attributes = Sanitizer::fixTagAttributes( $attributes, $last_tag );
                         let attributes = cell_data[0];
+                        attributes = Sanitizer.fixTagAttributes(attributes, last_tag);
+
                         // Whitespace in cells is trimmed
                         cell = `${ previous }<${ last_tag } ${ attributes }>${ cell_data[1].trim() }`;
                     }
