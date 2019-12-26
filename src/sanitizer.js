@@ -1,24 +1,62 @@
+/**
+ * Rewritten HTML sanitizer for MediaWiki (includes/parser/Sanitizer.php).
+ *
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Jacek Płochocki <jplochocki@op.pl>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 class Sanitizer {
     /**
-	 * Take a tag soup fragment listing an HTML element's attributes
-	 * and normalize it to well-formed XML, discarding unwanted attributes.
-	 * Output is safe for further wikitext processing, with escaping of
-	 * values that could trigger problems.
+     * Normalize text fragment listing an HTML element's attributes,
+     * discarding unwanted attributes.
+     *
+     * @static
+     * @param String attributesText
+     * @param String elementName
+     * @param Boolean [returnSorted=false]
+     * @return String
      */
     static fixTagAttributes(attributesText, elementName, returnSorted=false) {
         if(attributesText.trim() == '')
-			return '';
+            return '';
 
-		const decoded = Sanitizer.decodeTagAttributes(attributesText);
-		const stripped = Sanitizer.validateTagAttributes(decoded, elementName);
+        const decoded = Sanitizer.decodeTagAttributes(attributesText);
+        const stripped = Sanitizer.validateTagAttributes(decoded, elementName);
 
-		return Sanitizer.safeEncodeTagAttributes(stripped, returnSorted);
+        return Sanitizer.safeEncodeTagAttributes(stripped, returnSorted);
     }
 
 
+    /**
+     * Return Object (attributeName:atribute value) from converted attributes
+     * text. Normalize attribute name and value.
+     *
+     * @static
+     * @param String text
+     * @return Object
+     */
     static decodeTagAttributes(text) {
-		if(text.trim() == '')
-			return [];
+        if(text.trim() == '')
+            return [];
 
         let attribs = {}, match = null;
         const pattern = Sanitizer.getAttribsRegex();
@@ -27,11 +65,11 @@ class Sanitizer {
             let name = match[1].toLowerCase();
             let value = null;
             if(match[5] !== undefined) // No quotes.
-			    value = match[5];
+                value = match[5];
             else if(match[4] !== undefined) // Single-quoted
-			    value = match[4];
+                value = match[4];
             else if (match[3] !== undefined) // Double-quoted
-			    value = match[3];
+                value = match[3];
             else if(match[1] !== undefined) // empty attribute
                 value = '';
             else
@@ -51,6 +89,14 @@ class Sanitizer {
     }
 
 
+    /**
+     * Convert Object(attributeNam:value) to HTML attribute's string
+     *
+     * @static
+     * @param Object attrs
+     * @param Boolean [returnSorted=false]
+     * @return String
+     */
     static safeEncodeTagAttributes(attrs, returnSorted=false) {
         let a = Object.entries(attrs);
 
@@ -68,26 +114,34 @@ class Sanitizer {
             value = he.encode(he.escape(value));
             return `${ name }="${ value }"`;
         }).join(' ');
-	}
+    }
 
 
     /**
-	 * Regular expression to match HTML/XML attribute pairs within a tag.
-	 * Based on https://www.w3.org/TR/html5/syntax.html#before-attribute-name-state
-	 * @return string
-	 */
+     * Regular expression to match HTML/XML attribute pairs within a tag.
+     *
+     * @static
+     * @return RegExp
+     */
     static getAttribsRegex() {
-		const spaceChars = '\x09\x0a\x0c\x0d\x20';
-		const space = `[${ spaceChars }]`;
-		const attrib = `[^${ spaceChars }\/>=]`;
-		const attribFirst = `(?:${ attrib }|=)`;
-		const attribsRegex = new RegExp(
+        const spaceChars = '\x09\x0a\x0c\x0d\x20';
+        const space = `[${ spaceChars }]`;
+        const attrib = `[^${ spaceChars }\/>=]`;
+        const attribFirst = `(?:${ attrib }|=)`;
+        const attribsRegex = new RegExp(
             `(${ attribFirst }${ attrib }*)(${ space }*=${ space }*(?:\"([^\"]*)(?:\"|\$)|'([^']*)(?:'|\$)|(((?!${ space }|>).)*)))?`,
             'gu');
 
-		return attribsRegex;
-	}
+        return attribsRegex;
+    }
 
+
+    /**
+     * RegExp for attribute name check
+     *
+     * @static
+     * @return RegExp
+     */
     static getAttribNameRegex() {
         const letters = 'A-Za-z\u00AA\u00B5\u00BA\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-'
             + '\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F'
@@ -127,30 +181,44 @@ class Sanitizer {
             + '\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-'
             + '\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC';
         const numbers = '0-9';
-	    const attribFirst = `[:_${ letters }${ numbers }]`;
-		const attrib = `[:_\.\-${ letters }${ numbers }]`;
-		const attribNameRegex = new RegExp(`^(${ attribFirst }${ attrib }*)$`, 'gu');
-		return attribNameRegex;
+        const attribFirst = `[:_${ letters }${ numbers }]`;
+        const attrib = `[:_\.\-${ letters }${ numbers }]`;
+        const attribNameRegex = new RegExp(`^(${ attribFirst }${ attrib }*)$`, 'gu');
+        return attribNameRegex;
     }
 
 
     /**
+     * Take an Object(attribute name: value) and normalize or discard
+	 * illegal values for the given element type.
      *
-     *
+     * @static
+     * @param Object attribs
+     * @param String element
+     * @return Object
      */
     static validateTagAttributes(attribs, element) {
-		return Sanitizer.validateAttributes(attribs, Sanitizer.attributeWhitelistInternal(element));
+        return Sanitizer.validateAttributes(attribs, Sanitizer.attributeWhitelistInternal(element));
     }
 
+
+    /**
+     * Take an Object(attribute name: value) and normalize or discard
+	 * illegal values for the given whitelist.
+     *
+     * @static
+     * @param Object attribs
+     * @param String element
+     * @return Object
+     */
     static validateAttributes(attribs, whitelist) {
-        console.log(attribs, whitelist);
         const protocols = [
             'bitcoin:', 'ftp://', 'ftps://', 'geo:', 'git://', 'gopher://', 'http://',
             'https://', 'irc://', 'ircs://', 'magnet:', 'mailto:', 'mms://', 'news:',
             'nntp://', 'redis://', 'sftp://', 'sip:', 'sips:', 'sms:', 'ssh://',
             'svn://', 'tel:', 'telnet://', 'urn:', 'worldwind://', 'xmpp:', '//'
         ];
-		const hrefExp = new RegExp('^(' + protocols.join('|') + ')[^\s]+$', 'i');
+        const hrefExp = new RegExp('^(' + protocols.join('|') + ')', 'i');
         const EVIL_URI_PATTERN = /(^|\s|\*\/\s*)(javascript|vbscript)([^\w]|$)/i;
         const XMLNS_ATTRIBUTE_PATTERN = /^xmlns:[:A-Z_a-z-.0-9]+$/;
 
@@ -165,42 +233,41 @@ class Sanitizer {
             }
 
             // Allow any attribute beginning with "data-"
-			// However:
-			// * Disallow data attributes used by MediaWiki code
-			// * Ensure that the attribute is not namespaced by banning colons.
+            // However:
+            // * Disallow data attributes used by MediaWiki code
+            // * Ensure that the attribute is not namespaced by banning colons.
             if((!/^data-[^:]*$/i.test(name) && whitelist.indexOf(name) == -1) || /^data-(ooui|mw|parsoid)/i.test(name))
                 return;
 
             // Strip javascript "expression" from stylesheets.
-			if(name == 'style')
-			    value = Sanitizer.checkCss(value);
+            if(name == 'style')
+                value = Sanitizer.checkCss(value);
 
             // Escape HTML id attributes
-			if(name == 'id')
-				value = Sanitizer.escapeId(value);
+            if(name == 'id')
+                value = Sanitizer.escapeId(value);
 
             // Escape HTML id reference lists
-			if(name in ['aria-describedby', 'aria-flowto', 'aria-labelledby', 'aria-owns'])
-				value = Sanitizer.escapeIdReferenceList(value);
+            if(['aria-describedby', 'aria-flowto', 'aria-labelledby', 'aria-owns'].indexOf(name) != -1)
+                value = Sanitizer.escapeIdReferenceList(value);
 
             // RDFa and microdata properties allow URLs, URIs and/or CURIs.
-			// Check them for sanity.
-            if(name in ['rel', 'rev', 'about', 'property', 'resource', 'datatype',
-                'typeof', 'itemid', 'itemprop', 'itemref', 'itemscope', 'itemtype'])
+            // Check them for sanity.
+            if(['rel', 'rev', 'about', 'property', 'resource', 'datatype',
+                'typeof', 'itemid', 'itemprop', 'itemref', 'itemscope', 'itemtype'].indexOf(name) != -1)
                 // Paranoia. Allow "simple" values but suppress javascript
                 if(EVIL_URI_PATTERN.test(value))
-					return;
+                    return;
 
             // NOTE: even though elements using href/src are not allowed directly, supply
             // validation code that can be used by tag hook handlers, etc
-            if(name in ['href', 'src', 'poster'])
-
+            if(['href', 'src', 'poster'].indexOf(name) != -1)
                 if(!hrefExp.test(value))
-					return; // drop any href or src attributes not using an allowed protocol.
-					// NOTE: this also drops all relative URLs
+                    return; // drop any href or src attributes not using an allowed protocol.
+                    // NOTE: this also drops all relative URLs
 
-			// If this attribute was previously set, override it.
-			// Output should only have one attribute of each name.
+            // If this attribute was previously set, override it.
+            // Output should only have one attribute of each name.
             out[name] = value;
         });
 
@@ -209,222 +276,262 @@ class Sanitizer {
             delete out['itemtype'];
             delete out['itemid'];
             delete out['itemref'];
-		}
+        }
 
-		return out;
+        return out;
     }
 
 
+    /**
+     * Fetch whitelist fot given element
+     *
+     * @static
+     * @param String element
+     * @return String[]
+     */
     static attributeWhitelistInternal(element) {
-		const list = Sanitizer.setupAttributeWhitelistInternal();
-		return list[element] || [];
+        const list = Sanitizer.setupAttributeWhitelistInternal();
+        return list[element] || [];
     }
 
 
+    /**
+     * Create whitelist for all tags. Object(tagName: array of attrs)
+     *
+     * @static
+     * @return Object[String[]]
+     */
     static setupAttributeWhitelistInternal() {
         if(Sanitizer._whitelist)
             return Sanitizer._whitelist;
 
-		const common = [
-		    // HTML
-			'id', 'class', 'style', 'lang', 'dir', 'title',
+        const common = [
+            // HTML
+            'id', 'class', 'style', 'lang', 'dir', 'title',
 
             // WAI-ARIA
-			'aria-describedby', 'aria-flowto', 'aria-label', 'aria-labelledby', 'aria-owns', 'role',
+            'aria-describedby', 'aria-flowto', 'aria-label', 'aria-labelledby', 'aria-owns', 'role',
 
             // RDFa
-			'about', 'property', 'resource', 'datatype', 'typeof',
+            'about', 'property', 'resource', 'datatype', 'typeof',
 
             // Microdata
-			'itemid', 'itemprop', 'itemref', 'itemscope', 'itemtype'
-		];
+            'itemid', 'itemprop', 'itemref', 'itemscope', 'itemtype'
+        ];
 
         const block = [...common, 'align'];
 
-		const tablealign = ['align', 'valign'];
-		const tablecell = [
-			'abbr', 'axis', 'headers', 'scope', 'rowspan', 'colspan',
+        const tablealign = ['align', 'valign'];
+        const tablecell = [
+            'abbr', 'axis', 'headers', 'scope', 'rowspan', 'colspan',
             'nowrap', 'width', 'height', 'bgcolor', // deprecated
-		];
+        ];
 
-		Sanitizer._whitelist = {
-			'div': [...block],
-			'center': [...common], // deprecated
-			'span': [...common],
-			'h1': [...block],
-			'h2': [...block],
-			'h3': [...block],
-			'h4': [...block],
-			'h5': [...block],
-			'h6': [...block],
-			'bdo': [...common],
-			'em': [...common],
-			'strong': [...common],
-			'cite': [...common],
-			'dfn': [...common],
-			'code': [...common],
-			'samp': [...common],
-			'kbd': [...common],
-			'var': [...common],
-			'abbr': [...common],
-			'blockquote': [...common, 'cite'],
-			'q': [...common, 'cite'],
-			'sub': [...common],
-			'sup': [...common],
-			'p': [...block],
-			'br': [...common, 'clear'],
-			'wbr': [...common],
-			'pre': [...common, 'width'],
-			'ins': [...common, 'cite', 'datetime'],
-			'del': [...common, 'cite', 'datetime'],
-			'ul': [...common, 'type'],
-			'ol': [...common, 'type', 'start', 'reversed'],
-			'li': [...common, 'type', 'value'],
-			'dl': [...common],
-			'dd': [...common],
-			'dt': [...common],
-			'table': [...common, 'summary', 'width', 'border', 'frame', 'rules', 'cellspacing', 'cellpadding', 'align', 'bgcolor'],
-			'caption': [...block],
-			'thead': [...common],
-			'tfoot': [...common],
-			'tbody': [...common],
-			'colgroup': [...common, 'span'],
-			'col': [...common, 'span'],
-			'tr': [...common, 'bgcolor', ...tablealign],
-			'td': [...common, ...tablecell, ...tablealign],
-			'th': [...common, ...tablecell, ...tablealign],
+        Sanitizer._whitelist = {
+            'div': [...block],
+            'center': [...common], // deprecated
+            'span': [...common],
+            'h1': [...block],
+            'h2': [...block],
+            'h3': [...block],
+            'h4': [...block],
+            'h5': [...block],
+            'h6': [...block],
+            'bdo': [...common],
+            'em': [...common],
+            'strong': [...common],
+            'cite': [...common],
+            'dfn': [...common],
+            'code': [...common],
+            'samp': [...common],
+            'kbd': [...common],
+            'var': [...common],
+            'abbr': [...common],
+            'blockquote': [...common, 'cite'],
+            'q': [...common, 'cite'],
+            'sub': [...common],
+            'sup': [...common],
+            'p': [...block],
+            'br': [...common, 'clear'],
+            'wbr': [...common],
+            'pre': [...common, 'width'],
+            'ins': [...common, 'cite', 'datetime'],
+            'del': [...common, 'cite', 'datetime'],
+            'ul': [...common, 'type'],
+            'ol': [...common, 'type', 'start', 'reversed'],
+            'li': [...common, 'type', 'value'],
+            'dl': [...common],
+            'dd': [...common],
+            'dt': [...common],
+            'table': [...common, 'summary', 'width', 'border', 'frame', 'rules', 'cellspacing', 'cellpadding', 'align', 'bgcolor'],
+            'caption': [...block],
+            'thead': [...common],
+            'tfoot': [...common],
+            'tbody': [...common],
+            'colgroup': [...common, 'span'],
+            'col': [...common, 'span'],
+            'tr': [...common, 'bgcolor', ...tablealign],
+            'td': [...common, ...tablecell, ...tablealign],
+            'th': [...common, ...tablecell, ...tablealign],
             // NOTE: <a> is not allowed directly, but the attrib whitelist is used from the Parser object
-			'a': [...common, 'href', 'rel', 'rev'],
+            'a': [...common, 'href', 'rel', 'rev'],
             // Not usually allowed,
             'img': [...common, 'alt', 'src', 'width', 'height', 'srcset'],
 
-			'audio': [...common, 'controls', 'preload', 'width', 'height'],
-			'video': [...common, 'poster', 'controls', 'preload', 'width', 'height'],
-			'source': [...common, 'type', 'src'],
-			'track': [...common, 'type', 'src', 'srclang', 'kind', 'label'],
-			'tt': [...common],
-			'b': [...common],
-			'i': [...common],
-			'big': [...common],
-			'small': [...common],
-			'strike': [...common],
-			's': [...common],
-			'u': [...common],
-			'font': [...common, 'size', 'color', 'face'],
-			'hr': [...common, 'width'],
-			'ruby': [...common],
-			'rb': [...common],
-			'rp': [...common],
-			'rt': [...common],
-			'rtc': [...common],
-			'math': [...common, 'class', 'style', 'id', 'title'],
-			'figure': [...common],
-			'figure-inline': [...common],
-			'figcaption': [...common],
-			'bdi': [...common],
-			'data': [...common, 'value'],
-			'time': [...common, 'datetime'],
-			'mark': [...common],
+            'audio': [...common, 'controls', 'preload', 'width', 'height'],
+            'video': [...common, 'poster', 'controls', 'preload', 'width', 'height'],
+            'source': [...common, 'type', 'src'],
+            'track': [...common, 'type', 'src', 'srclang', 'kind', 'label'],
+            'tt': [...common],
+            'b': [...common],
+            'i': [...common],
+            'big': [...common],
+            'small': [...common],
+            'strike': [...common],
+            's': [...common],
+            'u': [...common],
+            'font': [...common, 'size', 'color', 'face'],
+            'hr': [...common, 'width'],
+            'ruby': [...common],
+            'rb': [...common],
+            'rp': [...common],
+            'rt': [...common],
+            'rtc': [...common],
+            'math': [...common, 'class', 'style', 'id', 'title'],
+            'figure': [...common],
+            'figure-inline': [...common],
+            'figcaption': [...common],
+            'bdi': [...common],
+            'data': [...common, 'value'],
+            'time': [...common, 'datetime'],
+            'mark': [...common],
 
-			// meta and link are only permitted by removeHTMLtags when Microdata
-			// is enabled so we don't bother adding a conditional to hide these
-			// Also meta and link are only valid in WikiText as Microdata elements
-			// (ie: validateTag rejects tags missing the attributes needed for Microdata)
-			// So we don't bother including $common attributes that have no purpose.
-			'meta': [...common, 'itemprop', 'content'],
-			'link': [...common, 'itemprop', 'href', 'title']
+            // meta and link are only permitted by removeHTMLtags when Microdata
+            // is enabled so we don't bother adding a conditional to hide these
+            // Also meta and link are only valid in WikiText as Microdata elements
+            // (ie: validateTag rejects tags missing the attributes needed for Microdata)
+            // So we don't bother including $common attributes that have no purpose.
+            'meta': [...common, 'itemprop', 'content'],
+            'link': [...common, 'itemprop', 'href', 'title']
         };
 
-		return Sanitizer._whitelist;
+        return Sanitizer._whitelist;
     }
 
 
+    /**
+     * Pick apart some CSS and check it for forbidden or unsafe structures.
+     *
+     * @static
+     * @param String value
+     * @return String
+     */
     static checkCss(value) {
-		value = Sanitizer.normalizeCss(value);
-        const UTF8_REPLACEMENT = "\xef\xbf\xbd";
+        value = Sanitizer.normalizeCss(value);
+        const UTF8_REPLACEMENT = '\xef\xbf\xbd';
 
-		// Reject problematic keywords and control characters
+        // Reject problematic keywords and control characters
         if(/[\000-\010\013\016-\037\177]/.test(value) || value.indexOf(UTF8_REPLACEMENT) != -1)
-			return '/* invalid control char */';
+            return '/* invalid control char */';
         else if(/expression|filter\s*:|accelerator\s*:|-o-link\s*:|-o-link-source\s*:|-o-replace\s*:|url\s*\(|image\s*\(|image-set\s*\(|attr\s*\([^)]+[\s,]+url var\s*\(/gi.test(value))
-			return '/* insecure input */';
+            return '/* insecure input */';
 
-		return value;
+        return value;
     }
 
 
+    /**
+     * Normalize CSS into a format we can easily search for hostile input
+     *
+     * @static
+     * @param String value
+     * @return String
+     */
     static normalizeCss(value) {
         // Decode character references like &#123;
         value = he.decode(value);
 
-		// Decode escape sequences and line continuation
+        // Decode escape sequences and line continuation
         const space = '[\\x20\\t\\r\\n\\f]';
-		const nl = '(?:\\n|\\r\\n|\\r|\\f)';
-		const backslash = '\\\\';
-        const decodeRegex = new RegExp(`${ backslash }(?:(${ nl }) |([0-9A-Fa-f]{1,6})${ space }? |(.) | ()|)`, "gu");
+        const nl = '(?:\\n|\\r\\n|\\r|\\f)';
+        const backslash = '\\\\';
+        const decodeRegex = new RegExp(`${ backslash }(?:(${ nl })|([0-9A-Fa-f]{1,6})${ space }?|(.)|()|)`, "gu");
 
-        value = value.replace(decodeRegex, (match) => {
+        value = value.replace(decodeRegex, (match, a , b) => {
             // 1. Line continuation
             // 2. character number
             // 3. backslash cancelling special meaning
             // 4. backslash at end of string
             let char = '';
             if(match[1] != '') // Line continuation
-			    return '';
-		    else if(match[2] != '')
+                return '';
+            else if(match[2] != '')
                 char = he.decode(`&x${ match[2] };`);
-		    else if( $matches[3] !== '' )
-			    char = $matches[3];
-		    else
+            else if( $matches[3] !== '' )
+                char = $matches[3];
+            else
                 char = '\\';
 
-            if(char == "\n" || char == '"' || char == "'" || char == '\\')
-			    // These characters need to be escaped in strings
+            if(char == '\n' || char == '"' || char == "'" || char == '\\')
+                // These characters need to be escaped in strings
                 // Clean up the escape sequence to avoid parsing errors by clients
                 return `\\${ char.charCodeAt(0).toString(16) } `;
-		    else // Decode unnecessary escape
-			    return char;
+            else // Decode unnecessary escape
+                return char;
         });
 
-		// Remove any comments
-        if(/^\s*\/\*[^*\\/]*\*\/\s*$/g.test(value)){
+        // Remove any comments
+        if(value.indexOf('/*') != -1){
             let commentPos = 0;
             while((commentPos = value.indexOf('/*')) != -1) {
                 let a = value.indexOf('*/');
-                a = a == -1? '' : value.substring(a + 2);
-                value = value.substring(0) + a;
-
+                a = a == -1 ? '' : value.substring(a + 2);
+                value = value.substring(0, commentPos) + a;
             }
         }
 
-		return value;
+        return value;
     }
 
 
-	static escapeId(id, mode='html5') {
-		switch(mode) {
-			case 'html5':
+    /**
+     * Escape string as an HTM5 valid id.
+     *
+     * @static
+     * @param String id
+     * @param String [mode='html5']
+     * @return String
+     */
+    static escapeId(id, mode='html5') {
+        switch(mode) {
+            case 'html5':
                 id = id.replace(/ /g, '_');
-				break;
-			case 'legacy':
-				// This corresponds to 'noninitial' mode of the old escapeId()
+                break;
+            case 'legacy':
+                // This corresponds to 'noninitial' mode of the old escapeId()
                 id = urlEncodeFragment(id.replace(/ /g, '_'));
                 id = id.replace(/%3A/g, ':');
                 id = id.replace(/%/g, '.');
-				break;
-			default:
-				return id
-		}
+                break;
+            default:
+                id = Sanitizer.escapeId(id);
+        }
 
-		return id;
+        return id;
     }
 
 
+    /**
+     * Escape list of HTM5 ids.
+     *
+     * @static
+     * @param String referenceString
+     * @return String
+     */
     static escapeIdReferenceList(referenceString) {
         return referenceString.split(/\s+/)
             .filter(Boolean)
-            .map(escapeId)
-            .join(' ')
-	}
-
+            .map(Sanitizer.escapeId)
+            .join(' ');
+    }
 };
