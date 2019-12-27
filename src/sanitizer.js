@@ -15,7 +15,7 @@
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
-
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,11 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ */
+
+
+/**
+ * @class Sanitizer
  */
 class Sanitizer {
     /**
@@ -190,7 +195,7 @@ class Sanitizer {
 
     /**
      * Take an Object(attribute name: value) and normalize or discard
-	 * illegal values for the given element type.
+     * illegal values for the given element type.
      *
      * @static
      * @param Object attribs
@@ -204,7 +209,7 @@ class Sanitizer {
 
     /**
      * Take an Object(attribute name: value) and normalize or discard
-	 * illegal values for the given whitelist.
+     * illegal values for the given whitelist.
      *
      * @static
      * @param Object attribs
@@ -533,5 +538,274 @@ class Sanitizer {
             .filter(Boolean)
             .map(Sanitizer.escapeId)
             .join(' ');
+    }
+
+
+    /**
+     * Cleans up HTML, removes dangerous tags and attributes, and
+     * removes HTML comments
+     */
+    static removeHTMLtags(text, processCallback=null, args=[], extratags=[], removetags=[]) {
+        const tagData = Sanitizer.getRecognizedTagData(extratags, removetags);
+        const {htmlpairs, htmlsingle, htmlsingleonly, htmlnest, tabletags,
+            htmllist, listtags, htmlsingleallowed, htmlelements} = tagData;
+
+        text = Sanitizer.removeHTMLcomments(text);
+        const bits = [];
+
+        text.split(/(<)/g).forEach(a => {
+            if(bits.length > 0 && bits[bits.length -1] == '<')
+                bits[bits.length -1] += a
+            else if(a)
+                bits.push(a);
+        })
+
+        if(bits.length == 0)
+            return '';
+
+        text = bits[0][0] == '<' ? '' : bits.shift().replace(/>/g, '&gt;');
+        const tagstack = [];
+        const tablestack = [];
+
+        bits.forEach(bit => {
+            // hack: no possessive quantifiers in JS
+            let result = /^<(\/?)([A-Za-z][^\s/>]*?)\s+([^>]*?)(\/?>)([^<]*)$/gi.exec(bit.replace(/(\/)?>/g, ' $1>'));
+            if(!result) {
+                text += bit.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return;
+            }
+            let [, slash, name, attrs, brace, rest] = result;
+            // slash: Does the current element start with a '/'?
+            // name: Current element name
+            // attrs: String between element name and >
+            // brace: Ending '>' or '/>'
+            // rest: Everything until the next element of $bits
+
+            //console.log(bit, 'slash', slash, 'name', name, 'attrs', attrs, 'brace', brace, 'rest', rest);
+
+            name = name.toLowerCase();
+            if(htmlelements.includes(name)) {
+                let badtag = false;
+                let newparams = '';
+
+                // Check our stack
+                if(slash && htmlsingleonly.includes(name))
+                    badtag = true;
+                else if(slash) {
+                    // Closing a tag... is it the one we just opened?
+                    let ot = tagstack.pop();
+                    if(ot != name) {
+                        if(htmlsingleallowed.includes(ot)) {
+                            // Pop all elements with an optional close tag
+                            // and see if we find a match below them
+                            let optstack = [ot];
+                            ot = tagstack.pop();
+
+                            while(ot != name && htmlsingleallowed.includes(ot)) {
+                                optstack.push(ot);
+                                ot = tagstack.pop();
+                            }
+
+                            if(ot != name) {
+                                // No match. Push the optional elements back again
+                                badtag = true;
+                                ot = optstack.pop();
+                                while(ot) {
+                                    tagstack.push(ot);
+                                    ot = optstack.pop();
+                                }
+                            }
+                        }
+                        else {
+                            tagstack.push(ot);
+
+                            // <li> can be nested in <ul> or <ol>, skip those cases:
+                            if(!htmllist.includes(ot) || !listtags.includes(ot))
+                                badtag = true;
+                        }
+                    }
+                    else if(name == 'table')
+                        tagstack = tablestack.pop();
+                    newparams = '';
+                }
+                else {
+                    // Keep track for later
+                    if(tabletags.includes(name) && !tagstack.includes('table'))
+                        badtag = true;
+                    else if(tagstack.includes(name) && !htmlnest.includes(name))
+                        badtag = true;
+                    //  Is it a self closed htmlpair ? (T7487)
+                    else if(brace == '/>' && htmlpairs.includes(name))
+                        // Eventually we'll just remove the self-closing
+                        // slash, in order to be consistent with HTML5
+                        // semantics.
+                        // $brace = '>';
+                        // For now, let's just warn authors to clean up.
+                        badtag = true;
+                    else if(htmlsingleonly.includes(name))
+                        // Hack to force empty tag for unclosable elements
+                        brace = '/>';
+                    else if(htmlsingle.includes(name)) {
+                        // Hack to not close $htmlsingle tags
+                        brace = '';
+                        // Still need to push this optionally-closed tag to
+                        // the tag stack so that we can match end tags
+                        // instead of marking them as bad.
+                        tagstack.push(name);
+                    }
+                    else if(tabletags.includes(name) && tagstack.includes(name))
+                        // New table tag but forgot to close the previous one
+                        text += `</${ name }>`;
+                    else {
+                        if(name == 'table') {
+                            tablestack.push(tagstack); // ?
+                            tagstack = [];
+                        }
+                        tagstack.push(name);
+                    }
+
+                    // Replace any variables or template parameters with
+                    // plaintext results.
+                    if(processCallback)
+                        attrs = processCallback.apply(this, [attrs, ...args]);
+
+                    if(!Sanitizer.validateTag(attrs, name))
+                        $badtag = true;
+
+                    // Strip non-approved attributes from the tag
+                    newparams = Sanitizer.fixTagAttributes(attrs, name);
+                }
+
+                if(!badtag) {
+                    rest = rest.replace(/>/g, '&gt;');
+                    close = (brace == '/>' && slash)? ' /' : '';
+                    text += `<${ slash }${ name }${ newparams? ' ' : '' }${ newparams }${ close }>${ rest }`;
+                    return;
+                }
+            }
+            text += bit.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        });
+
+        // Close off any remaining tags
+        let t = null;
+        while(Array.isArray(tagstack) && (t = tagstack.pop())) {
+            text += `</${ t }>\n`;
+            if(t == 'table')
+                tagstack = tablestack.pop();
+        }
+
+        return text;
+    }
+
+
+    /**
+     * Remove '<!--', '-->', and everything between.
+     *
+     * @param String text
+     * @return String
+     */
+    static removeHTMLcomments(text) {
+        let start = -1;
+        while((start = text.indexOf('<!--')) != -1) {
+            let end = text.indexOf('-->', start + 4);
+            let after = end != -1 ? '\n' + text.substring(end + 3).trimLeft() : '';
+
+            text = text.substring(0, start).trimRight() + after;
+        }
+        return text;
+    }
+
+
+    /**
+     * Return the various lists of recognized tags
+     *
+     * @param Array extratags
+     * @param Array removetags
+     * @return Object
+     */
+    static getRecognizedTagData(extratags=[], removetags=[]) {
+        // Tags that must be closed
+        const htmlpairsStatic = [
+            'b', 'bdi', 'del', 'i', 'ins', 'u', 'font', 'big', 'small', 'sub',
+            'sup', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'cite', 'code', 'em',
+            's', 'strike', 'strong', 'tt', 'var', 'div', 'center', 'blockquote',
+            'ol', 'ul', 'dl', 'table', 'caption', 'pre', 'ruby', 'rb', 'rp',
+            'rt', 'rtc', 'p', 'span', 'abbr', 'dfn', 'kbd', 'samp', 'data',
+            'time', 'mark'
+        ];
+        const htmlsingle = [
+            'br', 'wbr', 'hr', 'li', 'dt', 'dd', 'meta', 'link', 'img'
+        ];
+
+        // Elements that cannot have close tags.
+        const htmlsingleonly = [
+            'br', 'wbr', 'hr', 'meta', 'link', 'img'
+        ];
+
+        // Tags that can be nested--??
+        const htmlnest = [
+            'table', 'tr', 'td', 'th', 'div', 'blockquote', 'ol', 'ul',
+            'li', 'dl', 'dt', 'dd', 'font', 'big', 'small', 'sub', 'sup',
+            'span', 'var', 'kbd', 'samp', 'em', 'strong', 'q', 'ruby', 'bdo'
+        ];
+
+        // Can only appear inside table, we will close them
+        const tabletags = [
+            'td', 'th', 'tr',
+        ];
+
+        // Tags used by list
+        const htmllist = [
+            'ul', 'ol',
+        ];
+
+        // Tags that can appear in a list
+        const listtags = [
+            'li',
+        ];
+
+        const htmlsingleallowed = Array.from(new Set([...htmlsingle, ...tabletags]));
+        const htmlelementsStatic = Array.from(new Set([...htmlsingle, ...htmlpairsStatic, ...htmlnest]));
+
+        // Populate htmlpairs and htmlelements with the extratags and removetags arrays
+        const htmlpairs = [...extratags, ...htmlpairsStatic];
+        const htmlelements = [...extratags, ...htmlelementsStatic].filter(a => !removetags.includes(a))
+
+        return {
+            htmlpairs: htmlpairs,
+            htmlsingle: htmlsingle,
+            htmlsingleonly: htmlsingleonly,
+            htmlnest: htmlnest,
+            tabletags: tabletags,
+            htmllist: htmllist,
+            listtags: listtags,
+            htmlsingleallowed: htmlsingleallowed,
+            htmlelements: htmlelements
+        };
+    }
+
+
+    /**
+     * Validate tags meta and link in some special cases
+     *
+     * @param String params
+     * @param String element
+     * @return bool
+     */
+    static validateTag(params, element) {
+        params = Sanitizer.decodeTagAttributes(params);
+
+        if(element == 'meta' || element == 'link') {
+            if(!params['itemprop'])
+                // <meta> and <link> must have an itemprop="" otherwise they are not valid or safe in content
+                return false;
+            if(element == 'meta' && !params['content'])
+                // <meta> must have a content="" for the itemprop
+                return false;
+            if(element == 'link' && !params['href'])
+                // <link> must have an associated href=""
+                return false;
+        }
+        return true;
     }
 };

@@ -1,4 +1,65 @@
 class MWParser {
+    internalParse(text) {
+        // $isMain = true, $frame = false
+        // # if $frame is provided, then use $frame for replacing any variables
+        // if ( $frame ) {
+        //     # use frame depth to infer how include/noinclude tags should be handled
+        //     # depth=0 means this is the top-level document; otherwise it's an included document
+        //     if ( !$frame->depth ) {
+        //         $flag = 0;
+        //     } else {
+        //         $flag = self::PTD_FOR_INCLUSION;
+        //     }
+        //     $dom = $this->preprocessToDom( $text, $flag );
+        //     $text = $frame->expand( $dom );
+        // } else {
+        //     # if $frame is not provided, then use old-style replaceVariables
+        //     $text = $this->replaceVariables( $text );
+        // }
+
+
+        text = Sanitizer.removeHTMLtags(text, this.attributeStripCallback.bind(this),
+            [false,],
+            [], // $this->mTransparentTagHooks
+            []
+        );
+
+        text = this.handleTables(text);
+
+        // $text = preg_replace( '/(^|\n)-----*/', '\\1<hr />', $text );
+
+        // $text = $this->handleDoubleUnderscore( $text );
+
+        // $text = $this->handleHeadings( $text );
+        // $text = $this->handleInternalLinks( $text );
+        // $text = $this->handleAllQuotes( $text );
+        // $text = $this->handleExternalLinks( $text );
+
+        // # handleInternalLinks may sometimes leave behind
+        // # absolute URLs, which have to be masked to hide them from handleExternalLinks
+        // $text = str_replace( self::MARKER_PREFIX . 'NOPARSE', '', $text );
+
+        // $text = $this->handleMagicLinks( $text );
+        // $text = $this->finalizeHeadings( $text, $origText, $isMain );
+
+        return text;
+    }
+
+
+    /**
+	 * Callback from the Sanitizer for expanding items found in HTML attribute
+	 * values, so they can be safely tested and escaped.
+	 *
+	 * @param string &$text
+	 * @param bool|PPFrame $frame
+	 * @return string
+	 */
+	attributeStripCallback(text, frame = false) {
+        //$text = $this->replaceVariables( $text, $frame );
+        //$text = $this->mStripState->unstripBoth( $text );
+		return text;
+	}
+
 
     handleTables(text) {
         let out = '';
@@ -8,7 +69,6 @@ class MWParser {
         const tr_attributes = []; // history of tr attributes
         const has_opened_tr = []; // Did this table open a <tr> element?
         let indent_level = 0; // poziom zagnieżdzenia tabeli
-
 
         text.split(/\r?\n/).forEach(line => {
             line = line.trim();

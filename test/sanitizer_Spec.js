@@ -40,17 +40,27 @@ describe('Test Sanitizer.decodeTagAttributes', function() {
             class: 'wikitable',
             style: 'width: 100%;'
         });
+    });
 
-        result = Sanitizer.decodeTagAttributes(`single_quote='  luctus cursus risus  ' no_quote=lorem no_value`);
+    it('single quote i no quote args', function() {
+        let result = Sanitizer.decodeTagAttributes(`single_quote='  luctus cursus risus  ' no_quote=lorem no_value`);
         expect(result).toEqual({
             single_quote: 'luctus cursus risus',
             no_quote: 'lorem',
             no_value: ''
         });
+    });
 
-        result = Sanitizer.decodeTagAttributes(`invalid_name*='luctus cursus risus' UPPER_CASE_NAME="lorem"`);
+    it('upper case names to lower case', function() {
+        let result = Sanitizer.decodeTagAttributes(`UPPER_CASE_NAME="lorem"`);
         expect(result).toEqual({
             upper_case_name: 'lorem'
+        });
+    });
+
+    it('invalid args names should not pass', function() {
+        let result = Sanitizer.decodeTagAttributes(`invalid_name*='luctus cursus risus'`);
+        expect(result).toEqual({
         });
     });
 });
@@ -94,8 +104,10 @@ describe('Test Sanitizer.validateTagAttributes()', function() {
             class: 'wikitable',
             style: 'width: 100%;'
         });
+    });
 
-        result = Sanitizer.validateTagAttributes({
+    it('xml namespaces should pass', function() {
+        let result = Sanitizer.validateTagAttributes({
             'xmlns:lorem': 'ipsum',
             'xmlns:ipsum': 'javascript:',
             'xmlns:dolor': 'vbscript:',
@@ -103,8 +115,10 @@ describe('Test Sanitizer.validateTagAttributes()', function() {
         expect(result).toEqual({
             'xmlns:lorem': 'ipsum',
         });
+    });
 
-        result = Sanitizer.validateTagAttributes({
+    it('only valid data attrs should pass', function() {
+        let result = Sanitizer.validateTagAttributes({
             'data-lorem': 'ipsum',
             'data-ooui': 'lorem ipsum',
             'data-mw': 'lorem ipsum',
@@ -118,45 +132,54 @@ describe('Test Sanitizer.validateTagAttributes()', function() {
 
 
 describe('Test Sanitizer.validateAttributes()', function() {
+    beforeAll(function() {
+        this.whitelist = Sanitizer.attributeWhitelistInternal('tr');
+    });
+
     it('basic tests', function() {
-        const whitelist = Sanitizer.attributeWhitelistInternal('tr');
         let result = Sanitizer.validateAttributes({
             class: 'wikitable',
             style: 'width: 100%;'
-        }, whitelist);
+        }, this.whitelist);
         expect(result).toEqual({
             class: 'wikitable',
             style: 'width: 100%;'
         });
+    });
 
-        result = Sanitizer.validateAttributes({
+    it('xml namespaces should pass', function() {
+        let result = Sanitizer.validateAttributes({
             'xmlns:lorem': 'ipsum',
             'xmlns:ipsum': 'javascript:',
             'xmlns:dolor': 'vbscript:',
-        }, whitelist);
+        }, this.whitelist);
         expect(result).toEqual({
             'xmlns:lorem': 'ipsum',
         });
+    });
 
-        result = Sanitizer.validateAttributes({
+    it('MW restricted data attrs should not pass', function() {
+        let result = Sanitizer.validateAttributes({
             'data-lorem': 'ipsum',
             'data-ooui': 'lorem ipsum',
             'data-mw': 'lorem ipsum',
             'data-parsoid': 'lorem ipsum',
-        }, whitelist);
+        }, this.whitelist);
         expect(result).toEqual({
             'data-lorem': 'ipsum',
         });
+    });
 
-        result = Sanitizer.validateAttributes({
+    it('only known URI protocols should pass', function() {
+        let result = Sanitizer.validateAttributes({
             'id': 'tes id - aaa',
-            'style': ' width: 100%; ',
+            'style': 'width: 100%; ',
             'href': 'http://lorem.ipsum.com',
             'src': 'lorem://lorem.ipsum.com'
-        }, [...whitelist, 'href', 'src']);
+        }, [...this.whitelist, 'href', 'src']);
         expect(result).toEqual({
             id: 'tes_id_-_aaa',
-            style: ' width: 100%; ',
+            style: 'width: 100%; ',
             href: 'http://lorem.ipsum.com'
         });
     });
@@ -204,14 +227,18 @@ describe('Test Sanitizer.checkCss()', function() {
 
 
 describe('Test Sanitizer.normalizeCss()', function() {
-    it('basic tests', function() {
+    it('sqould replace entities', function() {
         let result = Sanitizer.normalizeCss('&amp;');
         expect(result).toEqual('&');
+    });
 
-        result = Sanitizer.normalizeCss('\\n\\"\\\'\\');
+    it('should cut some chars', function() {
+        let result = Sanitizer.normalizeCss('\\n\\"\\\'\\');
         expect(result).toEqual('');
+    });
 
-        result = Sanitizer.normalizeCss('width: /* lorem ipsum */ 100%');
+    it('should not pass comments', function() {
+        let result = Sanitizer.normalizeCss('width: /* lorem ipsum */ 100%');
         expect(result).toEqual('width:  100%');
     });
 });
@@ -231,3 +258,77 @@ describe('Test Sanitizer.escapeIdReferenceList()', function() {
         expect(result).toEqual('Lorem ipsum dolor sit');
     });
 });
+
+
+describe('Test Sanitizer.removeHTMLtags()', function() {
+    it('div with params should pass', function() {
+        let result = Sanitizer.removeHTMLtags(`Lorem ipsum <div style="width: 100%;" class='single quote'>dolor sit</div>amet`);
+        expect(result).toEqual('Lorem ipsum <div style="width: 100%;" class="single quote">dolor sit</div>amet');
+    });
+
+    it('invalid / dangerous params should not pass', function() {
+        let result = Sanitizer.removeHTMLtags(`<div loremparam="lorem ipsum" onclick="javascript:alert('aaa')">dolor sit</div>`);
+        expect(result).toEqual('<div>dolor sit</div>');
+    });
+
+    it('div without end should be ended', function() {
+        let result = Sanitizer.removeHTMLtags(`Lorem ipsum <div>dolor sit amet`);
+        expect(result).toEqual('Lorem ipsum <div>dolor sit amet</div>\n');
+    });
+
+    it('a tag should not pass', function() {
+        let result = Sanitizer.removeHTMLtags(`Lorem ipsum <a href="http://lorem.com">dolor</a> sit amet`);
+        expect(result).toEqual('Lorem ipsum &lt;a href="http://lorem.com"&gt;dolor&lt;/a&gt; sit amet');
+    });
+
+    it('cdata section should not pass', function() {
+        let result = Sanitizer.removeHTMLtags(`Lorem ipsum <![CDATA[dolor]]> sit amet`);
+        expect(result).toEqual('Lorem ipsum &lt;![CDATA[dolor]]&gt; sit amet');
+    });
+
+    it('end tag without opening tag should not pass', function() {
+        let result = Sanitizer.removeHTMLtags(`Lorem ipsum </div> sit amet`);
+        expect(result).toEqual('Lorem ipsum &lt;/div&gt; sit amet');
+    });
+
+    it('invalid close tag', function() {
+        let result = Sanitizer.removeHTMLtags('<hr></hr>');
+        expect(result).toEqual('<hr>&lt;/hr&gt;');
+    });
+});
+
+
+describe('Test Sanitizer.removeHTMLcomments()', function() {
+    it('basic tests', function() {
+        let result = Sanitizer.removeHTMLcomments('Lorem ipsum <!--dolor sit amet-->, consectetur adipiscing <!--elit');
+        expect(result).toEqual('Lorem ipsum\n, consectetur adipiscing');
+    });
+});
+
+
+describe('Test Sanitizer.getRecognizedTagData()', function() {
+    it('basic tests', function() {
+        let result = Sanitizer.getRecognizedTagData();
+        expect(result).toEqual(jasmine.any(Object));
+    });
+});
+
+
+describe('Test Sanitizer.validateTag()', function() {
+    it('valid meta and link tags', function() {
+        let result = Sanitizer.validateTag("itemprop='lorem' content='ipsum'", 'meta');
+        expect(result).toBeTruthy();
+
+        result = Sanitizer.validateTag("itemprop='lorem' href='ipsum'", 'link');
+        expect(result).toBeTruthy();
+    });
+
+    it('invalid meta and link tags', function() {
+        let result = Sanitizer.validateTag("lorem='ipsum'", 'meta');
+        expect(result).toBeFalsy();
+
+        result = Sanitizer.validateTag("lorem='ipsum'", 'link');
+        expect(result).toBeFalsy();
+    });
+});
+
