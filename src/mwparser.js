@@ -1,3 +1,36 @@
+/**
+ * MediaWiki parser and converter.
+ *
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Jacek Płochocki <jplochocki@op.pl>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+
+/**
+ * Base class for MediaWiki parser.
+ *
+ * @class MWParser
+ */
 class MWParser {
     internalParse(text) {
         // $isMain = true, $frame = false
@@ -47,20 +80,26 @@ class MWParser {
 
 
     /**
-	 * Callback from the Sanitizer for expanding items found in HTML attribute
-	 * values, so they can be safely tested and escaped.
-	 *
-	 * @param string &$text
-	 * @param bool|PPFrame $frame
-	 * @return string
-	 */
-	attributeStripCallback(text, frame = false) {
+     * Callback from the Sanitizer for expanding items found in HTML attribute
+     * values, so they can be safely tested and escaped.
+     *
+     * @param string &$text
+     * @param bool|PPFrame $frame
+     * @return string
+     */
+    attributeStripCallback(text, frame = false) {
         //$text = $this->replaceVariables( $text, $frame );
         //$text = $this->mStripState->unstripBoth( $text );
-		return text;
-	}
+        return text;
+    }
 
 
+    /**
+     * Parse the wiki syntax used to render tables.
+     *
+     * @param string $text
+     * @return string
+     */
     handleTables(text) {
         let out = '';
         const td_history = []; // Is currently a td tag open?
@@ -68,12 +107,12 @@ class MWParser {
         const tr_history = []; // Is currently a tr tag open?
         const tr_attributes = []; // history of tr attributes
         const has_opened_tr = []; // Did this table open a <tr> element?
-        let indent_level = 0; // poziom zagnieżdzenia tabeli
+        let indent_level = 0; // table indent level
 
         text.split(/\r?\n/).forEach(line => {
             line = line.trim();
 
-            // pusta linia uwzględniana w wyniku
+            // add empty lines
             if(line == '') {
                 out += line + '\n';
                 return;
@@ -83,11 +122,9 @@ class MWParser {
             const first_two = line.substr(0, 2);
             let matches = /^(:*)\s*\{\|(.*)$/.exec(line);
 
-            if(matches) {
+            if(matches) { // is this start of new table?
                 // matches = ['{|class="wikitable" style="width: 100%;"', '', 'class="wikitable" style="width: 100%;"']
-
-                // sprawdzamy, czy to początek nowej tabeli
-                indent_level = matches[1].length; // wcięcia (: dla kolejnych poziomów)
+                indent_level = matches[1].length;
 
                 // FIXME $attributes = $this->mStripState->unstripBoth( $matches[2] );
                 let attributes = matches[2];
@@ -101,11 +138,11 @@ class MWParser {
                 tr_attributes.push('')
                 has_opened_tr.push(false);
             }
-            else if(td_history.length == 0) { // brak otwartego td - nic nie robimy
+            else if(td_history.length == 0) { // outside of td - do nothing
                 out += line + '\n';
                 return;
             }
-            else if(first_two == '|}') { // koniec tabeli
+            else if(first_two == '|}') { // table end
                 line = '</table>' + line.substr(2);
                 const last_tag = last_tag_history.pop();
 
@@ -123,9 +160,8 @@ class MWParser {
                 if(indent_level > 0)
                     line = line.rtrim() + '</dd></dl>'.repeat(indent_level)
             }
-            else if (first_two === '|-') { // linia (tr) tabelki
+            else if (first_two === '|-') { // table row
                 line = line.replace(/^\|-/, '');
-                //preg_replace( '#^\|-+#', '', $line );
 
                 //Whats after the tag is now only attributes
                 // FIXME $attributes = $this->mStripState->unstripBoth( $line );
@@ -158,9 +194,8 @@ class MWParser {
                     line = line.substr(1);
 
                 // Implies both are valid for table headings.
-                if(first_character == '!') {
-                    //FIXME line = StringUtils::replaceMarkup( '!!', '||', $line );
-                }
+                if(first_character == '!')
+                    line = StringUtils.replaceMarkup('!!', '||', line);
 
                 line.split('||').forEach(cell => {
                     let previous = '';
