@@ -208,6 +208,21 @@ class Sanitizer {
 
 
     /**
+     * Gets all valid protocols schemes
+     *
+     * @return String[]
+     */
+    static protocolSchemes() {
+        return [
+            'bitcoin:', 'ftp://', 'ftps://', 'geo:', 'git://', 'gopher://', 'http://',
+            'https://', 'irc://', 'ircs://', 'magnet:', 'mailto:', 'mms://', 'news:',
+            'nntp://', 'redis://', 'sftp://', 'sip:', 'sips:', 'sms:', 'ssh://',
+            'svn://', 'tel:', 'telnet://', 'urn:', 'worldwind://', 'xmpp:', '//'
+        ];
+    }
+
+
+    /**
      * Take an Object(attribute name: value) and normalize or discard
      * illegal values for the given whitelist.
      *
@@ -217,12 +232,7 @@ class Sanitizer {
      * @return Object
      */
     static validateAttributes(attribs, whitelist) {
-        const protocols = [
-            'bitcoin:', 'ftp://', 'ftps://', 'geo:', 'git://', 'gopher://', 'http://',
-            'https://', 'irc://', 'ircs://', 'magnet:', 'mailto:', 'mms://', 'news:',
-            'nntp://', 'redis://', 'sftp://', 'sip:', 'sips:', 'sms:', 'ssh://',
-            'svn://', 'tel:', 'telnet://', 'urn:', 'worldwind://', 'xmpp:', '//'
-        ];
+        const protocols = Sanitizer.protocolSchemes();
         const hrefExp = new RegExp('^(' + protocols.join('|') + ')', 'i');
         const EVIL_URI_PATTERN = /(^|\s|\*\/\s*)(javascript|vbscript)([^\w]|$)/i;
         const XMLNS_ATTRIBUTE_PATTERN = /^xmlns:[:A-Z_a-z-.0-9]+$/;
@@ -807,5 +817,21 @@ class Sanitizer {
                 return false;
         }
         return true;
+    }
+
+
+    /**
+     * Decode any character references, numeric or named entities,
+     * in the next and normalize the resulting string. (T16952)
+     *
+     * This is useful for page titles, not for text to be displayed,
+     * MediaWiki allows HTML entities to escape normalization as a feature.
+     *
+     * @param string $text Already normalized, containing entities
+     * @return string Still normalized, without entities
+     */
+    static decodeCharReferencesAndNormalize(text) {
+        return he.decode(text); // FIXME
+        // MediaWikiServices::getInstance()->getContentLanguage()->normalize( $text );
     }
 };

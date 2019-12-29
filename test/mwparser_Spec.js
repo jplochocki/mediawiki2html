@@ -42,7 +42,7 @@ describe('Testy handleTables()', function() {
 |ccc2
 |}
         `
-        const par = new MWParser()
+        const par = new MWParser();
         const out = par.handleTables(testTable);
 
     });
@@ -52,6 +52,14 @@ describe('Testy handleTables()', function() {
 });
 
 
+describe('Test ', function() {
+    it('basic tests', function() {
+        const testText = `Lorem [[ns:ipsum]] dolor [[sit|lorem]]amet, consectetur [[adipiscing elit`;
+        const par = new MWParser();
+        let result = par.handleInternalLinks(testText);
+        //console.log('result', result);
+    });
+});
 
 
 

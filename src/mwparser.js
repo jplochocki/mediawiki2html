@@ -279,4 +279,82 @@ class MWParser {
         return out;
     }
 
+
+    /**
+     * Process [[ ]] wikilinks (rewritten handleInternalLinks2)
+     *
+     * @param String text
+     * @return
+     */
+    handleInternalLinks(text) {
+        const tc = Title.legalChars() + '#%'; // the % is needed to support urlencoded titles as well
+        const e1 = new RegExp(`^([${ tc }]+)(?:\\|(.+?))?]](.*)\$`, ''); // Match a link having the form [[namespace:link|alternate]]trail
+        const e1_img = new RegExp(`^([${ tc }]+)\\|(.*)\$`, ''); // Match cases where there is no "]]", which might still be images
+
+        // # split the entire text string on occurrences of [[
+        const bits = text.split('[[');
+        let out = bits.shift(); // first bit don't have [[
+
+        // Loop for each link
+        bits.forEach(bit => {
+            let might_be_img = false;
+            let m = null;
+            let txt = null, trail = null;
+            if((m = e1.exec(bit))) { // page with normal text or alt
+                txt = m[2];
+                // If we get a ] at the beginning of $m[3] that means we have a link that's something like:
+                // [[Image:Foo.jpg|[http://example.com desc]]] <- having three ] in a row fucks up,
+                // the real problem is with the $e1 regex
+                // See T1500.
+                // Still some problems for cases where the ] is meant to be outside punctuation,
+                // and no image is in sight. See T4095.
+                if(txt != '' && m[3][0] == ']' && txt.indexOf('[') != -1) {
+                    txt += ']'; // so that handleExternalLinks($text) works later
+                    m[3] = m[3].substr(1);
+                }
+
+                trail = m[3];
+            }
+            else if((m = e1_img.exec(bit))) { // Invalid, but might be an image with a link in its caption
+                might_be_img = true;
+                txt = m[2];
+                trail = '';
+            }
+            else { // Invalid form; output directly
+                out +=  '[[' + bit; // $s .= $prefix . '[[' . $line;
+                return;
+            }
+
+            // fix up urlencoded title texts
+            if(m[1].indexOf('%') != -1)
+                // Should anchors '#' also be rejected?
+                m[1] = encodeURIComponent(m[1].replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+
+            let origLink = m[1].replace(/^[ ]*/, '');
+            //console.log(bit, '----', origLink, txt, trail);
+
+            // Don't allow internal links to pages containing
+            // PROTO: where PROTO is a valid URL protocol; these
+            // should be external links.
+            if(new RegExp('^(?:' + Sanitizer.protocolSchemes() + ')').test(origLink)) {
+                out +=  '[[' + bit; // $s .= $prefix . '[[' . $line;
+                return;
+            }
+
+            let link = origLink;
+
+            let nt = Title.newFromText(link);
+            if(!nt) {
+                out +=  '[[' + bit; // $s .= $prefix . '[[' . $line;
+                return;
+            }
+
+            let ns = nt.getNamespace();
+            let iw = nt.getInterwiki();
+
+            // ...
+        });
+
+        return out;
+    }
 };

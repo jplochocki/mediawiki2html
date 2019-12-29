@@ -41,7 +41,7 @@ class StringUtils {
      * @return string
      */
     static replaceMarkup(search, replace, text) {
-        const placeholder = "\x00kk";
+        const placeholder = "\x00";
 
         // Remove placeholder instances
         text = text.replace(new RegExp(StringUtils.preg_quote(placeholder), 'g'), '');
