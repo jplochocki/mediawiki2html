@@ -30,23 +30,25 @@
 class Title {
     constructor() {
         // valid namespace consts
-        Title.NS_MAIN = 0;
-        Title.NS_TALK = 1;
-        Title.NS_USER = 2;
-        Title.NS_USER_TALK = 3;
-        Title.NS_PROJECT = 4;
-        Title.NS_PROJECT_TALK = 5;
-        Title.NS_FILE = 6;
-        Title.NS_FILE_TALK = 7;
-        Title.NS_MEDIAWIKI = 8;
-        Title.NS_MEDIAWIKI_TALK = 9;
-        Title.NS_TEMPLATE = 10;
-        Title.NS_TEMPLATE_TALK = 11;
-        Title.NS_HELP = 12;
-        Title.NS_HELP_TALK = 13;
-        Title.NS_CATEGORY = 14;
-        Title.NS_CATEGORY_TALK = 15;
-        Title.NS_SPECIAL = -1;
+        if(Title.NS_MAIN === undefined) {
+            Title.NS_MAIN = 0;
+            Title.NS_TALK = 1;
+            Title.NS_USER = 2;
+            Title.NS_USER_TALK = 3;
+            Title.NS_PROJECT = 4;
+            Title.NS_PROJECT_TALK = 5;
+            Title.NS_FILE = 6;
+            Title.NS_FILE_TALK = 7;
+            Title.NS_MEDIAWIKI = 8;
+            Title.NS_MEDIAWIKI_TALK = 9;
+            Title.NS_TEMPLATE = 10;
+            Title.NS_TEMPLATE_TALK = 11;
+            Title.NS_HELP = 12;
+            Title.NS_HELP_TALK = 13;
+            Title.NS_CATEGORY = 14;
+            Title.NS_CATEGORY_TALK = 15;
+            Title.NS_SPECIAL = -1;
+        }
 
         // valid namespace names
         // FIXME inne języki
@@ -55,7 +57,7 @@ class Title {
         this.namespaceNames['en'] = {
             'Media': Title.NS_MEDIA,
             'Special': Title.NS_SPECIAL,
-            '': Title.NS_MAIN,
+            //'': Title.NS_MAIN,
             'Talk': Title.NS_TALK,
             'User': Title.NS_USER,
             'User_talk': Title.NS_USER_TALK,
@@ -97,6 +99,7 @@ class Title {
             'Dyskusja_kategorii': Title.NS_CATEGORY_TALK
         };
 
+        this.validInterwikiNames = [];
 
         this.mNamespace = Title.NS_MAIN;
         this.mDefaultNamespace = Title.NS_MAIN;
@@ -109,7 +112,7 @@ class Title {
      * Create a new Title from text, such as what one would find in a link. De-
      * codes any HTML entities in the text.
      */
-    static newFromText(text, defaultNamespace=Title.NS_MAIN ) {
+    static newFromText(text, defaultNamespace=Title.NS_MAIN) {
         if(!text)
             return null;
 
@@ -160,34 +163,44 @@ class Title {
         if(this.mDbkeyform != '' && this.mDbkeyform[0] == ':') {
             this.mNamespace = Title.NS_MAIN;
             this.mDbkeyform = this.mDbkeyform.substr(1); // remove the colon but continue processing
-            this.mDbkeyform.replace(/^_*/, ''); // remove any subsequent whitespace
+            this.mDbkeyform = this.mDbkeyform.replace(/^_*/, ''); // remove any subsequent whitespace
         }
-
-        if(this.mDbkeyform == '')
-            throw new Error('The requested page title is empty or contains only the name of a namespace.')
 
         // Namespace or interwiki prefix
         let m = null;
-        do {
-            if((m = /^(.+?)_*:_*(.*)$/g.exec(this.mDbkeyform))) {
-                let ns = this.getNsIndex(m[1]);
+        if((m = /^(.+?)_*:_*(.*)$/g.exec(this.mDbkeyform))) {
+            let ns = this.getNsIndex(m[1]);
 
-                if(ns !== false) {
-                    // Ordinary namespace
-                    this.mDbkeyform = m[2];
-                    this.mNamespace = ns;
+            if(ns !== false) {
+                // Ordinary namespace
+                this.mDbkeyform = m[2];
+                this.mNamespace = ns;
 
-                    // Talk:X pages - skipped
-                }
-                // interwiki - skipped
-
-                // If there's no recognized interwiki or namespace,
-                // then let the colon expression be part of the title.
+                // Talk:X pages - skipped
             }
-            break;
-        }
-        while (true);
+            else if(this.isValidInterwiki(m[1])) {
+                // Interwiki link
+                this.mDbkeyform = m[2];
+                this.mInterwiki = m[1];
 
+                // If there's an initial colon after the interwiki, that also
+                // resets the default namespace
+                if(this.mDbkeyform != '' && this.mDbkeyform[0] == ':') {
+                    this.mNamespace = Title.NS_MAIN;
+                    this.mDbkeyform = this.mDbkeyform.substr(1);
+                    this.mDbkeyform = this.mDbkeyform.replace(/^_*/, '');
+                }
+            }
+
+            // If there's no recognized interwiki or namespace,
+            // then let the colon expression be part of the title.
+        }
+
+        // non empty title only
+        if(this.mDbkeyform == '')
+            throw new Error('The requested page title is empty or contains only the name of a namespace.')
+
+        // fragment
         const fragment = this.mDbkeyform.indexOf('#');
         if(fragment != -1) {
             this.mFragment = this.mDbkeyform.substr(fragment + 1);
@@ -202,7 +215,46 @@ class Title {
         if((m = Title.getTitleInvalidRegex().exec(this.mDbkeyform)))
             throw new Error(`The requested page title contains invalid characters: "${ m[0] }".`);
 
-        // ...
+        // Pages with "/./" or "/../" appearing in the URLs will often be un-
+        // reachable due to the way web browsers deal with 'relative' URLs.
+        // Also, they conflict with subpage syntax.  Forbid them explicitly.
+        if(this.mDbkeyform.indexOf('.') != -1 && (
+                this.mDbkeyform == '.' || this.mDbkeyform == '..' || this.mDbkeyform.indexOf('./') == 0
+                || this.mDbkeyform.indexOf('../') == 0 || this.mDbkeyform.indexOf('/./') != -1
+                || this.mDbkeyform.indexOf(/../) != -1 || /\/\.$/.test(this.mDbkeyform)
+                || /\/\.\.$/.test(this.mDbkeyform)))
+            throw new Error('Title has relative path. Relative page titles (./, ../) are invalid, because they will often be unreachable when handled by user\'s browser.');
+
+        // Magic tilde sequences? Nu-uh!
+        if(this.mDbkeyform.indexOf('~~~') != -1)
+            throw new Error('The requested page title contains invalid magic tilde sequence (<nowiki>~~~</nowiki>).')
+
+        // Limit the size of titles to 255 bytes. This is typically the size of the
+        // underlying database field. We make an exception for special pages, which
+        // don't need to be stored in the database, and may edge over 255 bytes due
+        // to subpage syntax for long titles, e.g. [[Special:Block/Long name]]
+        const maxLength = this.mNamespace != Title.NS_SPECIAL ? 255 : 512;
+        if(this.mDbkeyform.length > maxLength)
+            throw new Error(`The requested page title is too long. It must be no longer than ${ maxLength } bytes in UTF-8 encoding.`)
+
+        // Normally, all wiki links are forced to have an initial capital letter so [[foo]]
+        // and [[Foo]] point to the same place.  Don't force it for interwikis, since the
+        // other site might be case-sensitive.
+        this.mDbkeyform = this.mDbkeyform[0].toUpperCase() + this.mDbkeyform.substr(1);
+
+        // Can't make a link to a namespace alone... "empty" local links can only be
+        // self-links with a fragment identifier.
+        if(this.mDbkeyform == '' && this.mInterwiki == '' && this.mNamespace != Title.NS_MAIN)
+            throw new Error('The requested page title is empty or contains only the name of a namespace.')
+
+        //  IPv6 usernames - skipped
+
+        // Any remaining initial :s are illegal.
+        if(this.mDbkeyform != '' && this.mDbkeyform[0] == ':')
+            throw new Error('The requested page title contains an invalid colon at the beginning.');
+
+        this.mUrlform = encodeURIComponent(this.mDbkeyform);
+        this.mTextform = this.mDbkeyform.replace(/_/g, ' ');
 
         return true;
     }
@@ -270,12 +322,21 @@ class Title {
     /**
      * Get the interwiki prefix
      *
-     * Use Title::isExternal to check if a interwiki is set
-     *
      * @return String Interwiki prefix
      */
     getInterwiki() {
         return this.mInterwiki;
+    }
+
+
+    /**
+     * Check if namespace is valid interwiki name
+     *
+     * @param String ns
+     * @return Boolean
+     */
+    isValidInterwiki(ns) {
+        return this.validInterwikiNames.includes(ns);
     }
 
 }
