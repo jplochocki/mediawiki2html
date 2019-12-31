@@ -277,6 +277,21 @@ class Title {
 
 
     /**
+     * Get the namespace text
+     *
+     * @param Number [ns] optional. If not set - this.mNamespace is used
+     * @return string|false
+     */
+    getNsText(ns=false) {
+        // FIXME - konfiguracja, wybór języka
+        const lang = 'en';
+        ns = ns === false ? this.mNamespace : ns;
+        let a = Object.entries(this.namespaceNames[lang]).find(([k, v]) => v == ns);
+        return a ? a[0] : false;
+    }
+
+
+    /**
      * Get a regex character class describing the legal characters in a link
      *
      * @return String
@@ -310,6 +325,16 @@ class Title {
 
 
     /**
+     * Get the main part with underscores
+     *
+     * @return string
+     */
+    getDBkey() {
+        return this.mDbkeyform;
+    }
+
+
+    /**
      * Get the namespace index, i.e. one of the NS_xxxx constants.
      *
      * @return Number
@@ -330,6 +355,16 @@ class Title {
 
 
     /**
+	 * Is this Title interwiki?
+	 *
+	 * @return bool
+	 */
+	isExternal() {
+		return this.mInterwiki != '';
+	}
+
+
+    /**
      * Check if namespace is valid interwiki name
      *
      * @param String ns
@@ -339,4 +374,172 @@ class Title {
         return this.validInterwikiNames.includes(ns);
     }
 
+
+    /**
+     * Get the Title fragment (i.e.\ the bit after the #) in text form
+     *
+     * @return string
+     */
+    getFragment() {
+        return this.mFragment;
+    }
+
+
+    /**
+     * Check if a Title fragment is set
+     *
+     * @return bool
+     */
+    hasFragment() {
+        return this.mFragment != '';
+    }
+
+
+    /**
+     * Compare with another title.
+     *
+     * @param Title title
+     * @return bool
+     */
+    equals(title) {
+        // Note: === is necessary for proper matching of number-like titles.
+        return this.mInterwiki == title.getInterwiki()
+            && this.mNamespace == title.getNamespace()
+            && this.mDbkeyform === title.getDBkey();
+    }
+
+
+    /**
+     * Get the prefixed title with spaces.
+     * This is the form usually used for display
+     *
+     * @return string The prefixed title, with spaces
+     */
+    getPrefixedText() {
+        let t = '';
+        if(this.isExternal())
+            t = this.mInterwiki + ':';
+
+        if(this.mNamespace != 0) {
+            let nsText = this.getNsText();
+            if(nsText === false)
+                // See T165149. Awkward, but better than erroneously linking to the main namespace.
+                nsText = this.getNsText(Title.NS_SPECIAL) + `:Badtitle/NS${ this.mNamespace }`;
+            t += nsText + ':';
+        }
+
+        t += this.mDbkeyform.replace(/_/g, ' ');
+        return t;
+    }
+
+
+    /**
+	 * Get the prefixed database key form
+	 *
+	 * @return string
+	 */
+    getPrefixedDBkey() {
+        return this.getPrefixedText().replace(/ /g, '_');
+	}
+
+
+    /**
+	 * Check if page exists
+	 *
+	 * @return bool
+	 */
+	exists() {
+        // FIXME config hook
+		return this.mDbkeyform != '' || this.hasFragment();
+    }
+
+
+    /**
+	 * Should links to this title be shown as potentially viewable (i.e. as
+	 * "bluelinks"), even if there's no record by this title in the page
+     * table?
+     *
+     * @return bool
+	 */
+	isAlwaysKnown() {
+		if(this.mInterwiki != '')
+			return true; // any interwiki link might be viewable, for all we know
+
+		switch(this.mNamespace) {
+            case Title.NS_MEDIA:
+			case Title.NS_FILE:
+				// FIXME
+				return true;
+			case Title.NS_SPECIAL:
+				// FIXME
+				return true;
+			case Title.NS_MAIN:
+				// selflink, possibly with fragment
+				return this.mDbkeyform == '';
+			case Title.NS_MEDIAWIKI:
+                // known system message
+                return true;
+			default:
+				return false;
+		}
+    }
+
+
+    /**
+	 * Does this title refer to a page that can (or might) be meaningfully
+	 * viewed?
+	 *
+	 * @return bool
+	 */
+	isKnown() {
+		return this.isAlwaysKnown() || this.exists();
+    }
+
+
+	/**
+	 * Get a URL that's the simplest URL that will be valid to link, locally,
+	 * to the current Title.  It includes the fragment, but does not include
+	 * the server unless action=render is used (or the link is external).  If
+	 * there's a fragment but the prefixed text is empty, we just return a link
+	 * to the fragment.
+	 *
+	 * The result obviously should not be URL-escaped, but does need to be
+	 * HTML-escaped if it's being output in HTML.
+	 *
+	 * @param string|string[] $query
+	 * @param bool $query2
+	 * @param string|int|bool $proto A PROTO_* constant on how the URL should be expanded,
+	 *                               or false (default) for no expansion
+	 * @see self::getLocalURL for the arguments.
+	 * @return string The URL
+	 */
+	getLinkURL(query = '', query2 = false, proto=false) {
+        // TODO
+    }
+
+
+    /**
+	 * Get a real URL referring to this title, with interwiki link and
+	 * fragment
+	 *
+	 * @param Object query
+     * @param String proto Protocol type to use in URL ('//' - relative, 'http://', 'https://')
+	 * @return string The URL
+	 */
+    getFullURL(query={}, proto='//') {
+        // reduce query to string
+        let qs = Object.entries(query).reduce((qs, [k, v]) => `${ qs }&${ encodeURIComponent(k) }=${ encodeURIComponent(v) }`, '');
+
+		// # Hand off all the decisions on urls to getLocalURL
+		// $url = $this->getLocalURL( $query );
+
+		// # Expand the url to make it a full url. Note that getLocalURL has the
+		// # potential to output full urls for a variety of reasons, so we use
+		// # wfExpandUrl instead of simply prepending $wgServer
+		// $url = wfExpandUrl( $url, $proto );
+
+		// # Finally, add the fragment.
+		// $url .= $this->getFragmentForURL();
+		// return $url;
+	}
 }

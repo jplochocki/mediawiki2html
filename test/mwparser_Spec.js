@@ -52,7 +52,7 @@ describe('Testy handleTables()', function() {
 });
 
 
-describe('Test ', function() {
+describe('Test MWParser.handleInternalLinks()', function() {
     it('basic tests', function() {
         const testText = `Lorem [[ns:ipsum]] dolor [[sit|lorem]]amet, consectetur [[adipiscing elit`;
         const par = new MWParser();
