@@ -28,7 +28,7 @@
 
 
 class Title {
-    constructor() {
+    constructor(parserConfig=null) {
         // valid namespace consts
         if(Title.NS_MAIN === undefined) {
             Title.NS_MAIN = 0;
@@ -50,6 +50,8 @@ class Title {
             Title.NS_SPECIAL = -1;
         }
 
+        this.parserConfig = parserConfig ? parserConfig : Title.defaultParserConfig;
+
         // valid namespace names
         // FIXME inne języki
         this.namespaceNames = {};
@@ -57,7 +59,6 @@ class Title {
         this.namespaceNames['en'] = {
             'Media': Title.NS_MEDIA,
             'Special': Title.NS_SPECIAL,
-            //'': Title.NS_MAIN,
             'Talk': Title.NS_TALK,
             'User': Title.NS_USER,
             'User_talk': Title.NS_USER_TALK,
@@ -99,12 +100,25 @@ class Title {
             'Dyskusja_kategorii': Title.NS_CATEGORY_TALK
         };
 
-        this.validInterwikiNames = [];
+        if(this.parserConfig.projectName) {
+            Object.values(this.namespaceNames).forEach(names => {
+                names[Title.NS_PROJECT] = names[Title.NS_PROJECT].replace('$1', this.parserConfig.projectName);
+                names[Title.NS_PROJECT_TALK] = names[Title.NS_PROJECT_TALK].replace('$1', this.parserConfig.projectName);
+            });
+        }
+        else { // no project name = don't resolve NS_PROJECT / NS_PROJECT_TALK names
+            Object.values(this.namespaceNames).forEach(names => {
+                delete names[Title.NS_PROJECT];
+                delete names[Title.NS_PROJECT_TALK];
+            });
+        }
 
         this.mNamespace = Title.NS_MAIN;
-        this.mDefaultNamespace = Title.NS_MAIN;
         this.mDbkeyform = null;
         this.mInterwiki = '';
+        this.mFragment = '';
+        this.mUrlform = '';
+        this.mTextform = '';
     }
 
 
@@ -113,19 +127,19 @@ class Title {
      * codes any HTML entities in the text.
      */
     static newFromText(text, defaultNamespace=Title.NS_MAIN) {
-        if(!text)
-            return null;
-
         // DWIM: Integers can be passed in here when page titles are used as array keys.
         if(typeof text != 'string' && typeof text != 'number')
-            throw new Error('text must be a string.');
+            throw new Error('Text must be a string.');
+
+        if(!text)
+            return null;
 
         // Convert things like &eacute; &#257; or &#x3017; into normalized (T16952) text
         const filteredText = Sanitizer.decodeCharReferencesAndNormalize(text);
 
         const t = new Title();
         t.mDbkeyform = filteredText.replace(/ /g, '_');
-        t.mDefaultNamespace = Number(defaultNamespace);
+        t.mNamespace = Number(defaultNamespace);
 
         t.secureAndSplit();
 
@@ -267,12 +281,8 @@ class Title {
      * @return Number|Boolean
      */
     getNsIndex(ns) {
-        // FIXME - konfiguracja, wybór języka
-        const lang = 'en';
-        let a = Object.keys(this.namespaceNames[lang]).find(k => k == ns);
-        if(a == undefined)
-            return false;
-        return this.namespaceNames[lang][a];
+        let a = Object.keys(this.namespaceNames[this.parserConfig.language]).find(k => k == ns);
+        return (a == undefined) ? false : this.namespaceNames[this.parserConfig.language][a];
     }
 
 
@@ -283,10 +293,8 @@ class Title {
      * @return string|false
      */
     getNsText(ns=false) {
-        // FIXME - konfiguracja, wybór języka
-        const lang = 'en';
         ns = ns === false ? this.mNamespace : ns;
-        let a = Object.entries(this.namespaceNames[lang]).find(([k, v]) => v == ns);
+        let a = Object.entries(this.namespaceNames[this.parserConfig.language]).find(([k, v]) => v == ns);
         return a ? a[0] : false;
     }
 
@@ -355,13 +363,13 @@ class Title {
 
 
     /**
-	 * Is this Title interwiki?
-	 *
-	 * @return bool
-	 */
-	isExternal() {
-		return this.mInterwiki != '';
-	}
+     * Is this Title interwiki?
+     *
+     * @return bool
+     */
+    isExternal() {
+        return this.mInterwiki != '';
+    }
 
 
     /**
@@ -371,7 +379,7 @@ class Title {
      * @return Boolean
      */
     isValidInterwiki(ns) {
-        return this.validInterwikiNames.includes(ns);
+        return this.parserConfig.validInterwikiNames.includes(ns);
     }
 
 
@@ -434,112 +442,87 @@ class Title {
 
 
     /**
-	 * Get the prefixed database key form
-	 *
-	 * @return string
-	 */
+     * Get the prefixed database key form
+     *
+     * @return string
+     */
     getPrefixedDBkey() {
         return this.getPrefixedText().replace(/ /g, '_');
-	}
-
-
-    /**
-	 * Check if page exists
-	 *
-	 * @return bool
-	 */
-	exists() {
-        // FIXME config hook
-		return this.mDbkeyform != '' || this.hasFragment();
     }
 
 
     /**
-	 * Should links to this title be shown as potentially viewable (i.e. as
-	 * "bluelinks"), even if there's no record by this title in the page
+     * Check if page exists
+     *
+     * @return bool
+     */
+    exists() {
+        if(this.mDbkeyform == '' && this.hasFragment())
+            return true;
+
+        return this.parserConfig.titleExists(this)
+    }
+
+
+    /**
+     * Should links to this title be shown as potentially viewable (i.e. as
+     * "bluelinks"), even if there's no record by this title in the page
      * table?
      *
      * @return bool
-	 */
-	isAlwaysKnown() {
-		if(this.mInterwiki != '')
-			return true; // any interwiki link might be viewable, for all we know
+     */
+    isAlwaysKnown() {
+        if(this.mInterwiki != '')
+            return true; // any interwiki link might be viewable, for all we know
 
-		switch(this.mNamespace) {
+        switch(this.mNamespace) {
             case Title.NS_MEDIA:
-			case Title.NS_FILE:
-				// FIXME
-				return true;
-			case Title.NS_SPECIAL:
-				// FIXME
-				return true;
-			case Title.NS_MAIN:
-				// selflink, possibly with fragment
-				return this.mDbkeyform == '';
-			case Title.NS_MEDIAWIKI:
-                // known system message
+            case Title.NS_FILE:
+            case Title.NS_SPECIAL:
+            case Title.NS_MEDIAWIKI:
                 return true;
-			default:
-				return false;
-		}
+            case Title.NS_MAIN:
+                // selflink, possibly with fragment
+                return this.mDbkeyform == '';
+            default:
+                return false;
+        }
     }
 
 
     /**
-	 * Does this title refer to a page that can (or might) be meaningfully
-	 * viewed?
-	 *
-	 * @return bool
-	 */
-	isKnown() {
-		return this.isAlwaysKnown() || this.exists();
-    }
-
-
-	/**
-	 * Get a URL that's the simplest URL that will be valid to link, locally,
-	 * to the current Title.  It includes the fragment, but does not include
-	 * the server unless action=render is used (or the link is external).  If
-	 * there's a fragment but the prefixed text is empty, we just return a link
-	 * to the fragment.
-	 *
-	 * The result obviously should not be URL-escaped, but does need to be
-	 * HTML-escaped if it's being output in HTML.
-	 *
-	 * @param string|string[] $query
-	 * @param bool $query2
-	 * @param string|int|bool $proto A PROTO_* constant on how the URL should be expanded,
-	 *                               or false (default) for no expansion
-	 * @see self::getLocalURL for the arguments.
-	 * @return string The URL
-	 */
-	getLinkURL(query = '', query2 = false, proto=false) {
-        // TODO
+     * Does this title refer to a page that can (or might) be meaningfully
+     * viewed?
+     *
+     * @return bool
+     */
+    isKnown() {
+        return this.isAlwaysKnown() || this.exists();
     }
 
 
     /**
-	 * Get a real URL referring to this title, with interwiki link and
-	 * fragment
-	 *
-	 * @param Object query
+     * Get a real URL referring to this title, with interwiki link query and
+     * fragment
+     *
+     * @param Object query
      * @param String proto Protocol type to use in URL ('//' - relative, 'http://', 'https://')
-	 * @return string The URL
-	 */
+     * @return string The URL
+     */
     getFullURL(query={}, proto='//') {
         // reduce query to string
         let qs = Object.entries(query).reduce((qs, [k, v]) => `${ qs }&${ encodeURIComponent(k) }=${ encodeURIComponent(v) }`, '');
 
-		// # Hand off all the decisions on urls to getLocalURL
-		// $url = $this->getLocalURL( $query );
+        // # Hand off all the decisions on urls to getLocalURL
+        // $url = $this->getLocalURL( $query );
 
-		// # Expand the url to make it a full url. Note that getLocalURL has the
-		// # potential to output full urls for a variety of reasons, so we use
-		// # wfExpandUrl instead of simply prepending $wgServer
-		// $url = wfExpandUrl( $url, $proto );
+        // # Expand the url to make it a full url. Note that getLocalURL has the
+        // # potential to output full urls for a variety of reasons, so we use
+        // # wfExpandUrl instead of simply prepending $wgServer
+        // $url = wfExpandUrl( $url, $proto );
 
-		// # Finally, add the fragment.
-		// $url .= $this->getFragmentForURL();
-		// return $url;
-	}
+        // # Finally, add the fragment.
+        // $url .= $this->getFragmentForURL();
+        // return $url;
+    }
 }

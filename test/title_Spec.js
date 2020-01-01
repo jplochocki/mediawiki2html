@@ -27,6 +27,10 @@
 
 
 describe('Test Title.secureAndSplit', function() {
+    beforeEach(function() {
+        this.parser = new MWParser(); // init constants and default config
+    });
+
     it('trim spaces (and _) from start and end', function() {
         let t = new Title();
         t.mDbkeyform = '   Lorem ipsum  ';
@@ -52,8 +56,11 @@ describe('Test Title.secureAndSplit', function() {
     });
 
     it('interwiki test', function() {
+        this.parser = new MWParser({
+            validInterwikiNames: ['pl']  // parser changes default config for title
+        });
         let t = new Title();
-        t.validInterwikiNames.push('pl')
+
         t.mDbkeyform = 'pl:Lorem:ipsum';
         t.secureAndSplit();
         expect(t.mNamespace).toEqual(Title.NS_MAIN);
@@ -197,5 +204,86 @@ describe('Test Title.secureAndSplit', function() {
         t.mDbkeyform = 'lorem:ipsum';
         t.secureAndSplit();
         expect(t.mDbkeyform).toEqual('Lorem:ipsum');
+    });
+});
+
+
+describe('Test Title.newFromText', function() {
+    beforeEach(function() {
+        this.parser = new MWParser(); // init constants and default config
+    });
+
+    it('basic tests', function() {
+        expect(() => {
+            Title.newFromText(false);
+        }).toThrowError(Error, 'Text must be a string.');
+
+        let t = Title.newFromText('lorem:ipsum');
+        expect(t.mDbkeyform).toEqual('Lorem:ipsum');
+    });
+});
+
+
+describe('Test Title.getNsIndex', function() {
+    it('basic tests', function() {
+        this.parser = new MWParser({language: 'en'});
+        let t = Title.newFromText('lorem:ipsum');
+        expect(t.getNsIndex('MediaWiki')).toEqual(Title.NS_MEDIAWIKI);
+        expect(t.getNsIndex('Category')).toEqual(Title.NS_CATEGORY);
+        expect(t.getNsIndex('User_talk')).toEqual(Title.NS_USER_TALK);
+
+        this.parser = new MWParser({language: 'pl'});
+        t = Title.newFromText('lorem:ipsum');
+        expect(t.getNsIndex('MediaWiki')).toEqual(Title.NS_MEDIAWIKI);
+        expect(t.getNsIndex('Kategoria')).toEqual(Title.NS_CATEGORY);
+        expect(t.getNsIndex('Dyskusja_użytkownika')).toEqual(Title.NS_USER_TALK);
+    });
+});
+
+
+describe('Test Title.getNsText', function() {
+    it('basic tests', function() {
+        this.parser = new MWParser({language: 'en'});
+        let t = Title.newFromText('lorem:ipsum');
+        expect(t.getNsText(Title.NS_MEDIAWIKI)).toEqual('MediaWiki');
+        expect(t.getNsText(Title.NS_CATEGORY)).toEqual('Category');
+        expect(t.getNsText(Title.NS_USER_TALK)).toEqual('User_talk');
+
+        this.parser = new MWParser({language: 'pl'});
+        t = Title.newFromText('lorem:ipsum');
+        expect(t.getNsText(Title.NS_MEDIAWIKI)).toEqual('MediaWiki');
+        expect(t.getNsText(Title.NS_CATEGORY)).toEqual('Kategoria');
+        expect(t.getNsText(Title.NS_USER_TALK)).toEqual('Dyskusja_użytkownika');
+    });
+});
+
+
+describe('Test getPrefixedText', function() {
+    beforeEach(function() {
+        this.parser = new MWParser(); // init constants and default config
+    });
+
+    it('basic tests', function() {
+        let t = Title.newFromText('lorem:ipsum');
+        expect(t.getPrefixedText()).toEqual('Lorem:ipsum');
+
+        t = Title.newFromText('lorem:ipsum');
+        expect(t.getPrefixedText()).toEqual('Lorem:ipsum');
+    });
+
+    it('interwiki tests', function() {
+        this.parser = new MWParser({
+            validInterwikiNames: ['pl']  // parser changes default config for title
+        });
+
+        let t = Title.newFromText('pl:lorem:ipsum');
+        expect(t.mInterwiki).toEqual('pl');
+        expect(t.getPrefixedText()).toEqual('pl:Lorem:ipsum');
+    });
+
+    it('namespace test', function() {
+        let t = Title.newFromText('Category:LoremIpsum');
+        expect(t.mNamespace).toEqual(Title.NS_CATEGORY);
+        expect(t.getPrefixedText()).toEqual('Category:LoremIpsum');
     });
 });
