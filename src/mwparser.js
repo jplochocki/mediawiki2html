@@ -32,7 +32,10 @@
  * @class MWParser
  */
 class MWParser {
-    constructor() {
+    constructor(config=null) {
+        this.config = new DefaultConfig(config);
+        Title.defaultParserConfig = this.config;
+
         this.mTitle = null;
 
         this.interwikiLinks = [];

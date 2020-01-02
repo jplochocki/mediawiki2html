@@ -258,7 +258,7 @@ describe('Test Title.getNsText', function() {
 });
 
 
-describe('Test getPrefixedText', function() {
+describe('Test Title.getPrefixedText', function() {
     beforeEach(function() {
         this.parser = new MWParser(); // init constants and default config
     });
@@ -285,5 +285,36 @@ describe('Test getPrefixedText', function() {
         let t = Title.newFromText('Category:LoremIpsum');
         expect(t.mNamespace).toEqual(Title.NS_CATEGORY);
         expect(t.getPrefixedText()).toEqual('Category:LoremIpsum');
+    });
+});
+
+
+describe('Test Title.getFullURL', function() {
+    it('basic tests', function() {
+        this.parser = new MWParser();
+        const t = Title.newFromText('Lorem:ipsum');
+        expect(t.getFullURL()).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
+        expect(t.getFullURL({action: 'edit'})).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
+        expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//en.wikipedia.org/w/index.php?action=edit&redlink=1&title=Lorem%3Aipsum');
+    });
+
+    it('interwiki changed test', function() {
+        this.parser = new MWParser({
+            validInterwikiNames: ['pl']  // parser changes default config for title
+        });
+
+        const t = Title.newFromText('pl:Lorem:ipsum');
+        expect(t.getFullURL()).toEqual('//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
+        expect(t.getFullURL({action: 'edit'})).toEqual('//pl.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
+        expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//pl.wikipedia.org/w/index.php?action=edit&redlink=1&title=Lorem%3Aipsum');
+    });
+});
+
+
+describe('Test Title.getEditURL', function() {
+    it('basic tests', function() {
+        this.parser = new MWParser();
+        const t = Title.newFromText('Lorem:ipsum');
+        expect(t.getEditURL()).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
     });
 });

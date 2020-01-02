@@ -30,6 +30,9 @@ class DefaultConfig {
     constructor(config=null) {
         this.language = 'en';
         this.projectName = '';
+        this.server = `$1${ this.language }.wikipedia.org$2`;
+        this.interwikiServer = `$1$3.wikipedia.org$2`;
+        this.articlePath = '/w/index.php$1';
         this.validInterwikiNames = [];
 
         // override default config with user defined
@@ -46,5 +49,19 @@ class DefaultConfig {
      */
     titleExists(title) {
         return true;
+    }
+
+
+    /**
+     * Overrides Title.getFullUrl if return truthy. Use for generate your own
+     * url for title.
+     *
+     * @param Title title
+     * @param URLSearchParams|Object|Array|String [query]
+     * @param String [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
+     * @return String
+     */
+    getFullUrl(title, query=null, proto='//') {
+        return '';
     }
 };

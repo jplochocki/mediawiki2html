@@ -421,11 +421,12 @@ class Title {
      * Get the prefixed title with spaces.
      * This is the form usually used for display
      *
+     * @param Boolean [skipInterwiki=false]
      * @return string The prefixed title, with spaces
      */
-    getPrefixedText() {
+    getPrefixedText(skipInterwiki=false) {
         let t = '';
-        if(this.isExternal())
+        if(!skipInterwiki && this.isExternal())
             t = this.mInterwiki + ':';
 
         if(this.mNamespace != 0) {
@@ -505,24 +506,52 @@ class Title {
      * Get a real URL referring to this title, with interwiki link query and
      * fragment
      *
-     * @param Object query
-     * @param String proto Protocol type to use in URL ('//' - relative, 'http://', 'https://')
+     * @param URLSearchParams|Object|Array|String [query]
+     * @param String [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
      * @return string The URL
      */
-    getFullURL(query={}, proto='//') {
+    getFullURL(query=null, proto='//') {
+        let url = this.parserConfig.getFullUrl(this, query, proto);
+        if(url)
+            return url;
+
+        // redirect to fragment only
+        if(this.mFragment != '' && this.mDbkeyform == '' && !query)
+            return '#' + this.mFragment;
+
         // reduce query to string
-        let qs = Object.entries(query).reduce((qs, [k, v]) => `${ qs }&${ encodeURIComponent(k) }=${ encodeURIComponent(v) }`, '');
+        if(!(query instanceof URLSearchParams))
+            query = new URLSearchParams(query ? query : '');
+        query.append('title', this.getPrefixedText(true))
+        query = query.toString();
+        if(query[0] != '?')
+            query = '?' + query;
 
-        // # Hand off all the decisions on urls to getLocalURL
-        // $url = $this->getLocalURL( $query );
+        // interwiki
+        let server = this.parserConfig.server;
+        if(this.isExternal())
+            server = this.parserConfig.interwikiServer.replace(/\$3/g, this.mInterwiki);
 
-        // # Expand the url to make it a full url. Note that getLocalURL has the
-        // # potential to output full urls for a variety of reasons, so we use
-        // # wfExpandUrl instead of simply prepending $wgServer
-        // $url = wfExpandUrl( $url, $proto );
+        // generate url
+        url = this.parserConfig.articlePath.replace(/\$1/g, query);
+        url = server.replace(/\$1/g, proto).replace(/\$2/g, url);
 
-        // # Finally, add the fragment.
-        // $url .= $this->getFragmentForURL();
-        // return $url;
+        if(this.mFragment != '')
+            url += '#' + this.mFragment;
+
+        return url;
+    }
+
+
+    /**
+     * Get the edit URL for this Title (if not interwiki)
+     *
+     * @return String
+     */
+    getEditURL() {
+        if(this.isExternal())
+            return '';
+
+        return this.getFullURL({action: 'edit'});
     }
 }
