@@ -834,4 +834,25 @@ class Sanitizer {
         return he.decode(text); // FIXME
         // MediaWikiServices::getInstance()->getContentLanguage()->normalize( $text );
     }
+
+
+    /**
+     * Simple escape HTML entities
+     */
+    static escapeHTML(unsafe) {
+        return unsafe.replace(/[&<>"']/g, function(m) {
+            switch (m) {
+                case '&':
+                    return '&amp;';
+                case '<':
+                    return '&lt;';
+                case '>':
+                    return '&gt;';
+                case '"':
+                    return '&quot;';
+                default:
+                    return '&#039;';
+            }
+        });
+    }
 };

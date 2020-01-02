@@ -62,7 +62,16 @@ describe('Test MWParser.handleInternalLinks()', function() {
 });
 
 
+describe('Test Parser.makeLinkObj', function() {
+    it('basic tests', function() {
+        const par = new MWParser();
+        let t = Title.newFromText('lorem:ipsum');
+        expect(par.makeLinkObj(t)).toEqual('<a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsum</a>');
 
 
-
-
+        let r = par.makeLinkObj(t, 'link title', {foo: 'bar'}, 'trail rest of text', 'prefix')
+        expect(r).toEqual(
+            '<a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?foo=bar&title=Lorem%3Aipsum">prefixlink titletrail</a> rest of text');
+        //console.log(r);
+    });
+});

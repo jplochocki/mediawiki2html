@@ -33,11 +33,9 @@
  */
 class MWParser {
     constructor(config=null) {
-        this.config = new DefaultConfig(config);
-        Title.defaultParserConfig = this.config;
+        this.parserConfig = new DefaultConfig(config);
 
-        this.mTitle = null;
-
+        this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
         this.interwikiLinks = [];
         this.internalLinks = [];
     }
@@ -302,12 +300,36 @@ class MWParser {
         const e1 = new RegExp(`^([${ tc }]+)(?:\\|(.+?))?]](.*)\$`, ''); // Match a link having the form [[namespace:link|alternate]]trail
         const e1_img = new RegExp(`^([${ tc }]+)\\|(.*)\$`, ''); // Match cases where there is no "]]", which might still be images
 
-        // # split the entire text string on occurrences of [[
+        // split the entire text string on occurrences of [[
         const bits = text.split('[[');
         let out = bits.shift(); // first bit don't have [[
 
+        // prefix
+        let prefix = '', first_prefix = false;
+        if(this.parserConfig.useLinkPrefixExtension) {
+            // Match the end of a line for a word that's not followed by whitespace,
+            // e.g. in the case of 'The Arab al[[Razi]]', 'al' will be matched
+            let m = /^((?:.*[^a-z]|))(.+)$/gu.exec(text); // FIXME more languages
+            // FIXME /^((?>.*[^a-z]|))(.+)$/
+            if(m)
+                first_prefix = m[2];
+        }
+
         // Loop for each link
         bits.forEach((bit, bitIdx) => {
+
+            if(this.parserConfig.useLinkPrefixExtension) {
+                // if ( preg_match( $e2, $s, $m ) ) {
+                //     list( , $s, $prefix ) = $m;
+                // } else {
+                //     $prefix = '';
+                // }
+                // first link
+                if(first_prefix) {
+                    prefix = first_prefix;
+                    first_prefix = false;
+                }
+            }
 
             let might_be_img = false;
             let m = null;
@@ -333,7 +355,7 @@ class MWParser {
                 trail = '';
             }
             else { // Invalid form; output directly
-                out +=  '[[' + bit; // $s .= $prefix . '[[' . $line;
+                out +=  prefix + '[[' + bit;
                 return;
             }
 
@@ -343,21 +365,19 @@ class MWParser {
                 m[1] = encodeURIComponent(m[1].replace(/</g, '&lt;').replace(/>/g, '&gt;'));
 
             let origLink = m[1].replace(/^[ ]*/, '');
-            //console.log(bit, '----', origLink, txt, trail);
 
             // Don't allow internal links to pages containing
             // PROTO: where PROTO is a valid URL protocol; these
             // should be external links.
             if(new RegExp('^(?:' + Sanitizer.protocolSchemes() + ')').test(origLink)) {
-                out +=  '[[' + bit; // $s .= $prefix . '[[' . $line;
+                out +=  prefix + '[[' + bit;
                 return;
             }
 
             let link = origLink;
-
-            let nt = Title.newFromText(link);
+            let nt = Title.newFromText(link, this.parserConfig);
             if(!nt) {
-                out +=  '[[' + bit; // $s .= $prefix . '[[' . $line;
+                out +=  prefix + '[[' + bit;
                 return;
             }
 
@@ -403,19 +423,18 @@ class MWParser {
                         // we couldn't find the end of this imageLink, so output it raw
                         // but don't ignore what might be perfectly normal links in the text we've examined
                         // FIXME $holders->merge( $this->handleInternalLinks2( $text ) );
-                        out += `[[${ link }|${ text }`; // "{$prefix}[[$link|$text"
+                        out += `${ prefix }[[${ link }|${ text }`;
                         // note: no $trail, because without an end, there *is* no trail
                         return;
                     }
                 }
                 else {
                     //it's not an image, so output it raw
-                    out += `[[${ link }|${ text }`; // "{$prefix}[[$link|$text"
+                    out += `${ prefix }[[${ link }|${ text }`;
                     // note: no $trail, because without an end, there *is* no trail
                     return;
                 }
             }
-            //console.log(noforce, txt);
 
             const wasblank = !txt;
             if(wasblank) {
@@ -434,23 +453,44 @@ class MWParser {
 
             // # Link not escaped by : , create the various objects
             if(noforce) {
-
                 if(ns == Title.NS_FILE) {
-                        if(wasblank)
-                            // if no parameters were passed, txt
-                            // becomes something like "File:Foo.png",
-                            // which we don't want to pass on to the
-                            // image generator
-                            txt = '';
-                        else {
-                            // recursively parse links inside the image caption
-                            // actually, this will parse them in any other parameters, too,
-                            // but it might be hard to fix that, and it doesn't matter ATM
-                        }
-                        // cloak any absolute URLs inside the image markup, so handleExternalLinks() won't touch them
-                        return;
-                    //}
+                    if(wasblank)
+                        // if no parameters were passed, txt
+                        // becomes something like "File:Foo.png",
+                        // which we don't want to pass on to the
+                        // image generator
+                        txt = '';
+                    else {
+                        // recursively parse links inside the image caption
+                        // actually, this will parse them in any other parameters, too,
+                        // but it might be hard to fix that, and it doesn't matter ATM
+                        // FIXME
+                        // $text = $this->handleExternalLinks( $text );
+                        // $holders->merge( $this->handleInternalLinks2( $text ) );
+                    }
+                    // cloak any absolute URLs inside the image markup, so handleExternalLinks() won't touch them
+                    // FIXME
+                    // $s .= $prefix . $this->armorLinksPrivate(
+                    // $this->makeImage( $nt, $text, $holders ) ) . $trail;
+                    return;
 
+
+                }
+                else if(ns == Title.NS_CATEGORY) {
+                    //Strip the whitespace Category links produce, see T2087
+
+                    // FIXME
+                    // $s = rtrim( $s . $prefix ) . $trail; # T2087, T87753
+                    // if ( $wasblank ) {
+                    //     $sortkey = $this->getDefaultSort();
+                    // } else {
+                    //     $sortkey = $text;
+                    // }
+                    // $sortkey = Sanitizer::decodeCharReferences( $sortkey );
+                    // $sortkey = str_replace( "\n", '', $sortkey );
+                    // $sortkey = $this->getTargetLanguage()->convertCategoryKey( $sortkey );
+                    // $this->mOutput->addCategory( $nt->getDBkey(), $sortkey );
+                    return;
                 }
             }
 
@@ -460,15 +500,21 @@ class MWParser {
                 return;
             }
 
+            // # NS_MEDIA is a pseudo-namespace for linking directly to a file
+            // if ( $ns == NS_MEDIA ) {
+            //  # Give extensions a chance to select the file revision for us
+            //  $options = [];
+            //  $descQuery = false;
+            //  # Fetch and register the file (file title may be different via hooks)
+            //  list( $file, $nt ) = $this->fetchFileAndTitle( $nt, $options );
+            //  # Cloak with NOPARSE to avoid replacement in handleExternalLinks
+            //  $s .= $prefix . $this->armorLinksPrivate(
+            //      Linker::makeMediaLinkFile( $nt, $file, $text ) ) . $trail;
+            //  continue;
+            // }
 
-            // Some titles, such as valid special pages or files in foreign repos, should
-            // be shown as bluelinks even though they're not included in the page table
-            if(iw == '' && nt.isAlwaysKnown()) {
-                //$this->mOutput->addLink( $nt );
-                //$s .= $this->makeKnownLinkHolderPrivate( $nt, $text, $trail, $prefix );
-            } else
-                // Links will be added to the output link list after checking
-                out += this.makeHolder(nt, txt, [], trail, ''); // $prefix
+            // add link to output
+            out += this.makeLinkObj(nt, txt, null, trail, prefix);
         });
 
         return out;
@@ -501,12 +547,12 @@ class MWParser {
 
 
     /**
-	 * Split a link trail, return the "inside" portion and the remainder of the trail
+     * Split a link trail, return the "inside" portion and the remainder of the trail
      * as a two-element array
      *
-	 * @param String trail
-	 * @return Array
-	 */
+     * @param String trail
+     * @return Array
+     */
     splitTrail(trail) {
         let inside = /^([a-z]+)(.*)$/gu.exec(trail); // FIXME more languages
         if(inside)
@@ -521,59 +567,44 @@ class MWParser {
     /**
      * Make link text (without link placeholder stage)
      *
-     *
+     * @param Title nt
+     * @param String [html='']
+     * @param URLSearchParams|String|Array|Object [query='']
+     * @param String [trail='']
+     * @param String [prefix='']
+     * @return String
      */
     makeLinkObj(nt, html='', query='', trail='', prefix='') {
-        let colour = '';
-        if(!nt.exists() || nt.getNamespace() == Title.NS_SPECIAL)
-			colour = 'new';
+        if(!(query instanceof URLSearchParams))
+            query = new URLSearchParams(query ? query : '');
 
-
-        // TODO
-    }
-
-
-    /**
-	 * Make a link placeholder. The text returned can be later resolved to a real link with
-	 * replaceLinkHolders(). This is done for two reasons: firstly to avoid further
-	 * parsing of interwiki links, and secondly to allow all existence checks and
-	 * article length checks (for stub links) to be bundled into a single query.
-     *
-     * Rewritten LinkHolderArray.makeHolder()
-     *
-	 * @param Title nt
-	 * @param String [text]
-     * @param Array [query]
-     * @param String [trail]
-	 * @param String [prefix]
-	 * @return string
-	 */
-	makeHolder(nt, text='', query=[], trail='', prefix='') {
-		if(!(nt instanceof Title))
-            // Fail gracefully
-			return `<!-- ERROR -->${ prefix }${ text }${ trail }`;
-
-        // Separate the link trail from the rest of the link
-        let inside = '';
-        [inside, trail] = this.splitTrail(trail);
-
-        let entry = {
-            'title': nt,
-            'text': `${ prefix }${ text }${ inside }`,
-            'pdbk': nt.getPrefixedDBkey(),
-        };
-        if(query.length)
-            entry['query'] = query;
-
-        if(nt.isExternal()) {
-            this.interwikiLinksu.push(entry);
-            return `<!--IWLINK'" ${ this.interwikiLinks.length -1 }-->${ trail }`;
-        } else {
-            let ns = nt.getNamespace();
-            this.internalLinks.push(entry);
-            return `<!--LINK'" ${ ns }:${ this.internalLinks.length }-->${ trail }`;
+        let classes = '';
+        if(!nt.exists() || nt.getNamespace() == Title.NS_SPECIAL) {
+            classes = 'new';
+            query.append('action', 'edit');
+            query.append('redlink', '1');
         }
-	}
+
+        if(!html)
+            html = he.encode(nt.getPrefixedText(), {useNamedReferences: true});
+
+        let attrs = {
+            'title': he.encode(nt.getPrefixedText(), {useNamedReferences: true}),
+            'href': nt.getFullURL(query, '//', /* skipFragment */ classes == 'new') // don't include fragment for broken links
+        };
+        if(classes)
+            attrs['class'] = classes;
+
+        attrs = Object.entries(attrs).reduce((txt, [name, value]) => {
+            name = (txt.length > 0 ? ' ' : '') + name;
+            if(typeof value == 'boolean')
+                return value ? txt + name : txt;
+            return txt + name + '="' + value + '"';
+        }, '');
+
+        let [inside, trail2] = this.splitTrail(trail);
+        return `<a ${ attrs }>${ prefix }${ html }${ inside }</a>${ trail2 }`;
+    }
 
 
     doQuotes(text) {

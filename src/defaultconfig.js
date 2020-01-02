@@ -29,7 +29,9 @@
 class DefaultConfig {
     constructor(config=null) {
         this.language = 'en';
+        this.useLinkPrefixExtension = false;
         this.projectName = '';
+        this.pageTitle = 'Main page';
         this.server = `$1${ this.language }.wikipedia.org$2`;
         this.interwikiServer = `$1$3.wikipedia.org$2`;
         this.articlePath = '/w/index.php$1';

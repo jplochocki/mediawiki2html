@@ -30,27 +30,28 @@
 class Title {
     constructor(parserConfig=null) {
         // valid namespace consts
-        if(Title.NS_MAIN === undefined) {
-            Title.NS_MAIN = 0;
-            Title.NS_TALK = 1;
-            Title.NS_USER = 2;
-            Title.NS_USER_TALK = 3;
-            Title.NS_PROJECT = 4;
-            Title.NS_PROJECT_TALK = 5;
-            Title.NS_FILE = 6;
-            Title.NS_FILE_TALK = 7;
-            Title.NS_MEDIAWIKI = 8;
-            Title.NS_MEDIAWIKI_TALK = 9;
-            Title.NS_TEMPLATE = 10;
-            Title.NS_TEMPLATE_TALK = 11;
-            Title.NS_HELP = 12;
-            Title.NS_HELP_TALK = 13;
-            Title.NS_CATEGORY = 14;
-            Title.NS_CATEGORY_TALK = 15;
-            Title.NS_SPECIAL = -1;
-        }
+        Title.NS_MAIN = 0;
+        Title.NS_TALK = 1;
+        Title.NS_USER = 2;
+        Title.NS_USER_TALK = 3;
+        Title.NS_PROJECT = 4;
+        Title.NS_PROJECT_TALK = 5;
+        Title.NS_FILE = 6;
+        Title.NS_FILE_TALK = 7;
+        Title.NS_MEDIAWIKI = 8;
+        Title.NS_MEDIAWIKI_TALK = 9;
+        Title.NS_TEMPLATE = 10;
+        Title.NS_TEMPLATE_TALK = 11;
+        Title.NS_HELP = 12;
+        Title.NS_HELP_TALK = 13;
+        Title.NS_CATEGORY = 14;
+        Title.NS_CATEGORY_TALK = 15;
+        Title.NS_SPECIAL = -1;
 
-        this.parserConfig = parserConfig ? parserConfig : Title.defaultParserConfig;
+        if(parserConfig instanceof DefaultConfig)
+            this.parserConfig = parserConfig;
+        else
+            this.parserConfig = new DefaultConfig(parserConfig);
 
         // valid namespace names
         // FIXME inne języki
@@ -125,8 +126,12 @@ class Title {
     /**
      * Create a new Title from text, such as what one would find in a link. De-
      * codes any HTML entities in the text.
+     *
+     * @param String text
+     * @param Object [parserConfig=null]
+     * @return Title
      */
-    static newFromText(text, defaultNamespace=Title.NS_MAIN) {
+    static newFromText(text, parserConfig=null) {
         // DWIM: Integers can be passed in here when page titles are used as array keys.
         if(typeof text != 'string' && typeof text != 'number')
             throw new Error('Text must be a string.');
@@ -137,9 +142,9 @@ class Title {
         // Convert things like &eacute; &#257; or &#x3017; into normalized (T16952) text
         const filteredText = Sanitizer.decodeCharReferencesAndNormalize(text);
 
-        const t = new Title();
+        const t = new Title(parserConfig);
         t.mDbkeyform = filteredText.replace(/ /g, '_');
-        t.mNamespace = Number(defaultNamespace);
+        t.mNamespace = Title.NS_MAIN;
 
         t.secureAndSplit();
 
@@ -431,9 +436,11 @@ class Title {
 
         if(this.mNamespace != 0) {
             let nsText = this.getNsText();
-            if(nsText === false)
+            if(nsText === false) {
                 // See T165149. Awkward, but better than erroneously linking to the main namespace.
                 nsText = this.getNsText(Title.NS_SPECIAL) + `:Badtitle/NS${ this.mNamespace }`;
+                console.log('aaaa', this.mDbkeyform);
+            }
             t += nsText + ':';
         }
 
@@ -508,9 +515,10 @@ class Title {
      *
      * @param URLSearchParams|Object|Array|String [query]
      * @param String [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
+     * @param Boolean [skipFragment=false]
      * @return string The URL
      */
-    getFullURL(query=null, proto='//') {
+    getFullURL(query=null, proto='//', skipFragment=false) {
         let url = this.parserConfig.getFullUrl(this, query, proto);
         if(url)
             return url;
@@ -536,7 +544,7 @@ class Title {
         url = this.parserConfig.articlePath.replace(/\$1/g, query);
         url = server.replace(/\$1/g, proto).replace(/\$2/g, url);
 
-        if(this.mFragment != '')
+        if(!skipFragment && this.mFragment != '')
             url += '#' + this.mFragment;
 
         return url;

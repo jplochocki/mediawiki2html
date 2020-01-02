@@ -27,10 +27,6 @@
 
 
 describe('Test Title.secureAndSplit', function() {
-    beforeEach(function() {
-        this.parser = new MWParser(); // init constants and default config
-    });
-
     it('trim spaces (and _) from start and end', function() {
         let t = new Title();
         t.mDbkeyform = '   Lorem ipsum  ';
@@ -56,10 +52,9 @@ describe('Test Title.secureAndSplit', function() {
     });
 
     it('interwiki test', function() {
-        this.parser = new MWParser({
+        let t = new Title({
             validInterwikiNames: ['pl']  // parser changes default config for title
         });
-        let t = new Title();
 
         t.mDbkeyform = 'pl:Lorem:ipsum';
         t.secureAndSplit();
@@ -209,10 +204,6 @@ describe('Test Title.secureAndSplit', function() {
 
 
 describe('Test Title.newFromText', function() {
-    beforeEach(function() {
-        this.parser = new MWParser(); // init constants and default config
-    });
-
     it('basic tests', function() {
         expect(() => {
             Title.newFromText(false);
@@ -226,14 +217,12 @@ describe('Test Title.newFromText', function() {
 
 describe('Test Title.getNsIndex', function() {
     it('basic tests', function() {
-        this.parser = new MWParser({language: 'en'});
-        let t = Title.newFromText('lorem:ipsum');
+        let t = Title.newFromText('lorem:ipsum', {language: 'en'});
         expect(t.getNsIndex('MediaWiki')).toEqual(Title.NS_MEDIAWIKI);
         expect(t.getNsIndex('Category')).toEqual(Title.NS_CATEGORY);
         expect(t.getNsIndex('User_talk')).toEqual(Title.NS_USER_TALK);
 
-        this.parser = new MWParser({language: 'pl'});
-        t = Title.newFromText('lorem:ipsum');
+        t = Title.newFromText('lorem:ipsum', {language: 'pl'});
         expect(t.getNsIndex('MediaWiki')).toEqual(Title.NS_MEDIAWIKI);
         expect(t.getNsIndex('Kategoria')).toEqual(Title.NS_CATEGORY);
         expect(t.getNsIndex('Dyskusja_użytkownika')).toEqual(Title.NS_USER_TALK);
@@ -243,14 +232,12 @@ describe('Test Title.getNsIndex', function() {
 
 describe('Test Title.getNsText', function() {
     it('basic tests', function() {
-        this.parser = new MWParser({language: 'en'});
-        let t = Title.newFromText('lorem:ipsum');
+        let t = Title.newFromText('lorem:ipsum', {language: 'en'});
         expect(t.getNsText(Title.NS_MEDIAWIKI)).toEqual('MediaWiki');
         expect(t.getNsText(Title.NS_CATEGORY)).toEqual('Category');
         expect(t.getNsText(Title.NS_USER_TALK)).toEqual('User_talk');
 
-        this.parser = new MWParser({language: 'pl'});
-        t = Title.newFromText('lorem:ipsum');
+        t = Title.newFromText('lorem:ipsum', {language: 'pl'});
         expect(t.getNsText(Title.NS_MEDIAWIKI)).toEqual('MediaWiki');
         expect(t.getNsText(Title.NS_CATEGORY)).toEqual('Kategoria');
         expect(t.getNsText(Title.NS_USER_TALK)).toEqual('Dyskusja_użytkownika');
@@ -259,10 +246,6 @@ describe('Test Title.getNsText', function() {
 
 
 describe('Test Title.getPrefixedText', function() {
-    beforeEach(function() {
-        this.parser = new MWParser(); // init constants and default config
-    });
-
     it('basic tests', function() {
         let t = Title.newFromText('lorem:ipsum');
         expect(t.getPrefixedText()).toEqual('Lorem:ipsum');
@@ -272,11 +255,7 @@ describe('Test Title.getPrefixedText', function() {
     });
 
     it('interwiki tests', function() {
-        this.parser = new MWParser({
-            validInterwikiNames: ['pl']  // parser changes default config for title
-        });
-
-        let t = Title.newFromText('pl:lorem:ipsum');
+        let t = Title.newFromText('pl:lorem:ipsum', {validInterwikiNames: ['pl']});
         expect(t.mInterwiki).toEqual('pl');
         expect(t.getPrefixedText()).toEqual('pl:Lorem:ipsum');
     });
@@ -291,7 +270,6 @@ describe('Test Title.getPrefixedText', function() {
 
 describe('Test Title.getFullURL', function() {
     it('basic tests', function() {
-        this.parser = new MWParser();
         const t = Title.newFromText('Lorem:ipsum');
         expect(t.getFullURL()).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
         expect(t.getFullURL({action: 'edit'})).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
@@ -299,11 +277,7 @@ describe('Test Title.getFullURL', function() {
     });
 
     it('interwiki changed test', function() {
-        this.parser = new MWParser({
-            validInterwikiNames: ['pl']  // parser changes default config for title
-        });
-
-        const t = Title.newFromText('pl:Lorem:ipsum');
+        const t = Title.newFromText('pl:Lorem:ipsum', {validInterwikiNames: ['pl']});
         expect(t.getFullURL()).toEqual('//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
         expect(t.getFullURL({action: 'edit'})).toEqual('//pl.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
         expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//pl.wikipedia.org/w/index.php?action=edit&redlink=1&title=Lorem%3Aipsum');
@@ -313,7 +287,6 @@ describe('Test Title.getFullURL', function() {
 
 describe('Test Title.getEditURL', function() {
     it('basic tests', function() {
-        this.parser = new MWParser();
         const t = Title.newFromText('Lorem:ipsum');
         expect(t.getEditURL()).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
     });
