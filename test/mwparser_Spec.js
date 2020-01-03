@@ -53,11 +53,124 @@ describe('Testy handleTables()', function() {
 
 
 describe('Test MWParser.handleInternalLinks()', function() {
-    it('basic tests', function() {
-        const testText = `Lorem [[ns:ipsum]] dolor [[sit|lorem]]amet, consectetur [[adipiscing elit`;
-        const par = new MWParser();
-        let result = par.handleInternalLinks(testText);
-        //console.log('result', result);
+    it('standard link tests', function() {
+        let par = new MWParser();
+        let result = par.handleInternalLinks(`Lorem [[Lorem:ipsum]] dolor`);
+
+        expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsum</a> dolor');
+        expect(par.internalLinks.length).toEqual(1);
+        expect(par.internalLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+
+        par = new MWParser();
+        result = par.handleInternalLinks(`Lorem [[Lorem:ipsum|Lorem ipsum]] dolor`);
+
+        expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem ipsum</a> dolor');
+        expect(par.internalLinks.length).toEqual(1);
+        expect(par.internalLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+    });
+
+    it('standard link with suffix test', function() {
+        let par = new MWParser();
+        let result = par.handleInternalLinks(`Lorem [[Lorem:ipsum]]amet dolor`);
+
+        expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsumamet</a> dolor');
+        expect(par.internalLinks.length).toEqual(1);
+        expect(par.internalLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+
+        par = new MWParser();
+        result = par.handleInternalLinks(`Lorem [[Lorem:ipsum|Lorem ipsum dolor]]amet dolor`);
+
+        expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem ipsum doloramet</a> dolor');
+        expect(par.internalLinks.length).toEqual(1);
+        expect(par.internalLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+    });
+
+    it('interwiki link tests', function() {
+        const cfg = {
+            validInterwikiNames: ['pl']
+        };
+        let par = new MWParser(cfg);
+        let result = par.handleInternalLinks(`Lorem [[Lorem:ipsum]] dolor. Maecenas [[pl:sagittis:libero]] eget ante venenatis`);
+
+        expect(result).toEqual(
+            'Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsum</a> dolor. '
+            + 'Maecenas <a title="pl:Sagittis:libero" href="//pl.wikipedia.org/w/index.php?title=Sagittis%3Alibero">pl:sagittis:libero</a> eget ante venenatis');
+        expect(par.internalLinks.length).toEqual(1);
+        expect(par.internalLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+
+        expect(par.interwikiLinks.length).toEqual(1);
+        expect(par.interwikiLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('pl:sagittis:libero', cfg).equals(par.interwikiLinks[0])).toBeTruthy();
+
+        par = new MWParser(cfg);
+        result = par.handleInternalLinks(`Lorem [[pl:Lorem:ipsum|Lorem ipsum]] dolor`);
+
+        expect(result).toEqual('Lorem <a title="pl:Lorem:ipsum" href="//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem ipsum</a> dolor');
+        expect(par.internalLinks.length).toEqual(0);
+
+        expect(par.interwikiLinks.length).toEqual(1);
+        expect(par.interwikiLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('pl:Lorem:ipsum', cfg).equals(par.interwikiLinks[0])).toBeTruthy();
+    });
+
+    it('interwiki link with suffix test', function() {
+        const cfg = {
+            validInterwikiNames: ['pl']
+        };
+        let par = new MWParser(cfg);
+        let result = par.handleInternalLinks(`Lorem [[pl:Lorem:ipsum]]amet dolor`);
+
+        expect(result).toEqual('Lorem <a title="pl:Lorem:ipsum" href="//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum">pl:Lorem:ipsumamet</a> dolor');
+        expect(par.internalLinks.length).toEqual(0);
+        expect(par.interwikiLinks.length).toEqual(1);
+        expect(par.interwikiLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('pl:Lorem:ipsum', cfg).equals(par.interwikiLinks[0])).toBeTruthy();
+
+        par = new MWParser(cfg);
+        result = par.handleInternalLinks(`Lorem [[pl:Lorem:ipsum|Lorem ipsum dolor]]amet dolor`);
+
+        expect(result).toEqual('Lorem <a title="pl:Lorem:ipsum" href="//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem ipsum doloramet</a> dolor');
+        expect(par.internalLinks.length).toEqual(0);
+        expect(par.interwikiLinks.length).toEqual(1);
+        expect(par.interwikiLinks[0] instanceof Title).toBeTruthy();
+        expect(Title.newFromText('pl:Lorem:ipsum', cfg).equals(par.interwikiLinks[0])).toBeTruthy();
+    });
+
+    it('cetegory links', function() {
+        let par = new MWParser();
+        let result = par.handleInternalLinks(`Lorem ipsum dolor sit amet. [[Category:LoremIpsum]] lorem ipsum.`);
+
+        expect(result).toEqual('Lorem ipsum dolor sit amet. lorem ipsum.');
+        expect(par.internalLinks.length).toEqual(0);
+        expect(par.interwikiLinks.length).toEqual(0);
+        expect(par.categories.length).toEqual(1);
+
+        expect(par.categories[0].title.mNamespace).toEqual(Title.NS_CATEGORY);
+        expect(par.categories[0].sortkey).toEqual('');
+        expect(Title.newFromText('Category:LoremIpsum').equals(par.categories[0].title)).toBeTruthy();
+
+
+        par = new MWParser();
+        result = par.handleInternalLinks(`Lorem ipsum dolor sit amet. [[Category:LoremIpsum|lorem]] lorem ipsum.`);
+
+        expect(result).toEqual('Lorem ipsum dolor sit amet. lorem ipsum.');
+        expect(par.internalLinks.length).toEqual(0);
+        expect(par.interwikiLinks.length).toEqual(0);
+        expect(par.categories.length).toEqual(1);
+
+        expect(par.categories[0].title.mNamespace).toEqual(Title.NS_CATEGORY);
+        expect(par.categories[0].sortkey).toEqual('lorem');
+        expect(Title.newFromText('Category:LoremIpsum').equals(par.categories[0].title)).toBeTruthy();
+    });
+
+    it('images basic tests', function() {
+        let par = new MWParser();
+        let result = par.handleInternalLinks(`Lorem ipsum [[File:dolor.png|150x150px|center|left|top|thumb|opis obrazka]]lorem ipsum.`);
     });
 });
 

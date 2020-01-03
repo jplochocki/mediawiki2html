@@ -38,6 +38,7 @@ class MWParser {
         this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
         this.interwikiLinks = [];
         this.internalLinks = [];
+        this.categories = [];
     }
 
 
@@ -317,7 +318,7 @@ class MWParser {
 
         // Loop for each link
         bits.forEach((bit, bitIdx) => {
-
+            // prefix - cd.
             if(this.parserConfig.useLinkPrefixExtension) {
                 // if ( preg_match( $e2, $s, $m ) ) {
                 //     list( , $s, $prefix ) = $m;
@@ -439,7 +440,7 @@ class MWParser {
             const wasblank = !txt;
             if(wasblank) {
                 txt = link;
-                if(noforce)
+                if(!noforce)
                     // Strip off leading ':'
                     txt = txt.substr(1);
             }
@@ -464,44 +465,37 @@ class MWParser {
                         // recursively parse links inside the image caption
                         // actually, this will parse them in any other parameters, too,
                         // but it might be hard to fix that, and it doesn't matter ATM
-                        // FIXME
-                        // $text = $this->handleExternalLinks( $text );
-                        // $holders->merge( $this->handleInternalLinks2( $text ) );
+                        txt = this.handleExternalLinks(txt);
+                        txt = this.handleInternalLinks(txt);
                     }
                     // cloak any absolute URLs inside the image markup, so handleExternalLinks() won't touch them
-                    // FIXME
-                    // $s .= $prefix . $this->armorLinksPrivate(
-                    // $this->makeImage( $nt, $text, $holders ) ) . $trail;
+                    // $this->armorLinksPrivate(
+                    out += prefix + this.makeImage(nt, txt) + trail;
                     return;
-
-
                 }
                 else if(ns == Title.NS_CATEGORY) {
-                    //Strip the whitespace Category links produce, see T2087
+                    // Strip the whitespace Category links produce, see T2087, T87753
+                    out = (out + prefix).trimRight() + trail;
 
-                    // FIXME
-                    // $s = rtrim( $s . $prefix ) . $trail; # T2087, T87753
-                    // if ( $wasblank ) {
-                    //     $sortkey = $this->getDefaultSort();
-                    // } else {
-                    //     $sortkey = $text;
-                    // }
-                    // $sortkey = Sanitizer::decodeCharReferences( $sortkey );
-                    // $sortkey = str_replace( "\n", '', $sortkey );
-                    // $sortkey = $this->getTargetLanguage()->convertCategoryKey( $sortkey );
-                    // $this->mOutput->addCategory( $nt->getDBkey(), $sortkey );
+                    let sortkey = wasblank? '' : txt;
+                    sortkey = he.decode(sortkey).replace(/\n/g, '');
+                    // convertCategoryKey() -- skipped
+                    this.categories.push({
+                        title: nt,
+                        sortkey
+                    });
                     return;
                 }
             }
 
             // Self-link checking
             if(ns != Title.NS_SPECIAL && this.mTitle && nt.equals(this.mTitle) && !nt.hasFragment()) {
-                out +=  Parser.makeSelfLinkObj(nt, txt, '', trail); // $prefix
+                out +=  Parser.makeSelfLinkObj(nt, txt, '', trail, prefix);
                 return;
             }
 
-            // # NS_MEDIA is a pseudo-namespace for linking directly to a file
-            // if ( $ns == NS_MEDIA ) {
+            // NS_MEDIA is a pseudo-namespace for linking directly to a file
+            if(ns == Title.NS_MEDIA) {
             //  # Give extensions a chance to select the file revision for us
             //  $options = [];
             //  $descQuery = false;
@@ -510,11 +504,15 @@ class MWParser {
             //  # Cloak with NOPARSE to avoid replacement in handleExternalLinks
             //  $s .= $prefix . $this->armorLinksPrivate(
             //      Linker::makeMediaLinkFile( $nt, $file, $text ) ) . $trail;
-            //  continue;
-            // }
+                return;
+            }
 
             // add link to output
             out += this.makeLinkObj(nt, txt, null, trail, prefix);
+            if(nt.isExternal())
+                this.interwikiLinks.push(nt);
+            else
+                this.internalLinks.push(nt);
         });
 
         return out;
@@ -607,7 +605,213 @@ class MWParser {
     }
 
 
+    /**
+     * Parse image options text and use it to make an image
+     *
+     * @param Title title
+     * @param String options
+     * @return String HTML
+     */
+    makeImage(title, options) {
+        // Check if the options text is of the form "options|alt text"
+        // Options are:
+        //  * thumbnail  make a thumbnail with enlarge-icon and caption, alignment depends on lang
+        //  * left       no resizing, just left align. label is used for alt= only
+        //  * right      same, but right aligned
+        //  * none       same, but not aligned
+        //  * ___px      scale to ___ pixels width, no aligning. e.g. use in taxobox
+        //  * center     center the image
+        //  * frame      Keep original image size, no magnify-button.
+        //  * framed     Same as "frame"
+        //  * frameless  like 'thumb' but without a frame. Keeps user preferences for width
+        //  * upright    reduce width for upright images, rounded to full __0 px
+        //  * border     draw a 1px border around the image
+        //  * alt        Text for HTML alt attribute (defaults to empty)
+        //  * class      Set a class for img node
+        //  * link       Set the target of the image link. Can be external, interwiki, or local
+        // vertical-align values (no % or length right now):
+        //  * baseline
+        //  * sub
+        //  * super
+        //  * top
+        //  * text-top
+        //  * middle
+        //  * bottom
+        //  * text-bottom
+
+        // LanguageConverter markup - skipped
+        //list( $file, $title ) = $this->fetchFileAndTitle( $title, $options );
+
+        // # Get parameter map
+        // $handler = $file ? $file->getHandler() : false;
+
+        // list( $paramMap, $mwArray ) = $this->getImageParamsPrivate( $handler );
+
+        // if ( !$file ) {
+        //  $this->addTrackingCategory( 'broken-file-category' );
+        // }
+
+        // Process the input parameters
+        let caption = '';
+        let params = {
+            frame: {},
+            handler: {},
+            horizAlign: {},
+            vertAlign: {}
+        };
+        let seenformat = false;
+
+
+        options.split('|').forEach(part => {
+            part = part.trim();
+            let {magicName=false, value=false} = this.matchImageVariable(part);
+            if(!magicName) {
+                caption = part;
+                return;
+            }
+            let validated = false;
+
+            // Special case: width and height come in one variable together
+            if(magicName == 'img_width') {
+                let m = /^([0-9]*)x([0-9]*)\s*(?:px)?\s*$/.exec(value);
+                if(m) { // width and height or height
+                    if(m[1])
+                        params.handler['width'] = m[1];
+                    params.handler['height'] = m[2];
+                    validated = true
+                }
+                else { // width only
+                    m = /^([0-9]*)\s*(?:px)?\s*$/.exec(value);
+                    if(m) {
+                        params.handler['width'] = m[1];
+                        validated = true
+                    }
+                }
+                return;
+            }
+
+            let type = '', paramName = magicName.replace(/^img_/, '').replace(/_/g, '-');
+            validated = (value === false || !isNaN(Number(value.trim())));
+            switch(magicName) {
+                case 'img_manualthumb':
+                case 'img_alt':
+                case 'img_class':
+                    //@todo FIXME: Possibly check validity here for
+                    // manualthumb? downstream behavior seems odd with
+                    // missing manual thumbs.
+                    validated = true;
+                    type = 'frame';
+                    value = this.stripAltTextPrivate(value);
+                    break;
+
+                case 'img_link':
+                    type = 'frame';
+                    ({type: paramName, value} = this.parseLinkParameterPrivate(this.stripAltTextPrivate(value)));
+
+                    if(paramName) {
+                        validated = true;
+                        if(paramName == 'no-link')
+                            value = true;
+                        params[type]['link-target'] = this.parserConfig.externalLinkTarget;
+                    }
+                    else
+                        validated = false;
+                    break;
+
+                case 'img_frameless':
+                case 'img_framed':
+                case 'img_thumbnail':
+                    // use first appearing option, discard others.
+                    validated = !seenformat;
+                    seenformat = true;
+                    type = 'frame';
+                    break;
+
+                case 'img_left':
+                case 'img_right':
+                case 'img_center':
+                case 'img_none':
+                    type = 'horizAlign';
+                    break;
+
+                case 'img_baseline':
+                case 'img_sub':
+                case 'img_super':
+                case 'img_top':
+                case 'img_text_top':
+                case 'img_middle':
+                case 'img_bottom':
+                case 'img_text_bottom':
+                    type = 'vertAlign';
+                    break;
+
+                case 'img_upright':
+                case 'img_border':
+                    type = 'frame';
+                    break;
+
+                case 'img_lang':
+                case 'img_page':
+                    type = 'handler';
+                    break;
+            }
+
+            if(validated)
+                params[type][paramName] = value;
+            else
+                caption = part;
+        });
+
+        console.log(params, caption);
+    }
+
+
+    /**
+     * Match magic words related to image params.
+     * simplified version of MagicWordArray::matchVariableStartToEnd
+     *
+     * @param String txt
+     * @return {magicName: String, value: String|Boolean}
+     */
+    matchImageVariable(txt) {
+        // generate test regexes
+        if(!this._imageMagicWordsRegExs)
+            this._imageMagicWordsRegExs = Object.entries(this.parserConfig.magicWords)
+                .filter(([k,]) => /^img_/.test(k))
+                .map(([k, v]) =>
+                    v.map(v1 => [k, new RegExp('^' + v1.replace(/\$1/g, '(.*?)') + '$')])
+                ).flat();
+
+        let m = this._imageMagicWordsRegExs.find(([, re]) => re.test(txt));
+        if(!m)
+            return {};
+
+        let [magicName, re] = m;
+        m = re.exec(txt);
+        let value = m.length == 2 ? m[1] : false;
+
+        return {magicName, value};
+    }
+
+
+    stripAltTextPrivate(caption) {
+        // TODO
+        return caption;
+    }
+
+
+    parseLinkParameterPrivate(value) {
+        return {type: 'no-link', value};
+    }
+
+
     doQuotes(text) {
+        // TODO
+        return text;
+    }
+
+
+    handleExternalLinks(text) {
         // TODO
         return text;
     }
