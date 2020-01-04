@@ -185,6 +185,48 @@ describe('Test Parser.makeLinkObj', function() {
         let r = par.makeLinkObj(t, 'link title', {foo: 'bar'}, 'trail rest of text', 'prefix')
         expect(r).toEqual(
             '<a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?foo=bar&title=Lorem%3Aipsum">prefixlink titletrail</a> rest of text');
-        //console.log(r);
+    });
+});
+
+
+describe('Test MWParser.matchImageVariable', function() {
+    it('basic tests', function() {
+        const par = new MWParser();
+        const lorem = 'lorem ipsum dolor';
+        Object.entries(par.parserConfig.magicWords).forEach(([wordName, values]) => {
+            values.forEach(val => {
+                let r = par.matchImageVariable(val.replace(/\$1/g, lorem))
+                expect(r.magicName).toEqual(wordName);
+                if(/\$1/g.test(val))
+                    expect(r.value).toEqual(lorem);
+                else
+                    expect(r.value).toEqual(false);
+            });
+        });
+
+    });
+});
+
+
+describe('Test MWParser.parseLinkParameterPrivate', function() {
+    it('basic tests', function() {
+        const par = new MWParser();
+        const url = 'https://lorem.ipsum.com/dolor?sit=amet';
+        let r = par.parseLinkParameterPrivate(url);
+        expect(par.externalLinks.length).toEqual(1);
+        expect(par.externalLinks[0]).toEqual(url);
+        expect(r.type).toEqual('link-url');
+        expect(r.value).toEqual(url);
+
+        const title = 'Lorem:ipsum', nt = Title.newFromText(title);
+        r = par.parseLinkParameterPrivate(title);
+        expect(par.internalLinks.length).toEqual(1);
+        expect(nt.equals(par.internalLinks[0])).toBeTruthy();
+        expect(r.type).toEqual('link-title');
+        expect(nt.equals(r.value)).toBeTruthy();
+
+        r = par.parseLinkParameterPrivate('');
+        expect(r.type).toEqual('no-link');
+        expect(r.value).toEqual(false);
     });
 });

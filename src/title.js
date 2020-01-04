@@ -450,6 +450,16 @@ class Title {
 
 
     /**
+     * Get the text form (spaces not underscores) of the main part
+     *
+     * @return String
+     */
+    getText() {
+        return this.mTextform;
+    }
+
+
+    /**
      * Get the prefixed database key form
      *
      * @return string

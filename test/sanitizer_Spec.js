@@ -332,3 +332,13 @@ describe('Test Sanitizer.validateTag()', function() {
     });
 });
 
+
+describe('Test ', function() {
+    it('basic tests', function() {
+        let r = Sanitizer.stripAllTags('Lorem <div>Lorem ipsum</div> dolor')
+        expect(r).toEqual('Lorem Lorem ipsum dolor');
+
+        r = Sanitizer.stripAllTags('Lorem <div>Lorem ipsum</div>> dolor<')
+        expect(r).toEqual('Lorem Lorem ipsum&gt; dolor&lt;');
+    });
+});

@@ -552,8 +552,16 @@ class Sanitizer {
 
 
     /**
-     * Cleans up HTML, removes dangerous tags and attributes, and
-     * removes HTML comments
+     * Cleans up HTML, removes dangerous tags, attributes, and comments.
+     * Tags are replaced by entities (ie. &lt;a&gt;).
+     *
+     * @static
+     * @param String text
+     * @param Function [processCallback]
+     * @param Array [args]
+     * @param String[] [extratags]
+     * @param String[] [removetags]
+     * @return String
      */
     static removeHTMLtags(text, processCallback=null, args=[], extratags=[], removetags=[]) {
         const tagData = Sanitizer.getRecognizedTagData(extratags, removetags);
@@ -568,7 +576,7 @@ class Sanitizer {
                 bits[bits.length -1] += a
             else if(a)
                 bits.push(a);
-        })
+        });
 
         if(bits.length == 0)
             return '';
@@ -854,5 +862,32 @@ class Sanitizer {
                     return '&#039;';
             }
         });
+    }
+
+
+    /**
+     * Take a fragment of (potentially invalid) HTML and return
+     * a version with any tags removed, encoded as plain text.
+     *
+     * @param String html
+     * @return string
+     */
+    static stripAllTags(html) {
+        const bits = [];
+        html.split(/(<)/g).forEach(a => {
+            if(bits.length > 0 && bits[bits.length -1] == '<')
+                bits[bits.length -1] += a
+            else if(a)
+                bits.push(a);
+        });
+
+        return bits.map(bit => {
+            if(!bit)
+                return '';
+
+            if(bit[0] == '<' && bit.indexOf('>') != -1)
+                return Sanitizer.escapeHTML(bit.substring(bit.indexOf('>') + 1));
+            return Sanitizer.escapeHTML(bit);
+        }).join('');
     }
 };

@@ -38,6 +38,7 @@ class MWParser {
         this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
         this.interwikiLinks = [];
         this.internalLinks = [];
+        this.externalLinks = [];
         this.categories = [];
     }
 
@@ -661,7 +662,6 @@ class MWParser {
         };
         let seenformat = false;
 
-
         options.split('|').forEach(part => {
             part = part.trim();
             let {magicName=false, value=false} = this.matchImageVariable(part);
@@ -762,7 +762,61 @@ class MWParser {
                 caption = part;
         });
 
-        console.log(params, caption);
+        // Process alignment parameters
+        if(Object.keys(params.horizAlign))
+            params.frame.align = Object.keys(params.horizAlign);
+
+        if(Object.keys(params.vertAlign))
+            params.frame.valign = Object.keys(params.vertAlign);
+
+        params.frame.caption = caption;
+
+        // Will the image be presented in a frame, with the caption below?
+        const imageIsFramed = (params.frame !== undefined) && (
+            params.frame.frame !== undefined
+            || params.frame.framed !== undefined
+            || params.frame.thumbnail !== undefined
+            || params.frame.manualthumb !== undefined
+        );
+
+        // In the old days, [[Image:Foo|text...]] would set alt text.  Later it
+        // came to also set the caption, ordinary text after the image -- which
+        // makes no sense, because that just repeats the text multiple times in
+        // screen readers.
+        if(imageIsFramed) { // Framed image
+            if(caption === '' && params.frame.alt == undefined) {
+                // No caption or alt text, add the filename as the alt text so
+                // that screen readers at least get some description of the image
+                params.frame.alt = title.getText();
+            }
+            // Do not set $params['frame']['title'] because tooltips don't make sense
+            // for framed images
+        }
+        else { // Inline image
+            if(params.frame.alt == undefined) {
+                // No alt text, use the "caption" for the alt text
+                if(caption !== '')
+                    params.frame.alt = this.stripAltTextPrivate(caption);
+                else
+                    // No caption, fall back to using the filename for the
+                    // alt text
+                    params.frame.alt = title.getText();
+            }
+            // Use the "caption" for the tooltip text
+            params.frame.title = this.stripAltTextPrivate(caption);
+        }
+
+        // Linker does the rest
+        // $time = $options['time'] ?? false;
+        // $ret = Linker::makeImageLink( $this, $title, $file, $params['frame'], $params['handler'],
+        //  $time, $descQuery, $this->mOptions->getThumbSize() );
+
+        // # Give the handler a chance to modify the parser object
+        // if ( $handler ) {
+        //  $handler->parserTransformHook( $this, $file );
+        // }
+
+        console.log(params, caption, imageIsFramed);
     }
 
 
@@ -794,14 +848,52 @@ class MWParser {
     }
 
 
+    /**
+     * Strip bad stuff out of the title (tooltip)
+     *
+     * @param String caption
+     * @return String
+     */
     stripAltTextPrivate(caption) {
-        // TODO
+        // skipped T209236
+        caption = Sanitizer.stripAllTags(caption);
         return caption;
     }
 
 
+    /**
+     * Parse the value of 'link' parameter in image syntax (`[[File:Foo.jpg|link=<value>]]`).
+     *
+     * Adds an entry to appropriate link tables.
+     *
+     * @param String value
+     * @return {type: String|null, value: String|Boolean}
+     */
     parseLinkParameterPrivate(value) {
-        return {type: 'no-link', value};
+        const protocolsRe = new RegExp('^(' + Sanitizer.protocolSchemes().join('|') + ')', 'i');
+        let type = null;
+        let target = false;
+
+        if(value == '')
+            type = 'no-link';
+        else if(protocolsRe.test(value)) {
+            this.externalLinks.push(value);
+            type = 'link-url';
+            target = value;
+        }
+        else {
+            let nt = Title.newFromText(value, this.parserConfig);
+            if(nt) {
+                if(nt.isExternal())
+                    this.interwikiLinks.push(nt);
+                else
+                    this.internalLinks.push(nt);
+
+                type = 'link-title';
+                target = nt;
+            }
+        }
+        return {type, value: target};
     }
 
 
