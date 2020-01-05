@@ -640,17 +640,9 @@ class MWParser {
         //  * bottom
         //  * text-bottom
 
-        // LanguageConverter markup - skipped
-        //list( $file, $title ) = $this->fetchFileAndTitle( $title, $options );
-
-        // # Get parameter map
-        // $handler = $file ? $file->getHandler() : false;
-
-        // list( $paramMap, $mwArray ) = $this->getImageParamsPrivate( $handler );
-
-        // if ( !$file ) {
-        //  $this->addTrackingCategory( 'broken-file-category' );
-        // }
+        if(!this.parserConfig.titleExists(title)) {
+            // TODO $this->addTrackingCategory( 'broken-file-category' );
+        }
 
         // Process the input parameters
         let caption = '';
@@ -772,11 +764,11 @@ class MWParser {
         params.frame.caption = caption;
 
         // Will the image be presented in a frame, with the caption below?
-        const imageIsFramed = (params.frame !== undefined) && (
-            params.frame.frame !== undefined
-            || params.frame.framed !== undefined
-            || params.frame.thumbnail !== undefined
-            || params.frame.manualthumb !== undefined
+        const imageIsFramed = ('frame' in params) && (
+            'frame' in params.frame
+            || 'framed' in params.frame
+            || 'thumbnail' in params.frame
+            || 'manualthumb' in params.frame
         );
 
         // In the old days, [[Image:Foo|text...]] would set alt text.  Later it
@@ -784,7 +776,7 @@ class MWParser {
         // makes no sense, because that just repeats the text multiple times in
         // screen readers.
         if(imageIsFramed) { // Framed image
-            if(caption === '' && params.frame.alt == undefined) {
+            if(caption === '' && !('alt' in params.frame)) {
                 // No caption or alt text, add the filename as the alt text so
                 // that screen readers at least get some description of the image
                 params.frame.alt = title.getText();
@@ -793,7 +785,7 @@ class MWParser {
             // for framed images
         }
         else { // Inline image
-            if(params.frame.alt == undefined) {
+            if(!('alt' in params.frame)) {
                 // No alt text, use the "caption" for the alt text
                 if(caption !== '')
                     params.frame.alt = this.stripAltTextPrivate(caption);
@@ -807,16 +799,196 @@ class MWParser {
         }
 
         // Linker does the rest
-        // $time = $options['time'] ?? false;
-        // $ret = Linker::makeImageLink( $this, $title, $file, $params['frame'], $params['handler'],
-        //  $time, $descQuery, $this->mOptions->getThumbSize() );
+        return this.makeImageHTML(title, params.frame, params.handler);
+    }
 
-        // # Give the handler a chance to modify the parser object
-        // if ( $handler ) {
-        //  $handler->parserTransformHook( $this, $file );
-        // }
 
-        console.log(params, caption, imageIsFramed);
+    /**
+     * Given parameters derived from [[Image:Foo|options...]], generate the
+     * HTML that that syntax inserts in the page.
+     *
+     * Linker::makeImageLink rewritten
+     *
+     *
+     */
+    makeImageHTML(title, frameParams, handlerParams) {
+        if(!this.parserConfig.allowImageDisplay(title))
+            return this.makeLinkObj(title) // FIXME should use caption as title?
+
+        // Clean up parameters
+        if(!('align' in frameParams))
+            frameParams.align = '';
+
+        if(!('alt' in frameParams))
+            frameParams.alt = '';
+
+        if(!('title' in frameParams))
+            frameParams.title = '';
+
+        if(!('class' in frameParams))
+            frameParams['class'] = '';
+
+
+        let prefix = '', postfix = '';
+        if(frameParams.align == 'center') {
+            prefix = '<div class="center">';
+            postfix = '</div>';
+            frameParams.align = 'none';
+        }
+
+        if(!('width' in handlerParams)) {
+            if('thumbnail' in frameParams || 'manualthumb' in frameParams
+                    || 'framed' in frameParams || 'frameless' in frameParams
+                    || !handlerParams.width) {
+                // Reduce width for upright images when parameter 'upright' is used
+                if('upright' in frameParams && frameParams.upright == 0)
+                    frameParams.upright = this.parserConfig.thumbUpright;
+
+                // For caching health: If width scaled down due to upright
+                // parameter, round to full __0 pixel to avoid the creation of a
+                // lot of odd thumbs.
+                let prefWidth = 'upright' in frameParams ?
+                    Math.round(this.parserConfig.thumbSize * frameParams.upright / 10) * 10  // eqiv. php's round($number, -1)
+                    : this.parserConfig.thumbSize;
+
+                // Use width which is smaller: real image width or user preference width
+                // Unless image is scalable vector.
+                if(!('height' in handlerParams) && (handlerParams.width <= 0 ||
+                        prefWidth < handlerParams.width)) {
+                    handlerParams.width = prefWidth;
+                }
+            }
+        }
+
+        // thumbnail
+        let makeThumb_params = [
+            title,
+            handlerParams.width ? handlerParams.width : false,
+            handlerParams.height ? handlerParams.height : false,
+            'frameless' in frameParams
+        ];
+
+        if('manualthumb' in frameParams) { // Use manually specified thumbnail
+            let nt = Title.newFromText(frameParams.manualthumb);
+            if(nt.getNamespace() != Title.NS_FILE)
+                nt.mNamespace = Title.NS_FILE;
+            makeThumb_params[0] = nt;
+        }
+
+        if('framed' in frameParams) { // Use image dimensions, don't scale
+            makeThumb_params[1] = false;
+            makeThumb_params[2] = false;
+        }
+
+        const thumb = this.parserConfig.makeThumb.apply(this.parserConfig, makeThumb_params);
+        let out = '';
+
+        // in frame output
+        // based od Linker::makeThumbLink2
+        const imgParams = {
+            alt: frameParams.alt,
+            title: frameParams.title,
+        };
+        imgParams['class'] = ( frameParams['class'] ? frameParams['class'] : '' );
+
+        if('border' in frameParams)
+            imgParams['class'] += ' thumbborder'
+
+        if('thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams) {
+            // Create a thumbnail. Alignment depends on the writing direction of
+            // the page content language (right-aligned for LTR languages,
+            // left-aligned for RTL languages)
+            // If a thumbnail width has not been provided, it is set
+            // to the default user option as specified in Language*.php
+            if(frameParams.align == '')
+                frameParams.align = this.parserConfig.isRightAlignedLanguage ? 'right' : 'left';
+
+
+            const outerWidth = ( thumb ? thumb.width : handlerParams.width ) + 2;
+
+            if(thumb && !('link-title' in frameParams) && !('link-url' in frameParams) && !('no-link' in frameParams))
+                frameParams['link-url'] = title.getFullURL();
+
+            prefix += `<div class="thumb t${ frameParams.align }"><div class="thumbinner" style="width: ${ outerWidth }px;">`;
+            postfix = '</div></div>' + postfix;
+
+            let zoomIcon = '';
+            if(thumb) {
+                imgParams['class'] += ' thumbimage';
+
+                if(!('framed' in frameParams))
+                    zoomIcon = `<div class="magnify"><a href="${ title.getFullURL() }" class="internal" title="Enlarge"></a></div>`;
+            }
+
+            postfix += `<div class="thumbcaption">${ zoomIcon }${ frameParams.caption }</div>`;
+        }
+
+
+        if(thumb) {
+            // Linker::getImageLinkMTOParams skipped
+            // Linker::processResponsiveImages skipped
+            // ThumbnailImage::toHtml
+            imgParams['class'] = imgParams['class'].trim();
+            imgParams.decoding = 'async';
+            imgParams.src = thumb.url;
+
+            // image link params
+            let linkAttrs = {};
+            if(imgParams.title)
+                    linkAttrs.title = imgParams.title;
+
+            if(frameParams['link-url'])
+                linkAttrs.href = frameParams['link-url'];
+            else if(frameParams['link-title']) {
+                let nt = Title.newFromText(frameParams['link-title'], this.parserConfig);
+                linkAttrs.href = nt.getFullURL();
+                if(!imgParams.title)
+                    imgParams.title = nt.getFullText()
+            }
+            else if(frameParams['file-link'])
+                linkAttrs = {
+                    'href': thumb.url
+                };
+            else if(frameParams['file-link']) {
+            }
+            else {
+                linkAttrs = {};
+            }
+
+            // image params
+            imgParams.width = thumb.width;
+            imgParams.height = thumb.height;
+
+            if(frameParams.valign)
+                imgParams.style = `vertical-align: ${ frameParams.valign }`;
+
+
+            out = `<a ${ Sanitizer.safeEncodeTagAttributes(linkAttrs) }><img ${ Sanitizer.safeEncodeTagAttributes(imgParams) }></a>`;
+        }
+        else { // thumb error - make a "broken" link to an image
+            // Linker::makeBrokenImageLinkObj
+            const label = frameParams.title ? frameParams.title : title.getPrefixedText();
+
+            if(this.parserConfig.uploadMissingFileUrl) {
+                let q = {...this.uploadFileParams};
+                if(q.wpDestFile)
+                    q.wpDestFile = title.getPartialURL();
+                q = '?' + new URLSearchParams(q).toString();
+                out = `<a href="${ this.parserConfig.uploadFileURL.replace(/\$1/g, q) }" class="new" title="${ title.getPrefixedText() }">${ label }</a>`;
+            }
+            else {
+                const cls = title.isExternal() ? 'class="extiw"' : '';
+                out = `<a href="${ title.getFullURL() }" ${ cls } title="${ title.getPrefixedText() }">${ label }</a>`;
+                //makeLinkObj(nt, html='', query='', trail='', prefix='')
+            }
+        }
+
+        if(frameParams.align != '') {
+            prefix += `<div class="float${ frameParams.align }">`;
+            postfix = '</div>' + postfix;
+        }
+
+        return (prefix + out + postfix).replace(/\n/g, ' ');
     }
 
 

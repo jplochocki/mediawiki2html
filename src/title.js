@@ -470,6 +470,14 @@ class Title {
 
 
     /**
+     * Get the URL-encoded form of the main part
+     */
+    getPartialURL() {
+        return this.mUrlform;
+    }
+
+
+    /**
      * Check if page exists
      *
      * @return bool

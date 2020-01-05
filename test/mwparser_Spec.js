@@ -230,3 +230,10 @@ describe('Test MWParser.parseLinkParameterPrivate', function() {
         expect(r.value).toEqual(false);
     });
 });
+
+
+describe('Test MWParser.makeImage', function() {
+    it('basic tests', function() {
+        //makeImage(title, options)
+    });
+});

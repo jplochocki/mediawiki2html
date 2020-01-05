@@ -30,6 +30,7 @@ class DefaultConfig {
     constructor(config=null) {
         this.language = 'en';
         this.useLinkPrefixExtension = false;
+        this.isRightAlignedLanguage = false;
         this.projectName = '';
         this.pageTitle = 'Main page';
         this.server = `$1${ this.language }.wikipedia.org$2`;
@@ -37,6 +38,14 @@ class DefaultConfig {
         this.articlePath = '/w/index.php$1';
         this.validInterwikiNames = [];
         this.externalLinkTarget = false; // setting to _blank may represent a security risk
+        this.thumbSize = 300;
+        this.thumbUpright = 0.75;
+        this.uploadMissingFileUrl = false;
+        this.uploadFileURL = `//${ this.server }${ this.articlePath }`;
+        this.uploadFileParams = {
+            title: 'Special:Upload',
+            wpDestFile: true
+        };
 
         // TODO magic words for other languages
         this.magicWords = {
@@ -94,5 +103,31 @@ class DefaultConfig {
      */
     getFullUrl(title, query=null, proto='//') {
         return '';
+    }
+
+
+    /**
+     * Function is checking if image can be displayed
+     * (false - display image page link instead)
+     *
+     * @param Title title
+     * @return Boolean
+     */
+    allowImageDisplay(title) {
+        return true;
+    }
+
+
+    /**
+     * Make thumb image (or thumb image information).
+     *
+     */
+    makeThumb(title, width=false, height=false, doNotZoomIn=false) {
+        return false;
+        // return {
+        //     url: '',
+        //     width: 0,
+        //     height: 0
+        // };
     }
 };
