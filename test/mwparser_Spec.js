@@ -169,8 +169,8 @@ describe('Test MWParser.handleInternalLinks()', function() {
     });
 
     it('images basic tests', function() {
-        let par = new MWParser();
-        let result = par.handleInternalLinks(`Lorem ipsum [[File:dolor.png|150x150px|center|left|top|thumb|opis obrazka]]lorem ipsum.`);
+        //let par = new MWParser();
+        //let result = par.handleInternalLinks(`Lorem ipsum [[File:dolor.png|150x150px|center|left|top|thumb|opis obrazka]]lorem ipsum.`);
     });
 });
 
@@ -233,7 +233,229 @@ describe('Test MWParser.parseLinkParameterPrivate', function() {
 
 
 describe('Test MWParser.makeImage', function() {
-    it('basic tests', function() {
-        //makeImage(title, options)
+    beforeEach(function() {
+        this.parser = new MWParser();
+        this.title = Title.newFromText('File:dolor.png', this.parser.parserConfig);
+        spyOn(this.parser, 'makeImageHTML');
+    });
+
+    it('width and height tests', function() {
+        this.parser.makeImage(this.title, '150px');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({width: 150});
+        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: ''});
+
+        this.parser.makeImage(this.title, 'x150px');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        ([title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(1));
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({height: 150});
+        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: ''});
+
+        this.parser.makeImage(this.title, '300x150px');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        ([title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(2));
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({width: 300, height: 150});
+        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: ''});
+
+        // with caption
+        this.parser.makeImage(this.title, '300x150px|lorem ipsum dolor');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        ([title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(3));
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({width: 300, height: 150});
+        expect(params_frame).toEqual({caption: 'lorem ipsum dolor', alt: 'lorem ipsum dolor', title: 'lorem ipsum dolor'});
+    });
+
+    it('horizontal align tests', function() {
+        ['left', 'right', 'center', 'none'].forEach((t, idx) => {
+            this.parser.makeImage(this.title, t);
+            expect(this.parser.makeImageHTML).toHaveBeenCalled();
+            let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
+            expect(title.equals(this.title)).toBeTruthy();
+            expect(params_handler).toEqual({});
+            expect(params_frame).toEqual({align: t, caption: '', alt: 'Dolor.png', title: ''});
+        });
+    });
+
+    it('should not be align', function() {
+        this.parser.makeImage(this.title, 'center lorem ipsum');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(this.parser.makeImageHTML.calls.count() -1);
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({});
+        expect(params_frame).toEqual({caption: 'center lorem ipsum', alt: 'center lorem ipsum', title: 'center lorem ipsum'});
+    });
+
+    it('first align matters', function() {
+        this.parser.makeImage(this.title, 'left|right|center');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({});
+        expect(params_frame).toEqual({align: 'left', caption: '', alt: 'Dolor.png', title: ''});
+    });
+
+    it('vertical align tests', function() {
+        ['top', 'text-top', 'middle', 'bottom', 'text-bottom', 'baseline'].forEach((t, idx) => {
+            this.parser.makeImage(this.title, t);
+            expect(this.parser.makeImageHTML).toHaveBeenCalled();
+            const [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
+            expect(title.equals(this.title)).toBeTruthy();
+            expect(params_handler).toEqual({});
+            expect(params_frame).toEqual({valign: t, caption: '', alt: 'Dolor.png', title: ''});
+        });
+
+    });
+
+    it('should not be valign', function() {
+        this.parser.makeImage(this.title, 'top lorem ipsum');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({});
+        expect(params_frame).toEqual({caption: 'top lorem ipsum', alt: 'top lorem ipsum', title: 'top lorem ipsum'});
+    });
+
+    it('first valign matters', function() {
+        this.parser.makeImage(this.title, 'top|middle|bottom');
+        expect(this.parser.makeImageHTML).toHaveBeenCalled();
+        let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
+        expect(title.equals(this.title)).toBeTruthy();
+        expect(params_handler).toEqual({});
+        expect(params_frame).toEqual({valign: 'top', caption: '', alt: 'Dolor.png', title: ''});
+    });
+
+    it('link tests', function() {
+        const default_frame = {'link-target': false, caption: '', alt: 'Dolor.png', title: ''};
+        [{
+            from: 'link=https://lorem.ipsum.com',
+            to: {
+                ...default_frame,
+                'link-url': 'https://lorem.ipsum.com'
+            }
+        }, {
+            from: 'link=Lorem:Ipsum',
+            to: {
+                ...default_frame,
+                'link-title': Title.newFromText('Lorem:Ipsum', this.parser.parserConfig)
+            }
+        }, {
+            from: 'link=',
+            to: {
+                ...default_frame,
+                'no-link': true
+            }
+        }, {
+            from: 'link=|lorem ipsum dolor',
+            to: {
+                'no-link': true,
+                'link-target': false,
+                caption: 'lorem ipsum dolor',
+                alt: 'lorem ipsum dolor',
+                title: 'lorem ipsum dolor'
+            }
+        }, {
+            from: 'link', // should not be treated as link
+            to: {
+                caption: 'link',
+                alt: 'link',
+                title: 'link'
+            }
+        }].forEach(({from, to}, idx) => {
+            this.parser.makeImage(this.title, from);
+            expect(this.parser.makeImageHTML).toHaveBeenCalled();
+            let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
+            expect(title.equals(this.title)).toBeTruthy();
+            expect(params_handler).toEqual({});
+            expect(params_frame).toEqual(to);
+        });
+    });
+
+    it('thumb, frame, etc.', function() {
+        const default_frame = {caption: '', alt: 'Dolor.png'};
+        [{
+            from: 'thumb',
+            to: {
+                ...default_frame,
+                thumbnail: false
+            }
+        }, {
+            from: 'thumb=lorem.png',
+            to: {
+                ...default_frame,
+                manualthumb: 'lorem.png'
+            }
+        }, {
+            from: 'frame',
+            to: {
+                ...default_frame,
+                framed: false
+            }
+        }, {
+            from: 'frameless',
+            to: {
+                ...default_frame,
+                title: '',
+                frameless: false
+            }
+        }, {
+            from: 'border',
+            to: {
+                ...default_frame,
+                title: '',
+                border: false
+            }
+        }, {
+            // should use first option and ignore others (last option become title)
+            from: 'frameless|framed|thumb',
+            to: {
+                title: 'thumb',
+                alt: 'thumb',
+                caption: 'thumb',
+                frameless: false
+            }
+        }].forEach(({from, to}, idx) => {
+            this.parser.makeImage(this.title, from);
+            expect(this.parser.makeImageHTML).toHaveBeenCalled();
+            let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
+            expect(title.equals(this.title)).toBeTruthy();
+            expect(params_handler).toEqual({});
+            expect(params_frame).toEqual(to);
+        });
+    });
+
+    it('alt, class, upright - misc options', function() {
+        const default_frame = {caption: '', alt: 'Dolor.png', title: ''};
+        [{
+            from: 'alt=lorem ipsum|dolor sit amet',
+            to: {
+                alt: 'lorem ipsum',
+                caption: 'dolor sit amet',
+                title: 'dolor sit amet'
+            }
+        }, {
+            from: 'class=lorem-ipsum',
+            to: {
+                ...default_frame,
+                'class': 'lorem-ipsum'
+            }
+        }, {
+            from: 'upright=123',
+            to: {
+                ...default_frame,
+                upright: '123'
+            }
+        }].forEach(({from, to}, idx) => {
+            this.parser.makeImage(this.title, from);
+            expect(this.parser.makeImageHTML).toHaveBeenCalled();
+            let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
+            expect(title.equals(this.title)).toBeTruthy();
+            expect(params_handler).toEqual({});
+            expect(params_frame).toEqual(to);
+        });
     });
 });

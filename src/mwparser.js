@@ -649,41 +649,37 @@ class MWParser {
         let params = {
             frame: {},
             handler: {},
-            horizAlign: {},
-            vertAlign: {}
+            horizAlign: [],
+            vertAlign: []
         };
         let seenformat = false;
 
         options.split('|').forEach(part => {
             part = part.trim();
-            let {magicName=false, value=false} = this.matchImageVariable(part);
+            let { magicName=false, value=false } = this.matchImageVariable(part);
             if(!magicName) {
                 caption = part;
                 return;
             }
-            let validated = false;
 
             // Special case: width and height come in one variable together
             if(magicName == 'img_width') {
                 let m = /^([0-9]*)x([0-9]*)\s*(?:px)?\s*$/.exec(value);
                 if(m) { // width and height or height
                     if(m[1])
-                        params.handler['width'] = m[1];
-                    params.handler['height'] = m[2];
-                    validated = true
+                        params.handler['width'] = parseInt(m[1], 10);
+                    params.handler['height'] = parseInt(m[2], 10);
                 }
                 else { // width only
                     m = /^([0-9]*)\s*(?:px)?\s*$/.exec(value);
-                    if(m) {
-                        params.handler['width'] = m[1];
-                        validated = true
-                    }
+                    if(m)
+                        params.handler['width'] = parseInt(m[1], 10);
                 }
                 return;
             }
 
             let type = '', paramName = magicName.replace(/^img_/, '').replace(/_/g, '-');
-            validated = (value === false || !isNaN(Number(value.trim())));
+            let validated = (value === false || !isNaN(parseInt(value.trim(), 10)));
             switch(magicName) {
                 case 'img_manualthumb':
                 case 'img_alt':
@@ -700,14 +696,13 @@ class MWParser {
                     type = 'frame';
                     ({type: paramName, value} = this.parseLinkParameterPrivate(this.stripAltTextPrivate(value)));
 
+                    validated = false;
                     if(paramName) {
                         validated = true;
                         if(paramName == 'no-link')
                             value = true;
                         params[type]['link-target'] = this.parserConfig.externalLinkTarget;
                     }
-                    else
-                        validated = false;
                     break;
 
                 case 'img_frameless':
@@ -748,18 +743,22 @@ class MWParser {
                     break;
             }
 
-            if(validated)
-                params[type][paramName] = value;
+            if(validated) {
+                if(Array.isArray(params[type])) // horizAlign and vertAlign are Arrays
+                    params[type].push(paramName);
+                else
+                    params[type][paramName] = value;
+            }
             else
                 caption = part;
         });
 
         // Process alignment parameters
-        if(Object.keys(params.horizAlign))
-            params.frame.align = Object.keys(params.horizAlign);
+        if(params.horizAlign.length)
+            params.frame.align = params.horizAlign.shift();
 
-        if(Object.keys(params.vertAlign))
-            params.frame.valign = Object.keys(params.vertAlign);
+        if(params.vertAlign.length)
+            params.frame.valign = params.vertAlign.shift();
 
         params.frame.caption = caption;
 
@@ -798,7 +797,7 @@ class MWParser {
             params.frame.title = this.stripAltTextPrivate(caption);
         }
 
-        // Linker does the rest
+        // makeImageHTML does the rest
         return this.makeImageHTML(title, params.frame, params.handler);
     }
 
@@ -1045,7 +1044,6 @@ class MWParser {
         const protocolsRe = new RegExp('^(' + Sanitizer.protocolSchemes().join('|') + ')', 'i');
         let type = null;
         let target = false;
-
         if(value == '')
             type = 'no-link';
         else if(protocolsRe.test(value)) {
