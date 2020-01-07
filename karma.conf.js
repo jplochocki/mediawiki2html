@@ -43,6 +43,7 @@ module.exports = function(config) {
 
     // list of files / patterns to exclude
     exclude: [
+        'test/render-mw-fixtures.js'
     ],
 
 

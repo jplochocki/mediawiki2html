@@ -1,0 +1,12 @@
+-=-=-=-[ existing image link ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ not existing image link ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ lorem ipsum 2 ]-=-=-=-
+
+test 2 aaa
+

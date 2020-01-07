@@ -1,0 +1,11 @@
+-=-=-=-[ existing image link ]-=-=-=-
+
+[[File:LoremIpsum.png]]
+
+-=-=-=-[ not existing image link ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png]]
+
+-=-=-=-[ lorem ipsum 2 ]-=-=-=-
+
+test 2 aaa
