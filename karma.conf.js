@@ -16,6 +16,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
         'node_modules/he/he.js',
+        'node_modules/axios/dist/axios.min.js',
         'test/*.js',
         'src/*.js',
         {
@@ -32,6 +33,12 @@ module.exports = function(config) {
         },
         {
             pattern: 'test/*.html',
+            included: false,
+            watched:  true,
+            served: true
+        },
+        {
+            pattern: 'node_modules/diff/lib/index.es6.js',
             included: false,
             watched:  true,
             served: true

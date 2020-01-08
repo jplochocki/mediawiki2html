@@ -308,7 +308,6 @@ describe('Test MWParser.makeImage', function() {
             expect(params_handler).toEqual({});
             expect(params_frame).toEqual({valign: t, caption: '', alt: 'Dolor.png', title: ''});
         });
-
     });
 
     it('should not be valign', function() {
@@ -457,5 +456,17 @@ describe('Test MWParser.makeImage', function() {
             expect(params_handler).toEqual({});
             expect(params_frame).toEqual(to);
         });
+    });
+});
+
+
+describe('Test ', function() {
+    xit('basic tests', function() {
+        //splitHtmlParts('Lorem ipsum <a href="http://lorem.com" class="image">dolor sit <img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" width="313" height="490" /></a>')
+        let par = new MWParser();
+        compareTest('image-links', txt => {
+            return par.handleInternalLinks(txt);
+        });
+
     });
 });

@@ -61,7 +61,7 @@ class Sanitizer {
      */
     static decodeTagAttributes(text) {
         if(text.trim() == '')
-            return [];
+            return {};
 
         let attribs = {}, match = null;
         const pattern = Sanitizer.getAttribsRegex();
