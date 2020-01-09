@@ -30,6 +30,7 @@
     "karma-jasmine": "^2.0.1"
   },
   "dependencies": {
-    "he": "^1.2.0"
+    "he": "^1.2.0",
+    "js-md5": "^0.7.3"
   }
 }

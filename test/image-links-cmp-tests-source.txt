@@ -6,6 +6,119 @@
 
 [[File:LoremIpsum_not-existing.png]]
 
--=-=-=-[ lorem ipsum 2 ]-=-=-=-
+-=-=-=-[ existing image with caption ]-=-=-=-
 
-test 2 aaa
+[[File:LoremIpsum.png|lorem ipsum dolor]]
+
+-=-=-=-[ not existing image link with caption ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|lorem ipsum dolor]]
+
+-=-=-=-[ image width ]-=-=-=-
+
+[[File:LoremIpsum.png|150px]]
+
+-=-=-=-[ image height ]-=-=-=-
+
+[[File:LoremIpsum.png|x150px]]
+
+-=-=-=-[ image width and height ]-=-=-=-
+
+[[File:LoremIpsum.png|300x150px]]
+
+-=-=-=-[ image width and height + caption ]-=-=-=-
+
+[[File:LoremIpsum.png|300x150px|lorem ipsum dolor]]
+
+-=-=-=-[ left align ]-=-=-=-
+
+[[File:LoremIpsum.png|left]]
+
+-=-=-=-[ right align ]-=-=-=-
+
+[[File:LoremIpsum.png|right]]
+
+-=-=-=-[ center align ]-=-=-=-
+
+[[File:LoremIpsum.png|center]]
+
+-=-=-=-[ none align ]-=-=-=-
+
+[[File:LoremIpsum.png|none]]
+
+-=-=-=-[ should not be align ]-=-=-=-
+
+[[File:LoremIpsum.png|center lorem ipsum]]
+
+-=-=-=-[ first align matters ]-=-=-=-
+
+[[File:LoremIpsum.png|left|right|center]]
+
+-=-=-=-[ top vertical align test ]-=-=-=-
+
+[[File:LoremIpsum.png|top]]
+
+-=-=-=-[ text-top vertical align test ]-=-=-=-
+
+[[File:LoremIpsum.png|text-top]]
+
+-=-=-=-[ middle vertical align test ]-=-=-=-
+
+[[File:LoremIpsum.png|middle]]
+
+-=-=-=-[ bottom vertical align test ]-=-=-=-
+
+[[File:LoremIpsum.png|bottom]]
+
+-=-=-=-[ text-bottom vertical align test ]-=-=-=-
+
+[[File:LoremIpsum.png|text-bottom]]
+
+-=-=-=-[ baseline vertical align test ]-=-=-=-
+
+[[File:LoremIpsum.png|baseline]]
+
+-=-=-=-[ link to external url ]-=-=-=-
+
+[[File:LoremIpsum.png|link=https://lorem.ipsum.com]]
+
+-=-=-=-[ link to title ]-=-=-=-
+
+[[File:LoremIpsum.png|link=Lorem:Ipsum]]
+
+-=-=-=-[ no link ]-=-=-=-
+
+[[File:LoremIpsum.png|link=]]
+
+-=-=-=-[ no link and caption ]-=-=-=-
+
+[[File:LoremIpsum.png|link=|lorem ipsum dolor]]
+
+-=-=-=-[ should not be treated as link ]-=-=-=-
+
+[[File:LoremIpsum.png|link]]
+
+-=-=-=-[ not existing image + link to external url ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|link=https://lorem.ipsum.com]]
+
+-=-=-=-[ not existing image + link to title ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|link=Lorem:Ipsum]]
+
+-=-=-=-[ not existing image + no link ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|link=]]
+
+-=-=-=-[ not existing image + no link and caption ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|link=|lorem ipsum dolor]]
+
+-=-=-=-[ not existing image + should not be treated as link ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|link]]
+
+-=-=-=-[ thumb ]-=-=-=-
+
+[[File:LoremIpsum.png|thumb]]
+

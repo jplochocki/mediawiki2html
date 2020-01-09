@@ -436,11 +436,9 @@ class Title {
 
         if(this.mNamespace != 0) {
             let nsText = this.getNsText();
-            if(nsText === false) {
+            if(nsText === false)
                 // See T165149. Awkward, but better than erroneously linking to the main namespace.
                 nsText = this.getNsText(Title.NS_SPECIAL) + `:Badtitle/NS${ this.mNamespace }`;
-                console.log('aaaa', this.mDbkeyform);
-            }
             t += nsText + ':';
         }
 
@@ -579,5 +577,23 @@ class Title {
             return '';
 
         return this.getFullURL({action: 'edit'});
+    }
+
+
+    /**
+     * Get url for image (ie. /images/a/af/LoremIpsum.png)
+     */
+    getImageUrl() {
+        let a = md5(this.mUrlform);
+        return `${ this.parserConfig.imageFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }`;
+    }
+
+
+    /**
+     * Get url for image thumb (ie. /images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png)
+     */
+    getThumbUrl(width) {
+        let a = md5(this.mUrlform);
+        return `${ this.parserConfig.thumbFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }/${ width }px-${ this.mUrlform }`;
     }
 }

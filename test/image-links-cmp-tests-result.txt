@@ -6,8 +6,119 @@
 
 <a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
 
--=-=-=-[ lorem ipsum 2 ]-=-=-=-
+-=-=-=-[ existing image with caption ]-=-=-=-
 
-test 2 aaa
+<a href="/index.php/File:LoremIpsum.png" class="image" title="lorem ipsum dolor"><img alt="lorem ipsum dolor" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
 
+-=-=-=-[ not existing image link with caption ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">lorem ipsum dolor</a>
+
+-=-=-=-[ image width ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png" decoding="async" width="150" height="235" srcset="/images/thumb/a/af/LoremIpsum.png/225px-LoremIpsum.png 1.5x, /images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png 2x" /></a>
+
+-=-=-=-[ image height ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/96px-LoremIpsum.png" decoding="async" width="96" height="150" srcset="/images/thumb/a/af/LoremIpsum.png/144px-LoremIpsum.png 1.5x, /images/thumb/a/af/LoremIpsum.png/191px-LoremIpsum.png 2x" /></a>
+
+-=-=-=-[ image width and height ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/96px-LoremIpsum.png" decoding="async" width="96" height="150" srcset="/images/thumb/a/af/LoremIpsum.png/144px-LoremIpsum.png 1.5x, /images/thumb/a/af/LoremIpsum.png/191px-LoremIpsum.png 2x" /></a>
+
+-=-=-=-[ image width and height + caption ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image" title="lorem ipsum dolor"><img alt="lorem ipsum dolor" src="/images/thumb/a/af/LoremIpsum.png/96px-LoremIpsum.png" decoding="async" width="96" height="150" srcset="/images/thumb/a/af/LoremIpsum.png/144px-LoremIpsum.png 1.5x, /images/thumb/a/af/LoremIpsum.png/191px-LoremIpsum.png 2x" /></a>
+
+-=-=-=-[ left align ]-=-=-=-
+
+<div class="floatleft"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a></div>
+
+-=-=-=-[ right align ]-=-=-=-
+
+<div class="floatright"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a></div>
+
+-=-=-=-[ center align ]-=-=-=-
+
+<div class="center"><div class="floatnone"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a></div></div>
+
+-=-=-=-[ none align ]-=-=-=-
+
+<div class="floatnone"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a></div>
+
+-=-=-=-[ should not be align ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image" title="center lorem ipsum"><img alt="center lorem ipsum" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ first align matters ]-=-=-=-
+
+<div class="floatleft"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a></div>
+
+-=-=-=-[ top vertical align test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" style="vertical-align: top" /></a>
+
+-=-=-=-[ text-top vertical align test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" style="vertical-align: text-top" /></a>
+
+-=-=-=-[ middle vertical align test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" style="vertical-align: middle" /></a>
+
+-=-=-=-[ bottom vertical align test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" style="vertical-align: bottom" /></a>
+
+-=-=-=-[ text-bottom vertical align test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" style="vertical-align: text-bottom" /></a>
+
+-=-=-=-[ baseline vertical align test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" style="vertical-align: baseline" /></a>
+
+-=-=-=-[ link to external url ]-=-=-=-
+
+<a href="https://lorem.ipsum.com" rel="nofollow"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ link to title ]-=-=-=-
+
+<a href="/index.php/Lorem:Ipsum" title="Lorem:Ipsum"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ no link ]-=-=-=-
+
+<img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" />
+
+-=-=-=-[ no link and caption ]-=-=-=-
+
+<img alt="lorem ipsum dolor" src="/images/a/af/LoremIpsum.png" decoding="async" title="lorem ipsum dolor" width="313" height="490" />
+
+-=-=-=-[ should not be treated as link ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image" title="link"><img alt="link" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ not existing image + link to external url ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + link to title ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + no link ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + no link and caption ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">lorem ipsum dolor</a>
+
+-=-=-=-[ not existing image + should not be treated as link ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">link</a>
+
+-=-=-=-[ thumb ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:302px;"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png" decoding="async" width="300" height="470" class="thumbimage" srcset="/images/a/af/LoremIpsum.png 1.5x" /></a>  <div class="thumbcaption"><div class="magnify"><a href="/index.php/File:LoremIpsum.png" class="internal" title="Enlarge"></a></div></div></div></div>
 

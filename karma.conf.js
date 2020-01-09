@@ -17,6 +17,7 @@ module.exports = function(config) {
     files: [
         'node_modules/he/he.js',
         'node_modules/axios/dist/axios.min.js',
+        'node_modules/js-md5/src/md5.js',
         'test/*.js',
         'src/*.js',
         {

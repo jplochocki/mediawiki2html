@@ -63,7 +63,7 @@ async function parseWikiText(txt) {
 
 async function parseCmpTestsSources() {
     fs.readdirSync(TEST_DIR).forEach(async function(fl) {
-        if(!/cmp-tests-source.txt$/.test(fl))
+        if(!/-cmp-tests-source.txt$/.test(fl))
             return;
 
         console.log('Reading file', fl, '...');
@@ -93,4 +93,11 @@ async function parseCmpTestsSources() {
     });
 }
 
+
 parseCmpTestsSources();
+
+
+fs.watch(TEST_DIR, (event, fl) => {
+    if(/-cmp-tests-source.txt$/.test(fl))
+        parseCmpTestsSources();
+});

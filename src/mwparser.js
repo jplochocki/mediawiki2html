@@ -647,7 +647,12 @@ class MWParser {
         // Process the input parameters
         let caption = '';
         let params = {
-            frame: {},
+            frame: {
+                align: '',
+                alt: '',
+                title: '',
+                'class': ''
+            },
             handler: {},
             horizAlign: [],
             vertAlign: []
@@ -775,18 +780,18 @@ class MWParser {
         // makes no sense, because that just repeats the text multiple times in
         // screen readers.
         if(imageIsFramed) { // Framed image
-            if(caption === '' && !('alt' in params.frame)) {
+            if(caption == '' && params.frame.alt == '')
                 // No caption or alt text, add the filename as the alt text so
                 // that screen readers at least get some description of the image
                 params.frame.alt = title.getText();
-            }
+
             // Do not set $params['frame']['title'] because tooltips don't make sense
             // for framed images
         }
         else { // Inline image
-            if(!('alt' in params.frame)) {
+            if(params.frame.alt == '') {
                 // No alt text, use the "caption" for the alt text
-                if(caption !== '')
+                if(caption != '')
                     params.frame.alt = this.stripAltTextPrivate(caption);
                 else
                     // No caption, fall back to using the filename for the
@@ -814,20 +819,6 @@ class MWParser {
         if(!this.parserConfig.allowImageDisplay(title))
             return this.makeLinkObj(title) // FIXME should use caption as title?
 
-        // Clean up parameters
-        if(!('align' in frameParams))
-            frameParams.align = '';
-
-        if(!('alt' in frameParams))
-            frameParams.alt = '';
-
-        if(!('title' in frameParams))
-            frameParams.title = '';
-
-        if(!('class' in frameParams))
-            frameParams['class'] = '';
-
-
         let prefix = '', postfix = '';
         if(frameParams.align == 'center') {
             prefix = '<div class="center">';
@@ -847,8 +838,8 @@ class MWParser {
                 // parameter, round to full __0 pixel to avoid the creation of a
                 // lot of odd thumbs.
                 let prefWidth = 'upright' in frameParams ?
-                    Math.round(this.parserConfig.thumbSize * frameParams.upright / 10) * 10  // eqiv. php's round($number, -1)
-                    : this.parserConfig.thumbSize;
+                    Math.round(this.parserConfig.defaultThumbSize * frameParams.upright / 10) * 10  // eqiv. php's round($number, -1)
+                    : this.parserConfig.defaultThumbSize;
 
                 // Use width which is smaller: real image width or user preference width
                 // Unless image is scalable vector.
@@ -860,6 +851,7 @@ class MWParser {
         }
 
         // thumbnail
+        const isThumbFrame = 'thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams;
         let makeThumb_params = [
             title,
             handlerParams.width ? handlerParams.width : false,
@@ -878,35 +870,38 @@ class MWParser {
             makeThumb_params[1] = false;
             makeThumb_params[2] = false;
         }
+        // default width for thumb, if not set
+        if(isThumbFrame && makeThumb_params[1] === false && makeThumb_params[2] === false)
+            makeThumb_params[1] = this.parserConfig.defaultThumbSize;
+
 
         const thumb = this.parserConfig.makeThumb.apply(this.parserConfig, makeThumb_params);
         let out = '';
 
         // in frame output
         // based od Linker::makeThumbLink2
-        const imgParams = {
-            alt: frameParams.alt,
-            title: frameParams.title,
+        let imgParams = {
+            alt: frameParams.alt
         };
         imgParams['class'] = ( frameParams['class'] ? frameParams['class'] : '' );
 
         if('border' in frameParams)
             imgParams['class'] += ' thumbborder'
 
-        if('thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams) {
+        if(isThumbFrame) {
             // Create a thumbnail. Alignment depends on the writing direction of
             // the page content language (right-aligned for LTR languages,
             // left-aligned for RTL languages)
             // If a thumbnail width has not been provided, it is set
             // to the default user option as specified in Language*.php
             if(frameParams.align == '')
-                frameParams.align = this.parserConfig.isRightAlignedLanguage ? 'right' : 'left';
+                frameParams.align = this.parserConfig.isRightAlignedLanguage ? 'left' : 'right';
 
 
             const outerWidth = ( thumb ? thumb.width : handlerParams.width ) + 2;
 
-            if(thumb && !('link-title' in frameParams) && !('link-url' in frameParams) && !('no-link' in frameParams))
-                frameParams['link-url'] = title.getFullURL();
+            //if(thumb && !('link-title' in frameParams) && !('link-url' in frameParams) && !('no-link' in frameParams))
+            //    frameParams['link-url'] = title.getFullURL();
 
             prefix += `<div class="thumb t${ frameParams.align }"><div class="thumbinner" style="width: ${ outerWidth }px;">`;
             postfix = '</div></div>' + postfix;
@@ -919,57 +914,81 @@ class MWParser {
                     zoomIcon = `<div class="magnify"><a href="${ title.getFullURL() }" class="internal" title="Enlarge"></a></div>`;
             }
 
-            postfix += `<div class="thumbcaption">${ zoomIcon }${ frameParams.caption }</div>`;
+            postfix = `<div class="thumbcaption">${ zoomIcon }${ frameParams.caption }</div>${postfix}`;
         }
 
 
         if(thumb) {
-            // Linker::getImageLinkMTOParams skipped
-            // Linker::processResponsiveImages skipped
+            // Linker::getImageLinkMTOParams (partialy) skipped
             // ThumbnailImage::toHtml
             imgParams['class'] = imgParams['class'].trim();
             imgParams.decoding = 'async';
             imgParams.src = thumb.url;
+            imgParams.width = thumb.width;
+            imgParams.height = thumb.height;
+
+            if(this.parserConfig.wgResponsiveImages) { // Linker::processResponsiveImages
+                let w15 = Math.round(imgParams.width * 1.5);
+                let w20 = Math.round(imgParams.width * 2);
+
+                let h15 = Math.round(imgParams.height * 1.5);
+                let h20 = Math.round(imgParams.height * 2);
+
+                let t15 = this.parserConfig.makeThumb(title, w15, h15);
+                let t20 = this.parserConfig.makeThumb(title, w20, h20);
+
+                imgParams.srcset = '';
+                if(t15 && t15.url != thumb.url)
+                    imgParams.srcset += t15.url + ' 1.5x';
+                if(t20 && t20.url != thumb.url && t15.url != t20.url)
+                    imgParams.srcset += (imgParams.srcset == ''? '' : ', ') + t20.url + ' 2x';
+            }
+
+            if(frameParams.valign)
+                imgParams.style = `vertical-align: ${ frameParams.valign }`;
 
             // image link params
-            let linkAttrs = {};
-            if(imgParams.title)
-                    linkAttrs.title = imgParams.title;
+            let linkAttrs = {
+                href: title.getFullURL(),
+                'class': 'image'
+            };
 
-            if(frameParams['link-url'])
+            if(frameParams.title)
+                    linkAttrs.title = frameParams.title;
+
+            if(frameParams['link-url']) {
                 linkAttrs.href = frameParams['link-url'];
+                delete linkAttrs['class'];
+                linkAttrs.rel = 'nofollow';
+            }
             else if(frameParams['link-title']) {
-                let nt = Title.newFromText(frameParams['link-title'], this.parserConfig);
-                linkAttrs.href = nt.getFullURL();
-                if(!imgParams.title)
-                    imgParams.title = nt.getFullText()
+                linkAttrs.href = frameParams['link-title'].getFullURL();
+                delete linkAttrs['class'];
+                if(!linkAttrs.title)
+                    linkAttrs.title = frameParams['link-title'].getPrefixedText()
             }
             else if(frameParams['file-link'])
                 linkAttrs = {
                     'href': thumb.url
                 };
-            else if(frameParams['file-link']) {
-            }
-            else {
+            else if(frameParams['no-link']) {
                 linkAttrs = {};
+                if(frameParams.title)
+                    imgParams.title = frameParams.title;
             }
 
-            // image params
-            imgParams.width = thumb.width;
-            imgParams.height = thumb.height;
-
-            if(frameParams.valign)
-                imgParams.style = `vertical-align: ${ frameParams.valign }`;
-
-
-            out = `<a ${ Sanitizer.safeEncodeTagAttributes(linkAttrs) }><img ${ Sanitizer.safeEncodeTagAttributes(imgParams) }></a>`;
+            imgParams = Object.assign({}, ...Object.entries(imgParams).filter(([k, v]) => v != '').map(([k, v]) => ({[k]: v + ''})));
+            if(frameParams['no-link'])
+                out = `<img ${ Sanitizer.safeEncodeTagAttributes(imgParams) }>`;
+            else
+                out = `<a ${ Sanitizer.safeEncodeTagAttributes(linkAttrs) }><img ${ Sanitizer.safeEncodeTagAttributes(imgParams) }></a>`;
         }
         else { // thumb error - make a "broken" link to an image
             // Linker::makeBrokenImageLinkObj
             const label = frameParams.title ? frameParams.title : title.getPrefixedText();
 
             if(this.parserConfig.uploadMissingFileUrl) {
-                let q = {...this.uploadFileParams};
+                let q = {...this.parserConfig.uploadFileParams};
                 if(q.wpDestFile)
                     q.wpDestFile = title.getPartialURL();
                 q = '?' + new URLSearchParams(q).toString();
@@ -982,7 +1001,7 @@ class MWParser {
             }
         }
 
-        if(frameParams.align != '') {
+        if(frameParams.align != '' && !isThumbFrame) {
             prefix += `<div class="float${ frameParams.align }">`;
             postfix = '</div>' + postfix;
         }

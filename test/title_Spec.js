@@ -291,3 +291,19 @@ describe('Test Title.getEditURL', function() {
         expect(t.getEditURL()).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
     });
 });
+
+
+describe('Test Title.getImageUrl', function() {
+    it('basic tests', function() {
+        const t = Title.newFromText('File:LoremIpsum.png');
+        expect(t.getImageUrl()).toEqual('/images/a/af/LoremIpsum.png');
+    });
+});
+
+
+describe('Test Title.getThumbUrl', function() {
+    it('basic tests', function() {
+        const t = Title.newFromText('File:LoremIpsum.png');
+        expect(t.getThumbUrl(150)).toEqual('/images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png');
+    });
+});

@@ -38,14 +38,17 @@ class DefaultConfig {
         this.articlePath = '/w/index.php$1';
         this.validInterwikiNames = [];
         this.externalLinkTarget = false; // setting to _blank may represent a security risk
-        this.thumbSize = 300;
+        this.defaultThumbSize = 300;
         this.thumbUpright = 0.75;
-        this.uploadMissingFileUrl = false;
-        this.uploadFileURL = `//${ this.server }${ this.articlePath }`;
+        this.wgResponsiveImages = true;
+        this.uploadMissingFileUrl = true;
+        this.uploadFileURL = `//${ this.server.replace(/\$(1|2)/g, '') }${ this.articlePath }`;
         this.uploadFileParams = {
             title: 'Special:Upload',
             wpDestFile: true
         };
+        this.imageFileUrl = '/images/';
+        this.thumbFileUrl = '/images/thumb/';
 
         // TODO magic words for other languages
         this.magicWords = {

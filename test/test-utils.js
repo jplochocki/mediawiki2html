@@ -118,7 +118,6 @@ function splitHtmlParts(txt) {
             tagName,
             attributes,
             isEndTag,
-            originalText: bit
         });
 
         // text pos after tag
@@ -133,26 +132,10 @@ function splitHtmlParts(txt) {
 }
 
 
-function compareHtmlParts(fromParts, toParts, stopImmediately=true) {
-    fromParts.forEach((from, idx) => {
-        let to = toParts[idx];
-        if(form.type != to.type) {
-            return;
-        }
-        if(from.type == 'text' && from.text != to.text) {
-            return;
-        }
-        if(from.type == 'tag' ) {
-        }
-    });
-    //originalText
-}
-
-
 /**
  * Makes a comparative test with MediaWiki results
  */
-async function compareTest(testFilePrefix, testCallback, acceptablDifferences=[]) {
+async function compareTest(testFilePrefix, testCallback) {
     document.write('<script type="module" src="/base/node_modules/diff/lib/index.es6.js"></script>');
     const JsDiff = await import('/base/node_modules/diff/lib/index.es6.js');
 
@@ -164,9 +147,12 @@ async function compareTest(testFilePrefix, testCallback, acceptablDifferences=[]
     let tests = [], lastTestName = '';
     source.forEach(it => {
         it = it.trim();
+        if(it == '')
+            return;
+
         let m = /^-=-=-=-\[(.*)\]-=-=-=-$/.exec(it);
         if(m)
-            lastTestName = m[1];
+            lastTestName = m[1].trim();
         else {
             tests.push({
                 name: lastTestName,
@@ -180,9 +166,12 @@ async function compareTest(testFilePrefix, testCallback, acceptablDifferences=[]
     dest = dest.split(/\n?(-=-=-=-\[.*\]-=-=-=-)\n/);
     dest.forEach(it => {
         it = it.trim();
+        if(it == '')
+            return;
+
         let m = /^-=-=-=-\[(.*)\]-=-=-=-$/.exec(it);
         if(m)
-            lastTestName = m[1];
+            lastTestName = m[1].trim();
         else {
             let a = tests.find(t => t.name == lastTestName);
             a.mediaWikiResult = it;
@@ -191,14 +180,35 @@ async function compareTest(testFilePrefix, testCallback, acceptablDifferences=[]
     });
 
     // call test & compare
-    //console.log('xxx', Diff);
-
     tests.forEach(test => {
         let result = testCallback(test.from);
         let result_parts = splitHtmlParts(result);
 
         let r = JsDiff.diffJson(test.mediaWikiResult_parts, result_parts);
+        if(r.length > 1) {
+            let out = colors.red + 'test diff: ' + test.name + colors.reset + '\n\n'
 
-        // TODO
+            r.forEach(a => {
+                if(a.added)
+                    out += colors.green + '+' + a.value + colors.reset + '\n';
+                else if(a.removed)
+                    out += colors.red + '-' + a.value + colors.reset + '\n';
+                else
+                    out += ' ', a.value + '\n';
+            });
+            console.log(out);
+        }
     })
 }
+
+
+const colors = {
+    reset: '\033[0m',
+    green: '\033[32m',
+    red: '\033[31m',
+    black: '\033[30m',
+    blue: '\033[34m',
+    cyan: '\033[36m',
+    purple: '\033[35m',
+    brown: '\033[33m'
+};

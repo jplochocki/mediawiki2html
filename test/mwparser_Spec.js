@@ -245,21 +245,21 @@ describe('Test MWParser.makeImage', function() {
         let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({width: 150});
-        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: ''});
+        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''});
 
         this.parser.makeImage(this.title, 'x150px');
         expect(this.parser.makeImageHTML).toHaveBeenCalled();
         ([title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(1));
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({height: 150});
-        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: ''});
+        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''});
 
         this.parser.makeImage(this.title, '300x150px');
         expect(this.parser.makeImageHTML).toHaveBeenCalled();
         ([title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(2));
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({width: 300, height: 150});
-        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: ''});
+        expect(params_frame).toEqual({caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''});
 
         // with caption
         this.parser.makeImage(this.title, '300x150px|lorem ipsum dolor');
@@ -267,7 +267,7 @@ describe('Test MWParser.makeImage', function() {
         ([title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(3));
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({width: 300, height: 150});
-        expect(params_frame).toEqual({caption: 'lorem ipsum dolor', alt: 'lorem ipsum dolor', title: 'lorem ipsum dolor'});
+        expect(params_frame).toEqual({caption: 'lorem ipsum dolor', alt: 'lorem ipsum dolor', title: 'lorem ipsum dolor', align: '', 'class': ''});
     });
 
     it('horizontal align tests', function() {
@@ -277,7 +277,7 @@ describe('Test MWParser.makeImage', function() {
             let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
             expect(title.equals(this.title)).toBeTruthy();
             expect(params_handler).toEqual({});
-            expect(params_frame).toEqual({align: t, caption: '', alt: 'Dolor.png', title: ''});
+            expect(params_frame).toEqual({align: t, caption: '', alt: 'Dolor.png', title: '', 'class': ''});
         });
     });
 
@@ -287,7 +287,7 @@ describe('Test MWParser.makeImage', function() {
         let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(this.parser.makeImageHTML.calls.count() -1);
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({});
-        expect(params_frame).toEqual({caption: 'center lorem ipsum', alt: 'center lorem ipsum', title: 'center lorem ipsum'});
+        expect(params_frame).toEqual({caption: 'center lorem ipsum', alt: 'center lorem ipsum', title: 'center lorem ipsum', align: '', 'class': ''});
     });
 
     it('first align matters', function() {
@@ -296,7 +296,7 @@ describe('Test MWParser.makeImage', function() {
         let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({});
-        expect(params_frame).toEqual({align: 'left', caption: '', alt: 'Dolor.png', title: ''});
+        expect(params_frame).toEqual({align: 'left', caption: '', alt: 'Dolor.png', title: '', 'class': ''});
     });
 
     it('vertical align tests', function() {
@@ -306,7 +306,7 @@ describe('Test MWParser.makeImage', function() {
             const [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(idx);
             expect(title.equals(this.title)).toBeTruthy();
             expect(params_handler).toEqual({});
-            expect(params_frame).toEqual({valign: t, caption: '', alt: 'Dolor.png', title: ''});
+            expect(params_frame).toEqual({valign: t, caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''});
         });
     });
 
@@ -316,7 +316,7 @@ describe('Test MWParser.makeImage', function() {
         let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({});
-        expect(params_frame).toEqual({caption: 'top lorem ipsum', alt: 'top lorem ipsum', title: 'top lorem ipsum'});
+        expect(params_frame).toEqual({caption: 'top lorem ipsum', alt: 'top lorem ipsum', title: 'top lorem ipsum', align: '', 'class': ''});
     });
 
     it('first valign matters', function() {
@@ -325,11 +325,11 @@ describe('Test MWParser.makeImage', function() {
         let [title, params_frame, params_handler] = this.parser.makeImageHTML.calls.argsFor(0);
         expect(title.equals(this.title)).toBeTruthy();
         expect(params_handler).toEqual({});
-        expect(params_frame).toEqual({valign: 'top', caption: '', alt: 'Dolor.png', title: ''});
+        expect(params_frame).toEqual({valign: 'top', caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''});
     });
 
     it('link tests', function() {
-        const default_frame = {'link-target': false, caption: '', alt: 'Dolor.png', title: ''};
+        const default_frame = {'link-target': false, caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''};
         [{
             from: 'link=https://lorem.ipsum.com',
             to: {
@@ -355,14 +355,18 @@ describe('Test MWParser.makeImage', function() {
                 'link-target': false,
                 caption: 'lorem ipsum dolor',
                 alt: 'lorem ipsum dolor',
-                title: 'lorem ipsum dolor'
+                title: 'lorem ipsum dolor',
+                align: '',
+                'class': ''
             }
         }, {
             from: 'link', // should not be treated as link
             to: {
                 caption: 'link',
                 alt: 'link',
-                title: 'link'
+                title: 'link',
+                align: '',
+                'class': ''
             }
         }].forEach(({from, to}, idx) => {
             this.parser.makeImage(this.title, from);
@@ -375,7 +379,7 @@ describe('Test MWParser.makeImage', function() {
     });
 
     it('thumb, frame, etc.', function() {
-        const default_frame = {caption: '', alt: 'Dolor.png'};
+        const default_frame = {caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''};
         [{
             from: 'thumb',
             to: {
@@ -415,7 +419,9 @@ describe('Test MWParser.makeImage', function() {
                 title: 'thumb',
                 alt: 'thumb',
                 caption: 'thumb',
-                frameless: false
+                frameless: false,
+                align: '',
+                'class': ''
             }
         }].forEach(({from, to}, idx) => {
             this.parser.makeImage(this.title, from);
@@ -428,13 +434,15 @@ describe('Test MWParser.makeImage', function() {
     });
 
     it('alt, class, upright - misc options', function() {
-        const default_frame = {caption: '', alt: 'Dolor.png', title: ''};
+        const default_frame = {caption: '', alt: 'Dolor.png', title: '', align: '', 'class': ''};
         [{
             from: 'alt=lorem ipsum|dolor sit amet',
             to: {
                 alt: 'lorem ipsum',
                 caption: 'dolor sit amet',
-                title: 'dolor sit amet'
+                title: 'dolor sit amet',
+                align: '',
+                'class': ''
             }
         }, {
             from: 'class=lorem-ipsum',
@@ -460,13 +468,69 @@ describe('Test MWParser.makeImage', function() {
 });
 
 
-describe('Test ', function() {
-    xit('basic tests', function() {
-        //splitHtmlParts('Lorem ipsum <a href="http://lorem.com" class="image">dolor sit <img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" width="313" height="490" /></a>')
-        let par = new MWParser();
-        compareTest('image-links', txt => {
-            return par.handleInternalLinks(txt);
-        });
+describe('Compare MWParser.handleInternalLinks results with MediaWiki', function() {
+    beforeEach(function() {
+        this.parser = new MWParser({
+            uploadFileURL: '/index.php$1',
 
+            titleExists(title) {
+                if(title.getPrefixedText() == 'File:LoremIpsum not-existing.png')
+                    return false;
+                return true;
+            },
+
+            getFullUrl(title, query=null, proto='//') {
+                if(title.getPrefixedText() == 'File:LoremIpsum.png')
+                    return '/index.php/File:LoremIpsum.png';
+                if(title.getPrefixedText() == 'Lorem:Ipsum')
+                    return '/index.php/Lorem:Ipsum';
+                return '';
+            },
+
+            makeThumb(title, width=false, height=false, doNotZoomIn=false) {
+                if(title.getPrefixedText() == 'File:LoremIpsum.png') {
+                    let w = 313, h = 490, url = title.getImageUrl();
+                    if(width == 150 && height === false)
+                        [w, h, url] = [150, 235, title.getThumbUrl(150)];
+                    else if(width === false && height == 150)
+                        [w, h, url] = [96, 150, title.getThumbUrl(96)];
+                    else if(width == 300 && height == 150)
+                        [w, h, url] = [96, 150, title.getThumbUrl(96)];
+                    else if(width == 144) // responsive images
+                        url = title.getThumbUrl(144);
+                    else if(width == 192)
+                        url = title.getThumbUrl(191);
+                    else if(width == 225)
+                        url = title.getThumbUrl(225);
+                    else if(width == 300)
+                        [w, h, url] = [300, 470, title.getThumbUrl(300)];
+
+                    return {
+                        url,
+                        width: w,
+                        height: h
+                    };
+                }
+
+                return false;
+            }
+        });
+    });
+
+    it('compare tests', async function() {
+        const acceptDiffs = [
+            ['Special%3AUpload', 'Special:Upload'], // /index.php?title=Special%3AUpload&wpDestFile=LoremIpsum_not-existing.png
+            ['width: 302px;', 'width:302px;']       // thumb test
+        ];
+        await compareTest('image-links', txt => {
+            txt = this.parser.handleInternalLinks(txt);
+            txt = acceptDiffs.reduce((txt1, [from, to]) => txt1.replace(from, to), txt);
+            return txt;
+        });
+    });
+
+    it('basic tests', function() {
+        let r = this.parser.handleInternalLinks('[[File:LoremIpsum.png|thumb=LoremIpsumThumb.png]]');
+        //console.log(r);
     });
 });
