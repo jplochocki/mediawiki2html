@@ -197,6 +197,9 @@ async function compareTest(testFilePrefix, testCallback) {
                     out += ' ', a.value + '\n';
             });
             console.log(out);
+
+            console.log('MediaWiki:', test.mediaWikiResult);
+            console.log('Our:', result);
         }
     })
 }

@@ -511,6 +511,12 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki', function
                         height: h
                     };
                 }
+                else if(title.getPrefixedText() == 'File:LoremIpsumThumb.png')
+                    return {
+                        url: title.getImageUrl(),
+                        width: 234,
+                        height: 239
+                    };
 
                 return false;
             }
@@ -520,7 +526,8 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki', function
     it('compare tests', async function() {
         const acceptDiffs = [
             ['Special%3AUpload', 'Special:Upload'], // /index.php?title=Special%3AUpload&wpDestFile=LoremIpsum_not-existing.png
-            ['width: 302px;', 'width:302px;']       // thumb test
+            [/width: (\d+)px;/g, 'width:$1px;'],    // thumb test, in wiki tere is no space before CSS value
+            //['width:302px;', 'width:182px;']        // not existing image + thumb
         ];
         await compareTest('image-links', txt => {
             txt = this.parser.handleInternalLinks(txt);
@@ -530,7 +537,7 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki', function
     });
 
     it('basic tests', function() {
-        let r = this.parser.handleInternalLinks('[[File:LoremIpsum.png|thumb=LoremIpsumThumb.png]]');
+        let r = this.parser.handleInternalLinks('[[File:LoremIpsum_not-existing.png|thumb]]');
         //console.log(r);
     });
 });

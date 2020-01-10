@@ -826,10 +826,9 @@ class MWParser {
             frameParams.align = 'none';
         }
 
+        const isThumbFrame = 'thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams;
         if(!('width' in handlerParams)) {
-            if('thumbnail' in frameParams || 'manualthumb' in frameParams
-                    || 'framed' in frameParams || 'frameless' in frameParams
-                    || !handlerParams.width) {
+            if(isThumbFrame || 'frameless' in frameParams || !handlerParams.width) {
                 // Reduce width for upright images when parameter 'upright' is used
                 if('upright' in frameParams && frameParams.upright == 0)
                     frameParams.upright = this.parserConfig.thumbUpright;
@@ -851,7 +850,6 @@ class MWParser {
         }
 
         // thumbnail
-        const isThumbFrame = 'thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams;
         let makeThumb_params = [
             title,
             handlerParams.width ? handlerParams.width : false,
@@ -866,16 +864,21 @@ class MWParser {
             makeThumb_params[0] = nt;
         }
 
+
+        if((isThumbFrame || 'frameless' in frameParams) && makeThumb_params[1] === false && makeThumb_params[2] === false) // default width for thumb, if not set
+            makeThumb_params[1] = this.parserConfig.defaultThumbSize;
+
+
         if('framed' in frameParams) { // Use image dimensions, don't scale
             makeThumb_params[1] = false;
             makeThumb_params[2] = false;
         }
-        // default width for thumb, if not set
-        if(isThumbFrame && makeThumb_params[1] === false && makeThumb_params[2] === false)
-            makeThumb_params[1] = this.parserConfig.defaultThumbSize;
 
 
         const thumb = this.parserConfig.makeThumb.apply(this.parserConfig, makeThumb_params);
+        if(thumb)
+            thumb.title = makeThumb_params[0]; // if manualthumb, then thumb.title != title
+
         let out = '';
 
         // in frame output
@@ -897,11 +900,9 @@ class MWParser {
             if(frameParams.align == '')
                 frameParams.align = this.parserConfig.isRightAlignedLanguage ? 'left' : 'right';
 
-
-            const outerWidth = ( thumb ? thumb.width : handlerParams.width ) + 2;
-
-            //if(thumb && !('link-title' in frameParams) && !('link-url' in frameParams) && !('no-link' in frameParams))
-            //    frameParams['link-url'] = title.getFullURL();
+            let outerWidth = ( thumb ? thumb.width : handlerParams.width ) + 2;
+            if(isNaN(outerWidth))
+                outerWidth = 180 + 2; // Linker::makeThumbLink2 hardcoded value
 
             prefix += `<div class="thumb t${ frameParams.align }"><div class="thumbinner" style="width: ${ outerWidth }px;">`;
             postfix = '</div></div>' + postfix;
@@ -934,8 +935,8 @@ class MWParser {
                 let h15 = Math.round(imgParams.height * 1.5);
                 let h20 = Math.round(imgParams.height * 2);
 
-                let t15 = this.parserConfig.makeThumb(title, w15, h15);
-                let t20 = this.parserConfig.makeThumb(title, w20, h20);
+                let t15 = this.parserConfig.makeThumb(thumb.title, w15, h15);
+                let t20 = this.parserConfig.makeThumb(thumb.title, w20, h20);
 
                 imgParams.srcset = '';
                 if(t15 && t15.url != thumb.url)
@@ -976,6 +977,9 @@ class MWParser {
                 if(frameParams.title)
                     imgParams.title = frameParams.title;
             }
+
+            if(isThumbFrame && 'manualthumb' in frameParams)
+                delete linkAttrs['class'];
 
             imgParams = Object.assign({}, ...Object.entries(imgParams).filter(([k, v]) => v != '').map(([k, v]) => ({[k]: v + ''})));
             if(frameParams['no-link'])

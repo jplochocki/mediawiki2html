@@ -122,3 +122,27 @@
 
 [[File:LoremIpsum.png|thumb]]
 
+-=-=-=-[ thumb from another file ]-=-=-=-
+
+[[File:LoremIpsum.png|thumb=LoremIpsumThumb.png]]
+
+-=-=-=-[ frame test ]-=-=-=-
+
+[[File:LoremIpsum.png|frame]]
+
+-=-=-=-[ frameless test ]-=-=-=-
+
+[[File:LoremIpsum.png|frameless]]
+
+-=-=-=-[ border test ]-=-=-=-
+
+[[File:LoremIpsum.png|border]]
+
+-=-=-=-[ frames - should use first option ]-=-=-=-
+
+[[File:LoremIpsum.png|frameless|framed|thumb]]
+
+-=-=-=-[ not existing image + thumb ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|thumb]]
+

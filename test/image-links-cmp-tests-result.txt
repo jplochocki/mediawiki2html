@@ -122,3 +122,27 @@
 
 <div class="thumb tright"><div class="thumbinner" style="width:302px;"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png" decoding="async" width="300" height="470" class="thumbimage" srcset="/images/a/af/LoremIpsum.png 1.5x" /></a>  <div class="thumbcaption"><div class="magnify"><a href="/index.php/File:LoremIpsum.png" class="internal" title="Enlarge"></a></div></div></div></div>
 
+-=-=-=-[ thumb from another file ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:236px;"><a href="/index.php/File:LoremIpsum.png"><img alt="LoremIpsum.png" src="/images/c/cb/LoremIpsumThumb.png" decoding="async" width="234" height="239" class="thumbimage" /></a>  <div class="thumbcaption"><div class="magnify"><a href="/index.php/File:LoremIpsum.png" class="internal" title="Enlarge"></a></div></div></div></div>
+
+-=-=-=-[ frame test ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:315px;"><a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" class="thumbimage" /></a>  <div class="thumbcaption"></div></div></div>
+
+-=-=-=-[ frameless test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png" decoding="async" width="300" height="470" srcset="/images/a/af/LoremIpsum.png 1.5x" /></a>
+
+-=-=-=-[ border test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" class="thumbborder" /></a>
+
+-=-=-=-[ frames - should use first option ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image" title="thumb"><img alt="thumb" src="/images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png" decoding="async" width="300" height="470" srcset="/images/a/af/LoremIpsum.png 1.5x" /></a>
+
+-=-=-=-[ not existing image + thumb ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:182px;"><a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>  <div class="thumbcaption"></div></div></div>
+
