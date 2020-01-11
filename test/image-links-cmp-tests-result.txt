@@ -24,11 +24,11 @@
 
 -=-=-=-[ image width and height ]-=-=-=-
 
-<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/96px-LoremIpsum.png" decoding="async" width="96" height="150" srcset="/images/thumb/a/af/LoremIpsum.png/144px-LoremIpsum.png 1.5x, /images/thumb/a/af/LoremIpsum.png/191px-LoremIpsum.png 2x" /></a>
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png" decoding="async" width="300" height="470" srcset="/images/a/af/LoremIpsum.png 1.5x" /></a>
 
 -=-=-=-[ image width and height + caption ]-=-=-=-
 
-<a href="/index.php/File:LoremIpsum.png" class="image" title="lorem ipsum dolor"><img alt="lorem ipsum dolor" src="/images/thumb/a/af/LoremIpsum.png/96px-LoremIpsum.png" decoding="async" width="96" height="150" srcset="/images/thumb/a/af/LoremIpsum.png/144px-LoremIpsum.png 1.5x, /images/thumb/a/af/LoremIpsum.png/191px-LoremIpsum.png 2x" /></a>
+<a href="/index.php/File:LoremIpsum.png" class="image" title="lorem ipsum dolor"><img alt="lorem ipsum dolor" src="/images/thumb/a/af/LoremIpsum.png/300px-LoremIpsum.png" decoding="async" width="300" height="470" srcset="/images/a/af/LoremIpsum.png 1.5x" /></a>
 
 -=-=-=-[ left align ]-=-=-=-
 
@@ -145,4 +145,52 @@
 -=-=-=-[ not existing image + thumb ]-=-=-=-
 
 <div class="thumb tright"><div class="thumbinner" style="width:182px;"><a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>  <div class="thumbcaption"></div></div></div>
+
+-=-=-=-[ not existing image + thumb from another file ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:182px;"><a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>  <div class="thumbcaption"></div></div></div>
+
+-=-=-=-[ not existing image + not existing thumb from another file ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:182px;"><a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>  <div class="thumbcaption"></div></div></div>
+
+-=-=-=-[ not existing image + frame test ]-=-=-=-
+
+<div class="thumb tright"><div class="thumbinner" style="width:182px;"><a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>  <div class="thumbcaption"></div></div></div>
+
+-=-=-=-[ not existing image + frameless test ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + border test ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + frames - should use first option ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">thumb</a>
+
+-=-=-=-[ alt test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="lorem ipsum dolor" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ class test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" class="lorem-ipsum" /></a>
+
+-=-=-=-[ upright test ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image"><img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ not existing image + alt test ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + class ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
+
+-=-=-=-[ not existing image + upright test ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
 

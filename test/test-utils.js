@@ -186,7 +186,7 @@ async function compareTest(testFilePrefix, testCallback) {
 
         let r = JsDiff.diffJson(test.mediaWikiResult_parts, result_parts);
         if(r.length > 1) {
-            let out = colors.red + 'test diff: ' + test.name + colors.reset + '\n\n'
+            let out = `${ colors.red }test diff: ${ test.name }${ colors.reset } (${ test.from })\n\n`
 
             r.forEach(a => {
                 if(a.added)

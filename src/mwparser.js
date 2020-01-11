@@ -819,14 +819,18 @@ class MWParser {
         if(!this.parserConfig.allowImageDisplay(title))
             return this.makeLinkObj(title) // FIXME should use caption as title?
 
-        let prefix = '', postfix = '';
-        if(frameParams.align == 'center') {
+        let prefix = '', postfix = '', out = '';
+
+        const imageExists = title.exists();
+        const isThumbFrame = 'thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams;
+
+        if(frameParams.align == 'center') { // center align
             prefix = '<div class="center">';
             postfix = '</div>';
             frameParams.align = 'none';
         }
 
-        const isThumbFrame = 'thumbnail' in frameParams || 'manualthumb' in frameParams || 'framed' in frameParams;
+        // width and height
         if(!('width' in handlerParams)) {
             if(isThumbFrame || 'frameless' in frameParams || !handlerParams.width) {
                 // Reduce width for upright images when parameter 'upright' is used
@@ -875,11 +879,10 @@ class MWParser {
         }
 
 
-        const thumb = this.parserConfig.makeThumb.apply(this.parserConfig, makeThumb_params);
+        const thumb = this.parserConfig.makeThumb(...makeThumb_params);
         if(thumb)
             thumb.title = makeThumb_params[0]; // if manualthumb, then thumb.title != title
 
-        let out = '';
 
         // in frame output
         // based od Linker::makeThumbLink2
@@ -891,6 +894,7 @@ class MWParser {
         if('border' in frameParams)
             imgParams['class'] += ' thumbborder'
 
+
         if(isThumbFrame) {
             // Create a thumbnail. Alignment depends on the writing direction of
             // the page content language (right-aligned for LTR languages,
@@ -901,14 +905,14 @@ class MWParser {
                 frameParams.align = this.parserConfig.isRightAlignedLanguage ? 'left' : 'right';
 
             let outerWidth = ( thumb ? thumb.width : handlerParams.width ) + 2;
-            if(isNaN(outerWidth))
+            if(isNaN(outerWidth) || !imageExists)
                 outerWidth = 180 + 2; // Linker::makeThumbLink2 hardcoded value
 
             prefix += `<div class="thumb t${ frameParams.align }"><div class="thumbinner" style="width: ${ outerWidth }px;">`;
             postfix = '</div></div>' + postfix;
 
             let zoomIcon = '';
-            if(thumb) {
+            if(thumb && imageExists) {
                 imgParams['class'] += ' thumbimage';
 
                 if(!('framed' in frameParams))
@@ -919,7 +923,8 @@ class MWParser {
         }
 
 
-        if(thumb) {
+        if(thumb && imageExists) {
+            // link to an image
             // Linker::getImageLinkMTOParams (partialy) skipped
             // ThumbnailImage::toHtml
             imgParams['class'] = imgParams['class'].trim();
@@ -955,7 +960,7 @@ class MWParser {
             };
 
             if(frameParams.title)
-                    linkAttrs.title = frameParams.title;
+                linkAttrs.title = frameParams.title;
 
             if(frameParams['link-url']) {
                 linkAttrs.href = frameParams['link-url'];
@@ -987,21 +992,24 @@ class MWParser {
             else
                 out = `<a ${ Sanitizer.safeEncodeTagAttributes(linkAttrs) }><img ${ Sanitizer.safeEncodeTagAttributes(imgParams) }></a>`;
         }
-        else { // thumb error - make a "broken" link to an image
+        else {
+            // thumb error - make a "broken" link to an image
             // Linker::makeBrokenImageLinkObj
             const label = frameParams.title ? frameParams.title : title.getPrefixedText();
 
             if(this.parserConfig.uploadMissingFileUrl) {
-                let q = {...this.parserConfig.uploadFileParams};
+                let q = {
+                    ...this.parserConfig.uploadFileParams
+                };
                 if(q.wpDestFile)
                     q.wpDestFile = title.getPartialURL();
                 q = '?' + new URLSearchParams(q).toString();
+
                 out = `<a href="${ this.parserConfig.uploadFileURL.replace(/\$1/g, q) }" class="new" title="${ title.getPrefixedText() }">${ label }</a>`;
             }
             else {
                 const cls = title.isExternal() ? 'class="extiw"' : '';
                 out = `<a href="${ title.getFullURL() }" ${ cls } title="${ title.getPrefixedText() }">${ label }</a>`;
-                //makeLinkObj(nt, html='', query='', trail='', prefix='')
             }
         }
 

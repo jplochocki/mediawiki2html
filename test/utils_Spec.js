@@ -70,3 +70,20 @@ describe('Tests StringUtils.delimiterReplaceCallback()', function() {
         expect(result).toEqual('Lorem ipsum <Lorem ipsum>dolor sit amet<Lorem ipsum>, consectetur <Lorem ipsum>adipiscing elit');
     });
 });
+
+
+describe('Test calcThumbnailSize', function() {
+    it('basic tests', function() {
+        let thumb = calcThumbnailSize(313, 490, 96);
+        expect(thumb).toEqual([96, 150]);
+
+        thumb = calcThumbnailSize(313, 490, false, 150);
+        expect(thumb).toEqual([96, 150]);
+
+        thumb = calcThumbnailSize(313, 490, 314);
+        expect(thumb).toEqual([313, 490]);
+
+        thumb = calcThumbnailSize(313, 490);
+        expect(thumb).toEqual([313, 490]);
+    });
+});

@@ -488,35 +488,25 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki', function
             },
 
             makeThumb(title, width=false, height=false, doNotZoomIn=false) {
-                if(title.getPrefixedText() == 'File:LoremIpsum.png') {
-                    let w = 313, h = 490, url = title.getImageUrl();
-                    if(width == 150 && height === false)
-                        [w, h, url] = [150, 235, title.getThumbUrl(150)];
-                    else if(width === false && height == 150)
-                        [w, h, url] = [96, 150, title.getThumbUrl(96)];
-                    else if(width == 300 && height == 150)
-                        [w, h, url] = [96, 150, title.getThumbUrl(96)];
-                    else if(width == 144) // responsive images
-                        url = title.getThumbUrl(144);
-                    else if(width == 192)
-                        url = title.getThumbUrl(191);
-                    else if(width == 225)
-                        url = title.getThumbUrl(225);
-                    else if(width == 300)
-                        [w, h, url] = [300, 470, title.getThumbUrl(300)];
+                let w, h, url = title.getImageUrl()
 
-                    return {
-                        url,
-                        width: w,
-                        height: h
-                    };
-                }
+                if(title.getPrefixedText() == 'File:LoremIpsum.png')
+                    [w, h] = [313, 490];
                 else if(title.getPrefixedText() == 'File:LoremIpsumThumb.png')
-                    return {
-                        url: title.getImageUrl(),
-                        width: 234,
-                        height: 239
-                    };
+                    [w, h] = [234, 239];
+                else
+                    return false;
+
+                if((width !== false || height !== false) && width < w) {
+                    [w, h] = calcThumbnailSize(w, h, width, height);
+                    url = title.getThumbUrl(w);
+                }
+
+                return {
+                    url,
+                    width: w,
+                    height: h
+                };
 
                 return false;
             }
@@ -525,19 +515,14 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki', function
 
     it('compare tests', async function() {
         const acceptDiffs = [
-            ['Special%3AUpload', 'Special:Upload'], // /index.php?title=Special%3AUpload&wpDestFile=LoremIpsum_not-existing.png
-            [/width: (\d+)px;/g, 'width:$1px;'],    // thumb test, in wiki tere is no space before CSS value
-            //['width:302px;', 'width:182px;']        // not existing image + thumb
+            ['Special%3AUpload', 'Special:Upload'],             // /index.php?title=Special%3AUpload&wpDestFile=LoremIpsum_not-existing.png
+            [/width: (\d+)px;/g, 'width:$1px;'],                // thumb test, in wiki tere is no space before CSS value
+            ['192px-LoremIpsum.png', '191px-LoremIpsum.png']    // image height
         ];
         await compareTest('image-links', txt => {
             txt = this.parser.handleInternalLinks(txt);
             txt = acceptDiffs.reduce((txt1, [from, to]) => txt1.replace(from, to), txt);
             return txt;
         });
-    });
-
-    it('basic tests', function() {
-        let r = this.parser.handleInternalLinks('[[File:LoremIpsum_not-existing.png|thumb]]');
-        //console.log(r);
     });
 });

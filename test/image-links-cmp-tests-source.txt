@@ -24,11 +24,11 @@
 
 -=-=-=-[ image width and height ]-=-=-=-
 
-[[File:LoremIpsum.png|300x150px]]
+[[File:LoremIpsum.png|300x470px]]
 
 -=-=-=-[ image width and height + caption ]-=-=-=-
 
-[[File:LoremIpsum.png|300x150px|lorem ipsum dolor]]
+[[File:LoremIpsum.png|300x470px|lorem ipsum dolor]]
 
 -=-=-=-[ left align ]-=-=-=-
 
@@ -146,3 +146,50 @@
 
 [[File:LoremIpsum_not-existing.png|thumb]]
 
+-=-=-=-[ not existing image + thumb from another file ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|thumb=LoremIpsumThumb.png]]
+
+-=-=-=-[ not existing image + not existing thumb from another file ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|thumb=LoremIpsum_not-existing1.png]]
+
+-=-=-=-[ not existing image + frame test ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|frame]]
+
+-=-=-=-[ not existing image + frameless test ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|frameless]]
+
+-=-=-=-[ not existing image + border test ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|border]]
+
+-=-=-=-[ not existing image + frames - should use first option ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|frameless|framed|thumb]]
+
+-=-=-=-[ alt test ]-=-=-=-
+
+[[File:LoremIpsum.png|alt=lorem ipsum dolor]]
+
+-=-=-=-[ class test ]-=-=-=-
+
+[[File:LoremIpsum.png|class=lorem-ipsum]]
+
+-=-=-=-[ upright test ]-=-=-=-
+
+[[File:LoremIpsum.png|upright]]
+
+-=-=-=-[ not existing image + alt test ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|alt=lorem ipsum dolor]]
+
+-=-=-=-[ not existing image + class ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|class=lorem-ipsum]]
+
+-=-=-=-[ not existing image + upright test ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|upright]]

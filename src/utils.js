@@ -178,3 +178,29 @@ class StringUtils {
             .replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&');
     }
 };
+
+
+/**
+ * calculate thumb size for image
+ *
+ * @param Number width
+ * @param Number heigth
+ * @param Number|Boolean [thumbWidth=false]
+ * @param Number|Boolean [thumbHeigth=false]
+ * @return Array width and height of thumb
+ */
+function calcThumbnailSize(width, height, thumbWidth=false, thumbHeight=false) {
+    if(width <= thumbWidth || (thumbWidth === false && thumbHeight === false))
+        return [width, height];
+
+    if(thumbWidth !== false)
+        return [
+            thumbWidth,
+            Math.round((height * thumbWidth) / width)
+        ];
+
+    return [
+        Math.round((width * thumbHeight) / height),
+        thumbHeight
+    ];
+}
