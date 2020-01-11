@@ -299,8 +299,8 @@ class MWParser {
      */
     handleInternalLinks(text) {
         const tc = Title.legalChars() + '#%'; // the % is needed to support urlencoded titles as well
-        const e1 = new RegExp(`^([${ tc }]+)(?:\\|(.+?))?]](.*)\$`, ''); // Match a link having the form [[namespace:link|alternate]]trail
-        const e1_img = new RegExp(`^([${ tc }]+)\\|(.*)\$`, ''); // Match cases where there is no "]]", which might still be images
+        const e1 = new RegExp(`^([${ tc }]+)(?:\\|(.+?))?]](.*)$`, ''); // Match a link having the form [[namespace:link|alternate]]trail
+        const e1_img = new RegExp(`^([${ tc }]+)\\|(.*)$`, ''); // Match cases where there is no "]]", which might still be images
 
         // split the entire text string on occurrences of [[
         const bits = text.split('[[');
@@ -311,8 +311,8 @@ class MWParser {
         if(this.parserConfig.useLinkPrefixExtension) {
             // Match the end of a line for a word that's not followed by whitespace,
             // e.g. in the case of 'The Arab al[[Razi]]', 'al' will be matched
-            let m = /^((?:.*[^a-z]|))(.+)$/gu.exec(text); // FIXME more languages
-            // FIXME /^((?>.*[^a-z]|))(.+)$/
+            // FIXME more languages
+            let m = /(.*)((?:\b|^)[a-z1-9]+)$/iu.exec(out);
             if(m)
                 first_prefix = m[2];
         }
@@ -321,17 +321,21 @@ class MWParser {
         bits.forEach((bit, bitIdx) => {
             // prefix - cd.
             if(this.parserConfig.useLinkPrefixExtension) {
-                // if ( preg_match( $e2, $s, $m ) ) {
-                //     list( , $s, $prefix ) = $m;
-                // } else {
-                //     $prefix = '';
-                // }
+                let m = /(.*)((?:\b|^)[a-z1-9]+)$/iu.exec(out)
+                if(m) {
+                    out = m[1];
+                    prefix = m[2];
+                }
+                else
+                    prefix = '';
+
                 // first link
                 if(first_prefix) {
                     prefix = first_prefix;
                     first_prefix = false;
                 }
             }
+
 
             let might_be_img = false;
             let m = null;
@@ -424,15 +428,15 @@ class MWParser {
                     if(!found) {
                         // we couldn't find the end of this imageLink, so output it raw
                         // but don't ignore what might be perfectly normal links in the text we've examined
-                        // FIXME $holders->merge( $this->handleInternalLinks2( $text ) );
-                        out += `${ prefix }[[${ link }|${ text }`;
+                        txt = this.handleInternalLinks(txt);
+                        out += `${ prefix }[[${ link }|${ txt }`;
                         // note: no $trail, because without an end, there *is* no trail
                         return;
                     }
                 }
                 else {
                     //it's not an image, so output it raw
-                    out += `${ prefix }[[${ link }|${ text }`;
+                    out += `${ prefix }[[${ link }|${ txt }`;
                     // note: no $trail, because without an end, there *is* no trail
                     return;
                 }

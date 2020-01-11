@@ -168,9 +168,34 @@ describe('Test MWParser.handleInternalLinks()', function() {
         expect(Title.newFromText('Category:LoremIpsum').equals(par.categories[0].title)).toBeTruthy();
     });
 
-    it('images basic tests', function() {
-        //let par = new MWParser();
-        //let result = par.handleInternalLinks(`Lorem ipsum [[File:dolor.png|150x150px|center|left|top|thumb|opis obrazka]]lorem ipsum.`);
+    it('prefix test', function() {
+        let par = new MWParser({
+            useLinkPrefixExtension: true
+        });
+        let result = par.handleInternalLinks(
+            `Lorem ipsum amet[[Lorem:ipsum]]dolor ipsum bamet[[Lorem:ipsum|ipsum]]dolor ipsum2.`);
+        expect(result).toEqual(
+            'Lorem ipsum <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">ametLorem:ipsumdolor</a> '
+            + 'ipsum <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">bametipsumdolor</a> ipsum2.');
+    });
+
+    it('image link with external link', function() {
+        let par = new MWParser();
+        let result = par.handleInternalLinks('Lorem [[File:LoremIpsum.jpg|[http://example.com dolor]]] sit amet.');
+        // FIXME - should drop external link; alt=dolor
+    });
+
+    it('broken link', function() {
+        let par = new MWParser();
+        const a = 'Lorem [[File:LoremIpsum.jpg|dolor sit amet';
+        let result = par.handleInternalLinks(a);
+        expect(result).toEqual(a);
+    });
+
+    it('image with multiline description', function() {
+        let par = new MWParser();
+        let result = par.handleInternalLinks('Lorem [[File:LoremIpsum.jpg|dolor\n sit\n amet]] dolor.');
+        //console.log(result);
     });
 });
 
@@ -468,7 +493,7 @@ describe('Test MWParser.makeImage', function() {
 });
 
 
-describe('Compare MWParser.handleInternalLinks results with MediaWiki', function() {
+describe('Compare MWParser.handleInternalLinks results with MediaWiki (test makeImage + makeImageHTML)', function() {
     beforeEach(function() {
         this.parser = new MWParser({
             uploadFileURL: '/index.php$1',
