@@ -191,12 +191,6 @@ describe('Test MWParser.handleInternalLinks()', function() {
         let result = par.handleInternalLinks(a);
         expect(result).toEqual(a);
     });
-
-    it('image with multiline description', function() {
-        let par = new MWParser();
-        let result = par.handleInternalLinks('Lorem [[File:LoremIpsum.jpg|dolor\n sit\n amet]] dolor.');
-        //console.log(result);
-    });
 });
 
 
@@ -209,7 +203,7 @@ describe('Test Parser.makeLinkObj', function() {
 
         let r = par.makeLinkObj(t, 'link title', {foo: 'bar'}, 'trail rest of text', 'prefix')
         expect(r).toEqual(
-            '<a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?foo=bar&title=Lorem%3Aipsum">prefixlink titletrail</a> rest of text');
+            '<a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&foo=bar">prefixlink titletrail</a> rest of text');
     });
 });
 
@@ -493,7 +487,7 @@ describe('Test MWParser.makeImage', function() {
 });
 
 
-describe('Compare MWParser.handleInternalLinks results with MediaWiki (test makeImage + makeImageHTML)', function() {
+describe('Compare MWParser.handleInternalLinks results with MediaWiki for image links (test makeImage + makeImageHTML)', function() {
     beforeEach(function() {
         this.parser = new MWParser({
             uploadFileURL: '/index.php$1',
@@ -532,8 +526,6 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki (test make
                     width: w,
                     height: h
                 };
-
-                return false;
             }
         });
     });
@@ -545,6 +537,35 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki (test make
             ['192px-LoremIpsum.png', '191px-LoremIpsum.png']    // image height
         ];
         await compareTest('image-links', txt => {
+            txt = this.parser.handleInternalLinks(txt);
+            txt = acceptDiffs.reduce((txt1, [from, to]) => txt1.replace(from, to), txt);
+            return txt;
+        });
+    });
+});
+
+
+describe('Compare MWParser.handleInternalLinks results with MediaWiki for internal links', function() {
+    beforeEach(function() {
+        this.parser = new MWParser({
+            server: '$2',
+            articlePath: '/index.php/$2',
+            queryArticlePath: '/index.php$1',
+            uploadFileURL: '/index.php$1',
+
+            titleExists(title) {
+                if(title.getPrefixedText() == 'Lorem ipsum not existing' || title.getPrefixedText() == 'Media:LoremIpsum not-existing.png')
+                    return false;
+                return true;
+            }
+        });
+    });
+
+    it('compare tests', async function() {
+        const acceptDiffs = [
+            ['Special%3AUpload', 'Special:Upload'],
+        ];
+        await compareTest('internal-links', txt => {
             txt = this.parser.handleInternalLinks(txt);
             txt = acceptDiffs.reduce((txt1, [from, to]) => txt1.replace(from, to), txt);
             return txt;

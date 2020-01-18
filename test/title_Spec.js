@@ -272,15 +272,15 @@ describe('Test Title.getFullURL', function() {
     it('basic tests', function() {
         const t = Title.newFromText('Lorem:ipsum');
         expect(t.getFullURL()).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
-        expect(t.getFullURL({action: 'edit'})).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
-        expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//en.wikipedia.org/w/index.php?action=edit&redlink=1&title=Lorem%3Aipsum');
+        expect(t.getFullURL({action: 'edit'})).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit');
+        expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit&redlink=1');
     });
 
     it('interwiki changed test', function() {
         const t = Title.newFromText('pl:Lorem:ipsum', {validInterwikiNames: ['pl']});
         expect(t.getFullURL()).toEqual('//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
-        expect(t.getFullURL({action: 'edit'})).toEqual('//pl.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
-        expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//pl.wikipedia.org/w/index.php?action=edit&redlink=1&title=Lorem%3Aipsum');
+        expect(t.getFullURL({action: 'edit'})).toEqual('//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit');
+        expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//pl.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit&redlink=1');
     });
 });
 
@@ -288,7 +288,7 @@ describe('Test Title.getFullURL', function() {
 describe('Test Title.getEditURL', function() {
     it('basic tests', function() {
         const t = Title.newFromText('Lorem:ipsum');
-        expect(t.getEditURL()).toEqual('//en.wikipedia.org/w/index.php?action=edit&title=Lorem%3Aipsum');
+        expect(t.getEditURL()).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit');
     });
 });
 
@@ -305,5 +305,13 @@ describe('Test Title.getThumbUrl', function() {
     it('basic tests', function() {
         const t = Title.newFromText('File:LoremIpsum.png');
         expect(t.getThumbUrl(150)).toEqual('/images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png');
+    });
+});
+
+
+describe('Test Title.getImageUploadUrl', function() {
+    it('basic tests', function() {
+        const t = Title.newFromText('File:LoremIpsum.png');
+        expect(t.getImageUploadUrl()).toEqual('//en.wikipedia.org/w/index.php?title=Special%3AUpload&wpDestFile=LoremIpsum.png');
     });
 });

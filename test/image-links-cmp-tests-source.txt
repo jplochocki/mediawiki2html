@@ -193,3 +193,31 @@
 -=-=-=-[ not existing image + upright test ]-=-=-=-
 
 [[File:LoremIpsum_not-existing.png|upright]]
+
+-=-=-=-[ existing image + multiline caption ]-=-=-=-
+
+[[File:LoremIpsum.png|lorem
+
+ipsum
+
+dolor]]
+
+-=-=-=-[ not existing image + multiline caption ]-=-=-=-
+
+[[File:LoremIpsum_not-existing.png|lorem
+
+ipsum
+
+dolor]]
+
+-=-=-=-[ broken image link ]-=-=-=-
+
+Lorem [[File:LoremIpsum.jpg|dolor sit amet dolor.
+
+-=-=-=-[ broken image link + image link after ]-=-=-=-
+
+Lorem [[File:LoremIpsum.jpg|dolor sit amet dolor. [[File:LoremIpsum.png|lorem ipsum dolor]]. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ link to image ]-=-=-=-
+
+Lorem [[:File:LoremIpsum.png|lorem ipsum dolor]]. Maecenas sagittis libero eget ante venenatis.

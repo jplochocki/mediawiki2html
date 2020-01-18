@@ -194,3 +194,23 @@
 
 <a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">File:LoremIpsum not-existing.png</a>
 
+-=-=-=-[ existing image + multiline caption ]-=-=-=-
+
+<a href="/index.php/File:LoremIpsum.png" class="image" title="lorem ipsum dolor"><img alt="lorem ipsum dolor" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>
+
+-=-=-=-[ not existing image + multiline caption ]-=-=-=-
+
+<a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="File:LoremIpsum not-existing.png">lorem ipsum dolor</a>
+
+-=-=-=-[ broken image link ]-=-=-=-
+
+Lorem [[File:LoremIpsum.jpg|dolor sit amet dolor.
+
+-=-=-=-[ broken image link + image link after ]-=-=-=-
+
+Lorem [[File:LoremIpsum.jpg|dolor sit amet dolor. <a href="/index.php/File:LoremIpsum.png" class="image" title="lorem ipsum dolor"><img alt="lorem ipsum dolor" src="/images/a/af/LoremIpsum.png" decoding="async" width="313" height="490" /></a>. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ link to image ]-=-=-=-
+
+Lorem <a href="/index.php/File:LoremIpsum.png" title="File:LoremIpsum.png">lorem ipsum dolor</a>. Maecenas sagittis libero eget ante venenatis.
+

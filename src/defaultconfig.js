@@ -35,7 +35,8 @@ class DefaultConfig {
         this.pageTitle = 'Main page';
         this.server = `$1${ this.language }.wikipedia.org$2`;
         this.interwikiServer = `$1$3.wikipedia.org$2`;
-        this.articlePath = '/w/index.php$1';
+        this.articlePath = '/w/index.php$1'; // $1 for query, $2 for title itself
+        this.queryArticlePath = this.articlePath; // path for article, with query
         this.validInterwikiNames = [];
         this.externalLinkTarget = false; // setting to _blank may represent a security risk
         this.defaultThumbSize = 300;

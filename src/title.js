@@ -427,9 +427,10 @@ class Title {
      * This is the form usually used for display
      *
      * @param Boolean [skipInterwiki=false]
+     * @param Boolean [forUrl=false]
      * @return string The prefixed title, with spaces
      */
-    getPrefixedText(skipInterwiki=false) {
+    getPrefixedText(skipInterwiki=false, forUrl=false) {
         let t = '';
         if(!skipInterwiki && this.isExternal())
             t = this.mInterwiki + ':';
@@ -442,7 +443,11 @@ class Title {
             t += nsText + ':';
         }
 
-        t += this.mDbkeyform.replace(/_/g, ' ');
+        if(forUrl)
+            t += this.mDbkeyform;
+        else
+            t += this.mDbkeyform.replace(/_/g, ' ');
+
         return t;
     }
 
@@ -546,7 +551,11 @@ class Title {
         // reduce query to string
         if(!(query instanceof URLSearchParams))
             query = new URLSearchParams(query ? query : '');
-        query.append('title', this.getPrefixedText(true))
+        query.set('title', this.getPrefixedText(true, true));
+
+        query = new URLSearchParams([['title', query.get('title')], ...Array.from(query.entries()).filter(([k,]) => k != 'title')]); // title should be first query param
+
+        const longQuery = Array.from(query.values()).length > 1 || !query.has('title');
         query = query.toString();
         if(query[0] != '?')
             query = '?' + query;
@@ -557,7 +566,8 @@ class Title {
             server = this.parserConfig.interwikiServer.replace(/\$3/g, this.mInterwiki);
 
         // generate url
-        url = this.parserConfig.articlePath.replace(/\$1/g, query);
+        url = longQuery ? this.parserConfig.queryArticlePath : this.parserConfig.articlePath;
+        url = url.replace(/\$1/g, query).replace(/\$2/g, this.getPrefixedText(true, true));
         url = server.replace(/\$1/g, proto).replace(/\$2/g, url);
 
         if(!skipFragment && this.mFragment != '')
@@ -596,4 +606,21 @@ class Title {
         let a = md5(this.mUrlform);
         return `${ this.parserConfig.thumbFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }/${ width }px-${ this.mUrlform }`;
     }
+
+
+    /**
+     * Get upload link for image file
+     */
+    getImageUploadUrl() {
+        let q = {
+            ...this.parserConfig.uploadFileParams
+        };
+
+        if(q.wpDestFile)
+            q.wpDestFile = this.getPartialURL();
+        q = '?' + new URLSearchParams(q).toString();
+
+        return this.parserConfig.uploadFileURL.replace(/\$1/g, q);
+    }
+
 }

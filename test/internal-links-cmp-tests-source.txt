@@ -1,0 +1,53 @@
+-=-=-=-[ simple link to existing page ]-=-=-=-
+
+[[Lorem ipsum]]
+
+-=-=-=-[ simple link to existing page with title ]-=-=-=-
+
+[[Lorem ipsum|dolor sit amet]]
+
+-=-=-=-[ simple link to existing page with multiline title ]-=-=-=-
+
+[[Lorem ipsum|dolor
+sit
+
+amet]]
+
+-=-=-=-[ simple link to not existing page ]-=-=-=-
+
+[[Lorem ipsum not existing]]
+
+-=-=-=-[ simple link to not existing page with title ]-=-=-=-
+
+[[Lorem ipsum not existing|dolor sit amet]]
+
+-=-=-=-[ simple link to not existing page with multiline title ]-=-=-=-
+
+[[Lorem ipsum not existing|dolor
+sit
+
+amet]]
+
+-=-=-=-[ category link ]-=-=-=-
+
+Lorem [[Category:LoremIpsum|lorem ipsum dolor]]. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ link to category ]-=-=-=-
+
+Lorem [[:Category:LoremIpsum|lorem ipsum dolor]]. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an existing image ]-=-=-=-
+
+Lorem [[Media:LoremIpsum.png]]. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an existing image with caption ]-=-=-=-
+
+Lorem [[Media:LoremIpsum.png|dolor sit amet]]. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an not existing image ]-=-=-=-
+
+Lorem [[Media:LoremIpsum not-existing.png]]. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an not existing image with caption ]-=-=-=-
+
+Lorem [[Media:LoremIpsum not-existing.png|dolor sit amet]]. Maecenas sagittis libero eget ante venenatis.

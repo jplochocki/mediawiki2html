@@ -299,8 +299,8 @@ class MWParser {
      */
     handleInternalLinks(text) {
         const tc = Title.legalChars() + '#%'; // the % is needed to support urlencoded titles as well
-        const e1 = new RegExp(`^([${ tc }]+)(?:\\|(.+?))?]](.*)$`, ''); // Match a link having the form [[namespace:link|alternate]]trail
-        const e1_img = new RegExp(`^([${ tc }]+)\\|(.*)$`, ''); // Match cases where there is no "]]", which might still be images
+        const e1 = new RegExp(`^([${ tc }]+)(?:\\|((?:.|\\n)+?))?]]((?:.|\\n)*)$`, ''); // Match a link having the form [[namespace:link|alternate]]trail
+        const e1_img = new RegExp(`^([${ tc }]+)\\|((?:.|\\n)*)$`, ''); // Match cases where there is no "]]", which might still be images
 
         // split the entire text string on occurrences of [[
         const bits = text.split('[[');
@@ -312,16 +312,23 @@ class MWParser {
             // Match the end of a line for a word that's not followed by whitespace,
             // e.g. in the case of 'The Arab al[[Razi]]', 'al' will be matched
             // FIXME more languages
-            let m = /(.*)((?:\b|^)[a-z1-9]+)$/iu.exec(out);
+            let m = /((?:.|\n)*)((?:\b|^)[a-z1-9]+)$/iu.exec(out);
             if(m)
                 first_prefix = m[2];
         }
 
         // Loop for each link
+        let skipBitsToIndex = false;
         bits.forEach((bit, bitIdx) => {
+            if(skipBitsToIndex) { // skip bits eaten by finding broken image
+                if(skipBitsToIndex <= bitIdx)
+                    skipBitsToIndex = false;
+                return;
+            }
+
             // prefix - cd.
             if(this.parserConfig.useLinkPrefixExtension) {
-                let m = /(.*)((?:\b|^)[a-z1-9]+)$/iu.exec(out)
+                let m = /((?:.|\n)*)((?:\b|^)[a-z1-9]+)$/iu.exec(out)
                 if(m) {
                     out = m[1];
                     prefix = m[2];
@@ -430,6 +437,7 @@ class MWParser {
                         // but don't ignore what might be perfectly normal links in the text we've examined
                         txt = this.handleInternalLinks(txt);
                         out += `${ prefix }[[${ link }|${ txt }`;
+                        skipBitsToIndex = bitIdx + i - 1;
                         // note: no $trail, because without an end, there *is* no trail
                         return;
                     }
@@ -501,14 +509,10 @@ class MWParser {
 
             // NS_MEDIA is a pseudo-namespace for linking directly to a file
             if(ns == Title.NS_MEDIA) {
-            //  # Give extensions a chance to select the file revision for us
-            //  $options = [];
-            //  $descQuery = false;
-            //  # Fetch and register the file (file title may be different via hooks)
-            //  list( $file, $nt ) = $this->fetchFileAndTitle( $nt, $options );
-            //  # Cloak with NOPARSE to avoid replacement in handleExternalLinks
-            //  $s .= $prefix . $this->armorLinksPrivate(
-            //      Linker::makeMediaLinkFile( $nt, $file, $text ) ) . $trail;
+                const cls = nt.exists() ? 'internal' : 'new';
+                const url = cls == 'new' ? nt.getImageUploadUrl() : nt.getImageUrl();
+
+                out += `${ prefix }<a href="${ url }" class="${ cls }" title="${ nt.getText() }">${ txt }</a>${ trail }`;
                 return;
             }
 
@@ -592,11 +596,13 @@ class MWParser {
             html = he.encode(nt.getPrefixedText(), {useNamedReferences: true});
 
         let attrs = {
-            'title': he.encode(nt.getPrefixedText(), {useNamedReferences: true}),
-            'href': nt.getFullURL(query, '//', /* skipFragment */ classes == 'new') // don't include fragment for broken links
+            title: he.encode(nt.getPrefixedText(), {useNamedReferences: true}),
+            href: nt.getFullURL(query, '//', /* skipFragment */ classes == 'new') // don't include fragment for broken links
         };
         if(classes)
             attrs['class'] = classes;
+        if(classes == 'new')
+            attrs.title += ' (page does not exist)'; // FIXME: more languages
 
         attrs = Object.entries(attrs).reduce((txt, [name, value]) => {
             name = (txt.length > 0 ? ' ' : '') + name;
@@ -667,7 +673,7 @@ class MWParser {
             part = part.trim();
             let { magicName=false, value=false } = this.matchImageVariable(part);
             if(!magicName) {
-                caption = part;
+                caption = part.replace(/\s+/g, ' ');
                 return;
             }
 
@@ -759,7 +765,7 @@ class MWParser {
                     params[type][paramName] = value;
             }
             else
-                caption = part;
+                caption = part.replace(/\s+/g, ' ');
         });
 
         // Process alignment parameters
@@ -1001,16 +1007,8 @@ class MWParser {
             // Linker::makeBrokenImageLinkObj
             const label = frameParams.title ? frameParams.title : title.getPrefixedText();
 
-            if(this.parserConfig.uploadMissingFileUrl) {
-                let q = {
-                    ...this.parserConfig.uploadFileParams
-                };
-                if(q.wpDestFile)
-                    q.wpDestFile = title.getPartialURL();
-                q = '?' + new URLSearchParams(q).toString();
-
-                out = `<a href="${ this.parserConfig.uploadFileURL.replace(/\$1/g, q) }" class="new" title="${ title.getPrefixedText() }">${ label }</a>`;
-            }
+            if(this.parserConfig.uploadMissingFileUrl)
+                out = `<a href="${ title.getImageUploadUrl() }" class="new" title="${ title.getPrefixedText() }">${ label }</a>`;
             else {
                 const cls = title.isExternal() ? 'class="extiw"' : '';
                 out = `<a href="${ title.getFullURL() }" ${ cls } title="${ title.getPrefixedText() }">${ label }</a>`;

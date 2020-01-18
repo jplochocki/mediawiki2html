@@ -1,0 +1,54 @@
+-=-=-=-[ simple link to existing page ]-=-=-=-
+
+<a href="/index.php/Lorem_ipsum" title="Lorem ipsum">Lorem ipsum</a>
+
+-=-=-=-[ simple link to existing page with title ]-=-=-=-
+
+<a href="/index.php/Lorem_ipsum" title="Lorem ipsum">dolor sit amet</a>
+
+-=-=-=-[ simple link to existing page with multiline title ]-=-=-=-
+
+<a href="/index.php/Lorem_ipsum" title="Lorem ipsum">dolor
+sit
+
+amet</a>
+
+-=-=-=-[ simple link to not existing page ]-=-=-=-
+
+<a href="/index.php?title=Lorem_ipsum_not_existing&amp;action=edit&amp;redlink=1" class="new" title="Lorem ipsum not existing (page does not exist)">Lorem ipsum not existing</a>
+
+-=-=-=-[ simple link to not existing page with title ]-=-=-=-
+
+<a href="/index.php?title=Lorem_ipsum_not_existing&amp;action=edit&amp;redlink=1" class="new" title="Lorem ipsum not existing (page does not exist)">dolor sit amet</a>
+
+-=-=-=-[ simple link to not existing page with multiline title ]-=-=-=-
+
+<a href="/index.php?title=Lorem_ipsum_not_existing&amp;action=edit&amp;redlink=1" class="new" title="Lorem ipsum not existing (page does not exist)">dolor
+sit
+
+amet</a>
+
+-=-=-=-[ category link ]-=-=-=-
+
+Lorem. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ link to category ]-=-=-=-
+
+Lorem <a href="/index.php/Category:LoremIpsum" title="Category:LoremIpsum">lorem ipsum dolor</a>. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an existing image ]-=-=-=-
+
+Lorem <a href="/images/a/af/LoremIpsum.png" class="internal" title="LoremIpsum.png">Media:LoremIpsum.png</a>. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an existing image with caption ]-=-=-=-
+
+Lorem <a href="/images/a/af/LoremIpsum.png" class="internal" title="LoremIpsum.png">dolor sit amet</a>. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an not existing image ]-=-=-=-
+
+Lorem <a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="LoremIpsum not-existing.png">Media:LoremIpsum not-existing.png</a>. Maecenas sagittis libero eget ante venenatis.
+
+-=-=-=-[ Media - direct link to an not existing image with caption ]-=-=-=-
+
+Lorem <a href="/index.php?title=Special:Upload&amp;wpDestFile=LoremIpsum_not-existing.png" class="new" title="LoremIpsum not-existing.png">dolor sit amet</a>. Maecenas sagittis libero eget ante venenatis.
+
