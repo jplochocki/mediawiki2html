@@ -134,4 +134,12 @@ class DefaultConfig {
         //     height: 0
         // };
     }
+
+
+    /**
+     * Allow display external image as <img> tag
+     */
+    allowExternalImage(url) {
+        return false;
+    }
 };

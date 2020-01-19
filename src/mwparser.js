@@ -40,6 +40,8 @@ class MWParser {
         this.internalLinks = [];
         this.externalLinks = [];
         this.categories = [];
+
+        this.externalLinksAutoNumber = 0;
     }
 
 
@@ -75,9 +77,9 @@ class MWParser {
         // $text = $this->handleDoubleUnderscore( $text );
 
         // $text = $this->handleHeadings( $text );
-        // $text = $this->handleInternalLinks( $text );
+        text = this.handleInternalLinks(text);
         // $text = $this->handleAllQuotes( $text );
-        // $text = $this->handleExternalLinks( $text );
+        text = this.handleExternalLinks(text);
 
         // # handleInternalLinks may sometimes leave behind
         // # absolute URLs, which have to be masked to hide them from handleExternalLinks
@@ -1106,8 +1108,119 @@ class MWParser {
     }
 
 
+    /**
+     * Replace external links
+     *
+     * @param String text
+     * @return String
+     */
     handleExternalLinks(text) {
-        // TODO
-        return text;
+        const spaceSeparator = '\\xA0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000';
+        const EXT_LINK_URL_CLASS = '[^\\][<>"\\x00-\\x20\\x7F' + spaceSeparator + '\uFFFD]';
+        const EXT_LINK_ADDR = '(?:[0-9.]+|\\[(?:[0-9a-f:.]+)\\]|' + EXT_LINK_URL_CLASS + ')';
+        const protocols = Sanitizer.protocolSchemes().join('|');
+
+        let bits = text.split(new RegExp('\\[((' + protocols + ')' + EXT_LINK_ADDR
+            + EXT_LINK_URL_CLASS + '*)[' + spaceSeparator + ']*([^\\]\\x00-\\x08\\x0a-\\x1F\\uFFFD]*?)\\]', 'ui'));
+
+
+        let out = bits.shift();
+        if(bits < 4)
+            return text;
+
+        bits = bits.reduce((bits, bt) => {
+            let last = bits[bits.length -1];
+            if(last.length >= 4)
+                last = bits[bits.push([]) -1];
+            last.push(bt);
+
+            return bits;
+        }, [[]]);
+
+
+        bits.forEach(bit => {
+            let [url, /* protocol */, text, trail] = bit;
+
+            // The characters '<' and '>' (which were escaped by
+            // removeHTMLtags()) should not be included in
+            //  URLs, per RFC 2396.
+            if(/&(lt|gt);/i.test(url)) {
+                let a = /&(lt|gt);/gi.exec(url);
+                text = url.substr(a.index) + text;
+                url = url.substr(0, a.index);
+            }
+            text = text.trimLeft();
+
+            // If the link text is an image URL, replace it with an <img> tag
+            // This happened by accident in the original parser, but some people used it extensively
+            let img = this.maybeMakeExternalImage(text);
+            if(img !== false)
+                text = img;
+
+            // Set linktype for CSS
+            let linktype = 'text', dtrail = '';
+
+            // No link text, e.g. [http://domain.tld/some.link]
+            if(text == '') {
+                // Autonumber
+                text = `[${ ++this.externalLinksAutoNumber }]`;
+                linktype = 'autonumber';
+            }
+            else
+                // Have link text, e.g. [http://domain.tld/some.link text]s
+                // Check for trail
+                [dtrail, trail] = this.splitTrail(trail);
+
+            // Excluding protocol-relative URLs may avoid many false positives.
+            // FIXME
+            // if ( preg_match( '/^(?:' . wfUrlProtocolsWithoutProtRel() . ')/', $text ) ) {
+            //  $text = $this->getTargetLanguage()->getConverter()->markNoConversion( $text );
+            // }
+
+            url = encodeURI(url);
+
+            let isExternalServer = !(new RegExp('^(http:\\/\\/|https:\\/\\/)' + this.parserConfig.server + '\\/[^@]+').test(url));
+            let rel = isExternalServer ? 'nofollow' : '';
+
+            if(this.parserConfig.externalLinkTarget && !['_self', '_parent', '_top'].includes(this.parserConfig.externalLinkTarget))
+                // T133507. New windows can navigate parent cross-origin.
+				// Including noreferrer due to lacking browser
+                // support of noopener. Eventually noreferrer should be removed.
+                rel = (rel + ' noreferrer noopener').trim();
+
+            let target = this.parserConfig.externalLinkTarget ? `target="${ this.parserConfig.externalLinkTarget }"` : '';
+
+            out += `<a ${ rel != '' ? 'rel="' + rel + '" ' : '' }class="external ${ linktype }" href="${ url }"${ target != '' ? 'target="' + target + '"' : '' }>${ text }</a>${ dtrail }${ trail }`;
+
+            // Register link in the output object.
+            if(!this.externalLinks.includes(url))
+                this.externalLinks.push(url);
+        });
+
+        return out;
     }
+
+
+    /**
+	 * make an image if it's allowed, either through the global
+	 * option, through the exception, or through the on-wiki whitelist
+	 *
+	 * @param string url
+	 * @return string
+	 */
+    maybeMakeExternalImage(url) {
+        const spaceSeparator = '\\xA0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000';
+        const EXT_IMAGE_REGEX = new RegExp('^(http:\\/\\/|https:\\/\\/)((?:\\[(?:[0-9a-f:.]+)\\])?[^\\][<>"\\x00-\\x20\\x7F'
+            + spaceSeparator + '\\uFFFD]+)\\/([A-Za-z0-9_.,~%\\-+&;#*?!=()@\\x80-\\xFF]+)\\.(gif|png|jpg|jpeg)$', 'ui');
+
+        if(!(EXT_IMAGE_REGEX.test(url) && this.parserConfig.allowExternalImage(url)))
+            return false;
+
+        // Linker::makeExternalImage
+        let alt = '';
+        if(url.lastIndexOf('/') != -1)
+            alt = url.substr(url.lastIndexOf('/') + 1);
+
+        return `<img src="${ url }" alt="${ alt }">`;
+	}
 };

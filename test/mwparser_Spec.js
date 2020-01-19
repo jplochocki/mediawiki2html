@@ -572,3 +572,96 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki for intern
         });
     });
 });
+
+
+describe('Test MWParser.handleExternalLinks', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+    });
+
+    it('external links basic tests', function() {
+        let result = this.parser.handleExternalLinks('Lorem ipsum [http://lorem1.ipsum.com dolor sit amet] consectetur adipiscing.');
+        expect(result).toEqual('Lorem ipsum <a rel="nofollow" class="external text" href="http://lorem1.ipsum.com">dolor sit amet</a> consectetur adipiscing.');
+        expect(this.parser.externalLinks.length).toEqual(1);
+        expect(this.parser.externalLinks).toEqual(['http://lorem1.ipsum.com']);
+
+        result = this.parser.handleExternalLinks('Lorem ipsum [http://lorem2.ipsum.com] consectetur adipiscing.');
+        expect(result).toEqual('Lorem ipsum <a rel="nofollow" class="external autonumber" href="http://lorem2.ipsum.com">[1]</a> consectetur adipiscing.');
+        expect(this.parser.externalLinks.length).toEqual(2);
+        expect(this.parser.externalLinks).toEqual(['http://lorem1.ipsum.com', 'http://lorem2.ipsum.com']);
+
+        result = this.parser.handleExternalLinks('Lorem ipsum [http://lorem3.ipsum.com&gt;/dolor sit amet] consectetur adipiscing.');
+        expect(result).toEqual('Lorem ipsum <a rel="nofollow" class="external text" href="http://lorem3.ipsum.com">&gt;/dolor sit amet</a> consectetur adipiscing.');
+        expect(this.parser.externalLinks.length).toEqual(3);
+        expect(this.parser.externalLinks).toEqual(['http://lorem1.ipsum.com', 'http://lorem2.ipsum.com', 'http://lorem3.ipsum.com']);
+    });
+
+    it('not external links', function() {
+        let txt = 'Lorem ipsum [dttp://lorem1.ipsum.com dolor sit amet] consectetur adipiscing.';
+        let result = this.parser.handleExternalLinks(txt);
+        expect(result).toEqual(txt);
+        expect(this.parser.externalLinks.length).toEqual(0);
+
+        txt = 'Lorem ipsum [http://lorem1.ipsum.com dolor sit amet consectetur adipiscing.';
+        result = this.parser.handleExternalLinks(txt);
+        expect(result).toEqual(txt);
+        expect(this.parser.externalLinks.length).toEqual(0);
+    });
+
+    it('external image links (+MWParser.maybeMakeExternalImage test)', function() {
+        let parser = new MWParser({
+            allowExternalImage(url) {
+                if(url == 'http://lorem.ipsum.com/loremNotAllowed.jpg')
+                    return false;
+                return true;
+            }
+        });
+
+        let result = parser.handleExternalLinks('Lorem ipsum [http://lorem.ipsum.com/loremNotAllowed.jpg http://lorem.ipsum.com/loremNotAllowed.jpg] consectetur adipiscing.');
+        expect(result).toEqual('Lorem ipsum <a rel="nofollow" class="external text" href="http://lorem.ipsum.com/loremNotAllowed.jpg">http://lorem.ipsum.com/loremNotAllowed.jpg</a> consectetur adipiscing.');
+        expect(parser.externalLinks.length).toEqual(1);
+        expect(parser.externalLinks).toEqual(['http://lorem.ipsum.com/loremNotAllowed.jpg']);
+
+        result = parser.handleExternalLinks('Lorem ipsum [http://lorem.ipsum.com/lorem.jpg http://lorem.ipsum.com/lorem.jpg] consectetur adipiscing.');
+        expect(result).toEqual('Lorem ipsum <a rel="nofollow" class="external text" href="http://lorem.ipsum.com/lorem.jpg"><img src="http://lorem.ipsum.com/lorem.jpg" alt="lorem.jpg"></a> consectetur adipiscing.');
+        expect(parser.externalLinks.length).toEqual(2);
+        expect(parser.externalLinks).toEqual(['http://lorem.ipsum.com/loremNotAllowed.jpg', 'http://lorem.ipsum.com/lorem.jpg']);
+    });
+});
+
+
+describe('Test MWParser.maybeMakeExternalImage', function() {
+    beforeEach(function() {
+        this.parser = new MWParser({
+            allowExternalImage(url) {
+                if(url == 'http://lorem.ipsum.com/loremNotAllowed.jpg')
+                    return false;
+                return true;
+            }
+        });
+    });
+
+    it('not an external image link', function() {
+        let result = this.parser.maybeMakeExternalImage('http://lorem.ipsum.com/plik.txt');
+        expect(result).toBeFalsy();
+
+        result = this.parser.maybeMakeExternalImage('ftp://lorem.ipsum.com/plik.jpg');
+        expect(result).toBeFalsy();
+
+        result = this.parser.maybeMakeExternalImage('http://lorem.ipsum.com');
+        expect(result).toBeFalsy();
+    });
+
+    it('not allowed external image', function() {
+        let result = this.parser.maybeMakeExternalImage('http://lorem.ipsum.com/loremNotAllowed.jpg');
+        expect(result).toBeFalsy();
+
+        result = this.parser.maybeMakeExternalImage('http://lorem.ipsum.com/lorem.jpg');
+        expect(result).toBeTruthy();
+    });
+
+    it('allowed external image test', function() {
+        let result = this.parser.maybeMakeExternalImage('http://lorem.ipsum.com/lorem.jpg');
+        expect(result).toEqual('<img src="http://lorem.ipsum.com/lorem.jpg" alt="lorem.jpg">');
+    });
+});
