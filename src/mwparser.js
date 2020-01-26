@@ -1184,7 +1184,7 @@ class MWParser {
 
             if(this.parserConfig.externalLinkTarget && !['_self', '_parent', '_top'].includes(this.parserConfig.externalLinkTarget))
                 // T133507. New windows can navigate parent cross-origin.
-				// Including noreferrer due to lacking browser
+                // Including noreferrer due to lacking browser
                 // support of noopener. Eventually noreferrer should be removed.
                 rel = (rel + ' noreferrer noopener').trim();
 
@@ -1202,12 +1202,12 @@ class MWParser {
 
 
     /**
-	 * make an image if it's allowed, either through the global
-	 * option, through the exception, or through the on-wiki whitelist
-	 *
-	 * @param string url
-	 * @return string
-	 */
+     * make an image if it's allowed, either through the global
+     * option, through the exception, or through the on-wiki whitelist
+     *
+     * @param string url
+     * @return string
+     */
     maybeMakeExternalImage(url) {
         const spaceSeparator = '\\xA0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000';
         const EXT_IMAGE_REGEX = new RegExp('^(http:\\/\\/|https:\\/\\/)((?:\\[(?:[0-9a-f:.]+)\\])?[^\\][<>"\\x00-\\x20\\x7F'
@@ -1222,5 +1222,34 @@ class MWParser {
             alt = url.substr(url.lastIndexOf('/') + 1);
 
         return `<img src="${ url }" alt="${ alt }">`;
-	}
+    }
+
+
+    /**
+     * Get a list of strippable XML-like elements
+     *
+     * @return Array
+     */
+    getStripList() {
+        // TODO
+        return ['pre', 'nowiki', 'gallery', 'indicator']
+    }
+
+
+    /**
+     * Return the text to be used for a given extension tag.
+     *
+     * @param array $params Associative array of parameters:
+     *     name       PPNode for the tag name
+     *     attributes Optional associative array of parsed attributes
+     *     inner      Contents of extension element
+     *     noClose    Original text did not have a close tag
+     * @param Array frame
+     * @return string
+     */
+    extensionSubstitution(params, frame) {
+        // TODO
+        return '';
+    }
+
 };
