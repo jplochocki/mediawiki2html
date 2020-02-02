@@ -665,3 +665,16 @@ describe('Test MWParser.maybeMakeExternalImage', function() {
         expect(result).toEqual('<img src="http://lorem.ipsum.com/lorem.jpg" alt="lorem.jpg">');
     });
 });
+
+
+describe('Test tag extensions', function() {
+    it('Basic tests', function() {
+        this.parser = new MWParser();
+        this.parser.setFunctionTagHook('lorem-ipsum', (inner, attrs, parser, frame) => {
+            return 'Lorem ipsum ' + parser.recursiveTagParse(inner, frame) + ', consectetur adipiscing elit.';
+        });
+        let result = this.parser.parse('<lorem-ipsum>dolor sit amet</lorem-ipsum>');
+        expect(result).toEqual('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+    });
+
+});

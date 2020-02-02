@@ -42,12 +42,15 @@ class Preprocessor {
      */
     preprocessToObj(text, forInclusion=false) {
         let xmlishElements = this.parser.getStripList();
-        let xmlishAllowMissingEndTag = ['includeonly', 'noinclude', 'onlyinclude'];
-        xmlishElements += xmlishAllowMissingEndTag;
-        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\})/);
-
         let root = [];
 
+        // preprocess <includeonly>, etc.
+        if(forInclusion)
+            text = this.reduceTemplateForInclusion(text);
+        else
+            text = this.reduceTemplateForView(text);
+
+        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\})/);
         function textBit(bit) {
             if(typeof root[root.length -1] == 'string')
                 root[root.length -1] += bit;
@@ -77,7 +80,7 @@ class Preprocessor {
 
                 tagName = tagName.split(/(\s+)/);
                 const attributes = Sanitizer.decodeTagAttributes(tagName.slice(1).join('').trim());
-                tagName = tagName[0];
+                tagName = tagName[0].toLowerCase();
 
                 if(!xmlishElements.includes(tagName)) {
                     textBit(bit);
@@ -87,7 +90,6 @@ class Preprocessor {
                 // find tag text and end
                 let tagText = '';
                 let foundEndTagIdx = false;
-                let noCloseTag = false;
                 let endReached = false;
                 for(let j = endIdx + 1; j < bits.length; j++) {
                     if(bits[j] == '<' && bits[j + 1] == '/' + tagName && bits[j + 2] == '>') {
@@ -101,26 +103,14 @@ class Preprocessor {
                             continue;
                         }
 
-                        if(xmlishAllowMissingEndTag.includes(tagName)) {
-                            foundEndTagIdx = j - 1;
-                            noCloseTag = true;
-                            break;
-                        }
-                        else {
-                            foundEndTagIdx = false;
-                            break;
-                        }
+                        foundEndTagIdx = false;
+                        break;
                     }
                     else
                         tagText += bits[j];
 
                     if(j == bits.length - 1)
                         endReached = true;
-                }
-
-                if(endReached && xmlishAllowMissingEndTag.includes(tagName)) {
-                    foundEndTagIdx = bits.length;
-                    noCloseTag = true;
                 }
 
                 if(foundEndTagIdx !== false) {
@@ -131,7 +121,6 @@ class Preprocessor {
                         tagName,
                         attributes,
                         tagText,
-                        noCloseTag
                     });
                     continue;
                 }
@@ -152,28 +141,76 @@ class Preprocessor {
 
 
     /**
-     * Expand a document tree node
+     * Get template text for include in page
      *
-     * @param Array root
+     * @param String text
      * @return String
      */
-    expand(root) {
-        let out = '';
+    reduceTemplateForInclusion(text) {
+        let bits = text.split(/(<\/?(?:includeonly|noinclude|onlyinclude)>)/);
 
-        root.forEach(el => {
-            if(typeof el == 'string') {
-                out += el;
-                return;
-            }
-            else if(typeof el != 'object')
-                return;
+        // use onlyinclude before every else
+        if(bits.includes('<onlyinclude>')) {
+            text = bits.reduce(([resultTxt, proposition, inOnlyIncludeSection], bt) => {
+                if(bt == '<onlyinclude>') {
+                    inOnlyIncludeSection = true;
+                    proposition = '';
+                }
+                else if(inOnlyIncludeSection && /(<\/?(?:includeonly|noinclude|onlyinclude)>)/.test(bt)) {
+                    resultTxt += proposition;
+                    proposition = '';
+                    inOnlyIncludeSection = false;
+                }
+                else if(inOnlyIncludeSection)
+                    proposition += bt;
 
-            // Extension tag
-            if(el.type == 'ext-tag') {
-                out += this.parser.extensionSubstitution(el, this);
-            }
-        });
+                return [resultTxt, proposition, inOnlyIncludeSection];
+            }, ['', '', false]);
+            text = text[0] + text[1];
+        } else { // <inlcudeonly> + text outside <noinclude>
+            text = bits.reduce(([resultTxt, inNoIncludeSection], bit) => {
+                if(/<\/?noinclude>/.test(bit)) {
+                    inNoIncludeSection = bit == '<noinclude>';
+                    return [resultTxt, inNoIncludeSection];
+                }
+                if(bit == '<includeonly>')
+                    inNoIncludeSection = false;
+                if(inNoIncludeSection || /<\/?includeonly>/.test(bit))
+                    return [resultTxt, inNoIncludeSection];
 
-        return out;
+                resultTxt += bit;
+                return [resultTxt, inNoIncludeSection];
+            }, ['', false])[0];
+        }
+
+        return text;
+    }
+
+
+    /**
+     * Get template text for view
+     *
+     * @param String text
+     * @return String
+     */
+    reduceTemplateForView(text) {
+        let bits = text.split(/(<\/?(?:includeonly|noinclude|onlyinclude)>)/);
+
+        // just drop <onlyinclude> and <noinclude> tags
+        bits = bits.filter(bit => !/<\/?(onlyinclude|noinclude)>/.test(bit));
+
+        text = bits.reduce(([resultTxt, inIncludeSection], bit) => {
+                if(/<\/?includeonly>/.test(bit)) {
+                    inIncludeSection = bit == '<includeonly>';
+                    return [resultTxt, inIncludeSection];
+                }
+                if(inIncludeSection)
+                return [resultTxt, inIncludeSection];
+
+                resultTxt += bit;
+                return [resultTxt, inIncludeSection];
+            }, ['', false])[0];
+
+        return text;
     }
 };

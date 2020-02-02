@@ -26,6 +26,53 @@
  */
 
 
+describe('Test Preprocessor.reduceTemplateForInclusion', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        this.preprocessor = new Preprocessor(this.parser);
+    });
+
+    it('onlyinclude for inclusion tests', function() {
+        let result = this.preprocessor.reduceTemplateForInclusion(`A
+<onlyinclude>B</onlyinclude>
+<includeonly>C</includeonly>
+<noinclude>D</noinclude>
+<onlyinclude>E</onlyinclude>
+<includeonly>F</includeonly>
+G`);
+        expect(result).toEqual('BE');
+    });
+
+    it('includeonly and noinclude tests', function() {
+        let result = this.preprocessor.reduceTemplateForInclusion(`A
+<includeonly>B</includeonly>
+<noinclude>C</noinclude>
+<includeonly>D</includeonly>
+E`);
+        expect(result).toEqual(`A\nB\n\nD\nE`);
+    });
+});
+
+
+describe('Test Preprocessor.reduceTemplateForView', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        this.preprocessor = new Preprocessor(this.parser);
+    });
+
+    it('Basic tests', function() {
+        let result = this.preprocessor.reduceTemplateForView(`A
+<onlyinclude>B</onlyinclude>
+<includeonly>C</includeonly>
+<noinclude>D</noinclude>
+<onlyinclude>E</onlyinclude>
+<includeonly>F</includeonly>
+G`);
+        expect(result).toEqual('A\nB\n\nD\nE\n\nG');
+    });
+});
+
+
 describe('Test Preprocessor.preprocessToObj', function() {
     beforeEach(function() {
         this.parser = new MWParser();
@@ -43,7 +90,6 @@ describe('Test Preprocessor.preprocessToObj', function() {
                     loremattr: 'Lorem ipsum value'
                 },
                 tagText: 'dolor sit {{LoremIpsumTemplate}} amet',
-                noCloseTag: false
             },
             ', consectetur adipiscing elit'
         ]);
@@ -54,147 +100,9 @@ describe('Test Preprocessor.preprocessToObj', function() {
         expect(result).toEqual(['Lorem ipsum <lorem loremAttr="Lorem ipsum value">dolor sit amet</lorem>, consectetur adipiscing elit']);
     });
 
-    it('tag that may have no end', function() {
-        let result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet, consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet, consectetur adipiscing elit',
-                noCloseTag: true
-            }
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet</noinclude>, consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet',
-                noCloseTag: false
-            },
-            ', consectetur adipiscing elit'
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet<noinclude>, consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet',
-                noCloseTag: true
-            }, {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: ', consectetur adipiscing elit',
-                noCloseTag: true
-            }
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet<includeonly>, consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet',
-                noCloseTag: true
-            }, {
-                type: 'ext-tag',
-                tagName: 'includeonly',
-                attributes: {},
-                tagText: ', consectetur adipiscing elit',
-                noCloseTag: true
-            }
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet<includeonly>, consectetur</includeonly> adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet',
-                noCloseTag: true
-            }, {
-                type: 'ext-tag',
-                tagName: 'includeonly',
-                attributes: {},
-                tagText: ', consectetur',
-                noCloseTag: false
-            },
-            ' adipiscing elit'
-        ]);
-    });
 
     it('tag that must have end', function() {
         let result = this.preprocessor.preprocessToObj('Lorem ipsum <pre>dolor sit amet consectetur adipiscing elit');
         expect(result).toEqual(['Lorem ipsum <pre>dolor sit amet consectetur adipiscing elit']);
-
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <pre>dolor sit amet <noinclude>consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum <pre>dolor sit amet ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'consectetur adipiscing elit',
-                noCloseTag: true
-            }
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet <lorem>consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet <lorem>consectetur adipiscing elit',
-                noCloseTag: true
-            }
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet <pre>consectetur adipiscing elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet ',
-                noCloseTag: true
-            },
-            '<pre>consectetur adipiscing elit'
-        ]);
-
-        result = this.preprocessor.preprocessToObj('Lorem ipsum <noinclude>dolor sit amet <pre>consectetur adipiscing</pre> elit');
-        expect(result).toEqual([
-            'Lorem ipsum ',
-            {
-                type: 'ext-tag',
-                tagName: 'noinclude',
-                attributes: {},
-                tagText: 'dolor sit amet ',
-                noCloseTag: true
-            }, {
-                type: 'ext-tag',
-                tagName: 'pre',
-                attributes: {},
-                tagText: 'consectetur adipiscing',
-                noCloseTag: false
-            },
-            ' elit'
-        ]);
     });
 });

@@ -34,6 +34,7 @@
 class MWParser {
     constructor(config=null) {
         this.parserConfig = new DefaultConfig(config);
+        this.preprocessor = new Preprocessor(this);
 
         this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
         this.interwikiLinks = [];
@@ -42,26 +43,28 @@ class MWParser {
         this.categories = [];
 
         this.externalLinksAutoNumber = 0;
+
+        this.functionTagHooks = {};
     }
 
 
-    internalParse(text) {
-        // $isMain = true, $frame = false
-        // # if $frame is provided, then use $frame for replacing any variables
-        // if ( $frame ) {
-        //     # use frame depth to infer how include/noinclude tags should be handled
-        //     # depth=0 means this is the top-level document; otherwise it's an included document
-        //     if ( !$frame->depth ) {
-        //         $flag = 0;
-        //     } else {
-        //         $flag = self::PTD_FOR_INCLUSION;
-        //     }
-        //     $dom = $this->preprocessToDom( $text, $flag );
-        //     $text = $frame->expand( $dom );
-        // } else {
-        //     # if $frame is not provided, then use old-style replaceVariables
-        //     $text = $this->replaceVariables( $text );
-        // }
+    parse(text) {
+        let frame = new Frame(this.preprocessor);
+        return this.internalParse(text, frame)
+    }
+
+
+    internalParse(text, frame=false) {
+        // if $frame is provided, then use $frame for replacing any variables
+        if(frame) {
+            // use frame depth to infer how include/noinclude tags should be handled
+            // depth=0 means this is the top-level document; otherwise it's an included document
+            let dom = this.preprocessor.preprocessToObj(text, /* forInclusion */ frame.depth != 0)
+            text = frame.expand(dom);
+        } else {
+            // # if $frame is not provided, then use old-style replaceVariables
+            // $text = $this->replaceVariables( $text );
+        }
 
 
         text = Sanitizer.removeHTMLtags(text, this.attributeStripCallback.bind(this),
@@ -1231,25 +1234,64 @@ class MWParser {
      * @return Array
      */
     getStripList() {
-        // TODO
-        return ['pre', 'nowiki', 'gallery', 'indicator']
+        return ['pre', 'nowiki', 'gallery', 'indicator', ...Object.keys(this.functionTagHooks)];
+    }
+
+
+    /**
+     * Create a tag function, e.g. "<test>some stuff</test>".
+     *
+     * @param String tag
+     * @param Function callback
+     */
+    setFunctionTagHook(tag, callback) {
+        tag = tag.toLowerCase();
+        let a = /[<>\r\n]/.exec(tag);
+        if(a)
+            throw new Error(`Invalid character ${ a[0] } in setFunctionTagHook('tag', ...) call.`);
+        if(typeof callback != 'function')
+            throw new Error(`Expected callable in setFunctionTagHook('tag', function) call.`);
+
+        this.functionTagHooks[tag] = callback;
     }
 
 
     /**
      * Return the text to be used for a given extension tag.
      *
-     * @param array $params Associative array of parameters:
-     *     name       PPNode for the tag name
-     *     attributes Optional associative array of parsed attributes
-     *     inner      Contents of extension element
-     *     noClose    Original text did not have a close tag
-     * @param Array frame
+     * @param Object params Associative array of parameters
+     *     tagName    tag name
+     *     attributes Optional object of parsed attributes
+     *     tagText    Contents of extension element
+     * @param Frame frame
      * @return string
      */
     extensionSubstitution(params, frame) {
-        // TODO
-        return '';
+        let out = '';
+        if(this.functionTagHooks[params.tagName]) {
+            out = this.functionTagHooks[params.tagName](params.tagText, params.attributes, this, frame);
+        } else {
+            // not known tag - print out
+            let attrs = Sanitizer.safeEncodeTagAttributes(attributes);
+            attrs = attrs[0] == ' ' ? attrs : ' ' + attrs;
+            if(params.tagText == '')
+                out = `<${ params.tagName }${ attrs }/>`;
+            else
+                out = `<${ params.tagName }${ attrs }>${ tagText }</${ params.tagName }>`;
+        }
+        return out;
     }
 
+
+    /**
+     * Half-parse wikitext to half-parsed HTML. This recursive parser entry point
+     * can be called from an extension tag hook.
+     *
+     * @param String tagText
+     * @param Frame|Boolean [frame=false]
+     * @return String
+     */
+    recursiveTagParse(tagText, frame=false) {
+        return this.internalParse(tagText, frame);
+    }
 };
