@@ -41,6 +41,24 @@ describe('Test Preprocessor.reduceTemplateForInclusion', function() {
 <includeonly>F</includeonly>
 G`);
         expect(result).toEqual('BE');
+
+        result = this.preprocessor.reduceTemplateForInclusion(`A
+<onlyinclude>B
+<includeonly>C</includeonly>
+<noinclude>D</noinclude>
+<onlyinclude>E
+<includeonly>F</includeonly>
+G`);
+        expect(result).toEqual('B\nE\n');
+
+        result = this.preprocessor.reduceTemplateForInclusion(`A
+<onlyinclude>B
+<onlyinclude>E
+<includeonly>C</includeonly>
+<noinclude>D</noinclude>
+<includeonly>F</includeonly>
+G`);
+        expect(result).toEqual('B\nE\n');
     });
 
     it('includeonly and noinclude tests', function() {
@@ -89,6 +107,7 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 attributes: {
                     loremattr: 'Lorem ipsum value'
                 },
+                noCloseTag: false,
                 tagText: 'dolor sit {{LoremIpsumTemplate}} amet',
             },
             ', consectetur adipiscing elit'
@@ -104,5 +123,78 @@ describe('Test Preprocessor.preprocessToObj', function() {
     it('tag that must have end', function() {
         let result = this.preprocessor.preprocessToObj('Lorem ipsum <pre>dolor sit amet consectetur adipiscing elit');
         expect(result).toEqual(['Lorem ipsum <pre>dolor sit amet consectetur adipiscing elit']);
+    });
+
+    it('tag with xml style ending', function() {
+        let result = this.preprocessor.preprocessToObj('Lorem ipsum <pre lorem="ipsum" dolor=\'sit amet\' />dolor sit amet consectetur adipiscing elit');
+        let expResult = [
+            'Lorem ipsum ',
+            {
+                type: 'ext-tag',
+                tagName: 'pre',
+                attributes: {
+                    lorem: 'ipsum',
+                    dolor: 'sit amet'
+                },
+                noCloseTag: true,
+                tagText: '',
+            },
+            'dolor sit amet consectetur adipiscing elit'
+        ];
+        expect(result).toEqual(expResult);
+        result = this.preprocessor.preprocessToObj('Lorem ipsum <pre lorem="ipsum" dolor=\'sit amet\'/>dolor sit amet consectetur adipiscing elit');
+        expect(result).toEqual(expResult);
+    });
+
+    it('headers (==header==)', function() {
+        let result = this.preprocessor.preprocessToObj('Lorem ipsum \n==dolor sit amet==\n consectetur \r\n=adipiscing=\r\n elit');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'header',
+                title: 'dolor sit amet',
+                level: 2,
+                index: 1
+            }, ' consectetur ', {
+                type: 'header',
+                title: 'adipiscing',
+                level: 1,
+                index: 2
+            }, ' elit'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum \n======dolor sit amet======\n consectetur \r\n=====adipiscing=====\r\n elit');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'header',
+                title: 'dolor sit amet',
+                level: 6,
+                index: 1
+            }, ' consectetur ', {
+                type: 'header',
+                title: 'adipiscing',
+                level: 5,
+                index: 2
+            }, ' elit']);
+
+        // invalid header sytuations
+        result = this.preprocessor.preprocessToObj('Lorem ipsum \n==dolor sit amet== consectetur \r\n==adipiscing==\r\n elit');
+        expect(result).toEqual([
+            'Lorem ipsum \n==dolor sit amet== consectetur ', {
+                type: 'header',
+                title: 'adipiscing',
+                level: 2,
+                index: 1},
+            ' elit'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum \n==dolor sit amet===\n consectetur \n==adipiscing==\n elit');
+        expect(result).toEqual([
+            'Lorem ipsum \n==dolor sit amet===\n consectetur ', {
+                type: 'header',
+                title: 'adipiscing',
+                level: 2,
+                index: 1},
+            ' elit'
+        ]);
     });
 });

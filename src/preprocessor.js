@@ -41,8 +41,8 @@ class Preprocessor {
      * @return
      */
     preprocessToObj(text, forInclusion=false) {
-        let xmlishElements = this.parser.getStripList();
         let root = [];
+        let headingIndex = 1;
 
         // preprocess <includeonly>, etc.
         if(forInclusion)
@@ -50,7 +50,7 @@ class Preprocessor {
         else
             text = this.reduceTemplateForView(text);
 
-        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\})/);
+        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\}|\r?\n={1,6}|={1,6}\r?\n)/);
         function textBit(bit) {
             if(typeof root[root.length -1] == 'string')
                 root[root.length -1] += bit;
@@ -65,71 +65,42 @@ class Preprocessor {
 
             // tag begins
             if(bit == '<') {
-                // find <tagName attrs>
-                const endIdx = bits.findIndex((bt, idx) => idx > i && bt == '>');
-                if(endIdx == -1) {
-                    textBit(bit);
+                let r = this.parseExtTag(bits, i, root);
+                if(typeof r == 'number') {
+                    i = r;
                     continue;
                 }
-
-                let tagName =  bits.slice(i + 1, endIdx).join('').trim();
-                if(tagName[0] == '/') { // ignore end tag here
-                    textBit(bit);
-                    continue;
-                }
-
-                tagName = tagName.split(/(\s+)/);
-                const attributes = Sanitizer.decodeTagAttributes(tagName.slice(1).join('').trim());
-                tagName = tagName[0].toLowerCase();
-
-                if(!xmlishElements.includes(tagName)) {
-                    textBit(bit);
-                    continue;
-                }
-
-                // find tag text and end
-                let tagText = '';
-                let foundEndTagIdx = false;
-                let endReached = false;
-                for(let j = endIdx + 1; j < bits.length; j++) {
-                    if(bits[j] == '<' && bits[j + 1] == '/' + tagName && bits[j + 2] == '>') {
-                        foundEndTagIdx = j + 2;
-                        break;
-                    }
-                    else if(bits[j] == '<') {
-                        let n = (bits[j + 1] + '').trim().split(/(\s+)/)[0];
-                        if(!xmlishElements.includes(n)) {
-                            tagText += bits[j];
-                            continue;
-                        }
-
-                        foundEndTagIdx = false;
-                        break;
-                    }
-                    else
-                        tagText += bits[j];
-
-                    if(j == bits.length - 1)
-                        endReached = true;
-                }
-
-                if(foundEndTagIdx !== false) {
-                    i = foundEndTagIdx; // skip tag and it's content
-
-                    root.push({
-                        type: 'ext-tag',
-                        tagName,
-                        attributes,
-                        tagText,
-                    });
-                    continue;
-                }
-                // if foundEndTagIdx === false, invalid tag end, do not parse whole tag
             }
             else if(bit == '{{') { // template begin
 
             }
             else if(bit == '{{{') {
+            }
+            else if(/^\r?\n={1,6}$/.test(bit)) { // headers
+                let level = bit.trim().length; // check level
+                let rhe = new RegExp('^' + '='.repeat(level) + '\\r?\\n$')
+
+                let headerEnd = bits.findIndex((bt, idx) => idx > i && rhe.test(bt)); // find header end
+                if(headerEnd == -1) {
+                    textBit(bit);
+                    continue;
+                }
+                let title = bits.slice(i + 1, headerEnd);
+                if(title.find(bt => /^\r?\n={1,6}$/.test(bt))) {
+                    textBit(bit);
+                    continue;
+                }
+                title = title.join('');
+
+                root.push({
+                    type: 'header',
+                    title,
+                    level,
+                    index: headingIndex++
+                });
+
+                i = headerEnd;
+                continue;
             }
 
             // treat the rest as text
@@ -151,36 +122,32 @@ class Preprocessor {
 
         // use onlyinclude before every else
         if(bits.includes('<onlyinclude>')) {
-            text = bits.reduce(([resultTxt, proposition, inOnlyIncludeSection], bt) => {
-                if(bt == '<onlyinclude>') {
+            let inOnlyIncludeSection = false;
+            text = bits.reduce((resultTxt, bt) => {
+                if(bt == '<onlyinclude>')
                     inOnlyIncludeSection = true;
-                    proposition = '';
-                }
-                else if(inOnlyIncludeSection && /(<\/?(?:includeonly|noinclude|onlyinclude)>)/.test(bt)) {
-                    resultTxt += proposition;
-                    proposition = '';
+                else if(inOnlyIncludeSection && /(<\/?(?:includeonly|noinclude|onlyinclude)>)/.test(bt))
                     inOnlyIncludeSection = false;
-                }
                 else if(inOnlyIncludeSection)
-                    proposition += bt;
+                    resultTxt += bt;
 
-                return [resultTxt, proposition, inOnlyIncludeSection];
-            }, ['', '', false]);
-            text = text[0] + text[1];
+                return resultTxt;
+            }, '');
         } else { // <inlcudeonly> + text outside <noinclude>
-            text = bits.reduce(([resultTxt, inNoIncludeSection], bit) => {
+            let inNoIncludeSection = false;
+            text = bits.reduce((resultTxt, bit) => {
                 if(/<\/?noinclude>/.test(bit)) {
                     inNoIncludeSection = bit == '<noinclude>';
-                    return [resultTxt, inNoIncludeSection];
+                    return resultTxt;
                 }
                 if(bit == '<includeonly>')
                     inNoIncludeSection = false;
                 if(inNoIncludeSection || /<\/?includeonly>/.test(bit))
-                    return [resultTxt, inNoIncludeSection];
+                    return resultTxt;
 
                 resultTxt += bit;
-                return [resultTxt, inNoIncludeSection];
-            }, ['', false])[0];
+                return resultTxt;
+            }, '');
         }
 
         return text;
@@ -199,18 +166,87 @@ class Preprocessor {
         // just drop <onlyinclude> and <noinclude> tags
         bits = bits.filter(bit => !/<\/?(onlyinclude|noinclude)>/.test(bit));
 
-        text = bits.reduce(([resultTxt, inIncludeSection], bit) => {
+        let inIncludeSection = false;
+        text = bits.reduce((resultTxt, bit) => {
                 if(/<\/?includeonly>/.test(bit)) {
                     inIncludeSection = bit == '<includeonly>';
-                    return [resultTxt, inIncludeSection];
+                    return resultTxt;
                 }
                 if(inIncludeSection)
-                return [resultTxt, inIncludeSection];
+                    return resultTxt;
 
-                resultTxt += bit;
-                return [resultTxt, inIncludeSection];
-            }, ['', false])[0];
+                return resultTxt + bit;
+            }, '');
 
         return text;
+    }
+
+
+    /**
+     * Parse extension tag
+     */
+    parseExtTag(bits, startTagIdx, root) {
+        let xmlishElements = this.parser.getStripList();
+
+        // find <tagName attrs>
+        const endIdx = bits.findIndex((bt, idx) => idx > startTagIdx && bt == '>');
+        if(endIdx == -1)
+            return false;
+
+        let tagName =  bits.slice(startTagIdx + 1, endIdx).join('').trim();
+        if(tagName[0] == '/') // ignore end tag here
+            return false;
+
+        let noCloseTag = /\/$/.test(tagName);
+        if(noCloseTag)
+            tagName = tagName.substr(0, tagName.length -1).trim();
+
+        tagName = tagName.split(/(\s+)/);
+        const attributes = Sanitizer.decodeTagAttributes(tagName.slice(1).join('').trim());
+        tagName = tagName[0].toLowerCase();
+
+        if(!xmlishElements.includes(tagName))
+            return false;
+
+        // find tag text and end
+        let tagText = '';
+        let foundEndTagIdx = noCloseTag ? endIdx : false;
+        let endReached = false;
+        if(!noCloseTag) {
+            for(let j = endIdx + 1; j < bits.length; j++) {
+                if(bits[j] == '<' && bits[j + 1] == '/' + tagName && bits[j + 2] == '>') {
+                    foundEndTagIdx = j + 2;
+                    break;
+                }
+                else if(bits[j] == '<') {
+                    let n = (bits[j + 1] + '').trim().split(/(\s+)/)[0];
+                    if(!xmlishElements.includes(n)) {
+                        tagText += bits[j];
+                        continue;
+                    }
+
+                    foundEndTagIdx = false;
+                    break;
+                }
+                else
+                    tagText += bits[j];
+
+                if(j == bits.length - 1)
+                    endReached = true;
+            }
+        }
+
+        if(foundEndTagIdx !== false) {
+            root.push({
+                type: 'ext-tag',
+                tagName,
+                attributes,
+                noCloseTag,
+                tagText,
+            });
+            return foundEndTagIdx; // skip tag and it's content
+        }
+        // if foundEndTagIdx === false, invalid tag end, do not parse whole tag
+        return false;
     }
 };
