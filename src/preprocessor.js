@@ -50,7 +50,7 @@ class Preprocessor {
         else
             text = this.reduceTemplateForView(text);
 
-        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\}|\r?\n={1,6}|={1,6}\r?\n)/);
+        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\}|\r?\n={1,6}(?=[^=])|={1,6}\r?\n)/);
         function textBit(bit) {
             if(typeof root[root.length -1] == 'string')
                 root[root.length -1] += bit;
@@ -63,44 +63,31 @@ class Preprocessor {
             if(bit == '')
                 continue;
 
-            // tag begins
+            // extension tags (+header tags)
             if(bit == '<') {
-                let r = this.parseExtTag(bits, i, root);
-                if(typeof r == 'number') {
+                let r = this.parseExtTag(bits, i, root, headingIndex);
+                if(Array.isArray(r)) {
+                    ([i, headingIndex] = r);
+                    continue;
+                }
+            }
+            // templates
+            else if(bit == '{{') {
+                let r = this.parseTemplate(bits, i, root);
+                if(r !== false) {
                     i = r;
                     continue;
                 }
             }
-            else if(bit == '{{') { // template begin
-
-            }
             else if(bit == '{{{') {
             }
-            else if(/^\r?\n={1,6}$/.test(bit)) { // headers
-                let level = bit.trim().length; // check level
-                let rhe = new RegExp('^' + '='.repeat(level) + '\\r?\\n$')
-
-                let headerEnd = bits.findIndex((bt, idx) => idx > i && rhe.test(bt)); // find header end
-                if(headerEnd == -1) {
-                    textBit(bit);
+            // headers
+            else if(/^\r?\n={1,6}$/.test(bit)) {
+                let r = this.parseHeaders(bits, i, root, headingIndex);
+                if(Array.isArray(r)) {
+                    ([i, headingIndex] = r);
                     continue;
                 }
-                let title = bits.slice(i + 1, headerEnd);
-                if(title.find(bt => /^\r?\n={1,6}$/.test(bt))) {
-                    textBit(bit);
-                    continue;
-                }
-                title = title.join('');
-
-                root.push({
-                    type: 'header',
-                    title,
-                    level,
-                    index: headingIndex++
-                });
-
-                i = headerEnd;
-                continue;
             }
 
             // treat the rest as text
@@ -183,10 +170,10 @@ class Preprocessor {
 
 
     /**
-     * Parse extension tag
+     * Parse extension tag (+headers based on <hX> tags)
      */
-    parseExtTag(bits, startTagIdx, root) {
-        let xmlishElements = this.parser.getStripList();
+    parseExtTag(bits, startTagIdx, root, headingIndex) {
+        let xmlishElements = [...this.parser.getStripList(), 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
         // find <tagName attrs>
         const endIdx = bits.findIndex((bt, idx) => idx > startTagIdx && bt == '>');
@@ -237,16 +224,70 @@ class Preprocessor {
         }
 
         if(foundEndTagIdx !== false) {
-            root.push({
-                type: 'ext-tag',
-                tagName,
-                attributes,
-                noCloseTag,
-                tagText,
-            });
-            return foundEndTagIdx; // skip tag and it's content
+            if(/^h[1-6]$/.test(tagName)) {
+                let level = parseInt(tagName[1], 10);
+                root.push({
+                    type: 'header',
+                    headerType: 'header-tag',
+                    title: tagText,
+                    level,
+                    index: headingIndex++
+                });
+            }
+            else
+                root.push({
+                    type: 'ext-tag',
+                    tagName,
+                    attributes,
+                    noCloseTag,
+                    tagText,
+                });
+            return [foundEndTagIdx, headingIndex]; // skip tag and it's content
         }
         // if foundEndTagIdx === false, invalid tag end, do not parse whole tag
         return false;
+    }
+
+
+    /**
+     * Parse headers based on equal signs (=header=)
+     */
+    parseHeaders(bits, startIdx, root, headingIndex) {
+        let bit = bits[startIdx];
+        let level = bit.trim().length; // check level
+        let rhe = new RegExp('^' + '='.repeat(level) + '\\r?\\n$');
+
+        let headerEnd = bits.findIndex((bt, idx) => idx > startIdx && rhe.test(bt)); // find header end
+        if(headerEnd == -1)
+            return false;
+
+        let title = bits.slice(startIdx + 1, headerEnd);
+        if(title.find(bt => /^\r?\n={1,6}$/.test(bt)))
+            return false;
+
+        title = title.join('');
+
+        root.push({
+            type: 'header',
+            headerType: 'equal-signs',
+            title,
+            level,
+            index: headingIndex++
+        });
+
+        return [headerEnd, headingIndex];
+    }
+
+
+    /**
+     * Parse templates
+     */
+    parseTemplate(bits, startIdx, root) {
+        let tplEndIdx = bits.findIndex((bt, idx) => idx > startIdx && bt == '}}'); // find template end
+        if(tplEndIdx == -1)
+            return false;
+        let fullTemplate = bits.slice(startIdx, tplEndIdx + 1);
+
+        return tplEndIdx;
     }
 };

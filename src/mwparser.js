@@ -41,6 +41,7 @@ class MWParser {
         this.internalLinks = [];
         this.externalLinks = [];
         this.categories = [];
+        this.headings = []; // {title, level}
 
         this.externalLinksAutoNumber = 0;
 

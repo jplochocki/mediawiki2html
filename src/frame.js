@@ -54,6 +54,15 @@ class Frame {
             if(el.type == 'ext-tag') {
                 out += this.parser.extensionSubstitution(el, this);
             }
+            // headers
+            else if(el.type == 'header') {
+                let [begin, end] = el.headerType == 'header-tag' ? [`<h${ el.level }>`, `</h${ el.level }>`] : ['\n' + '='.repeat(el.level), '='.repeat(el.level) + '\n'];
+                out += `${ begin }${ el.title }${ end }`;
+                this.parser.headings.push({
+                    title: el.title,
+                    level: el.level
+                });
+            }
         });
 
         return out;
