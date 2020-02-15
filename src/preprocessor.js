@@ -50,7 +50,30 @@ class Preprocessor {
         else
             text = this.reduceTemplateForView(text);
 
-        let bits = text.split(/(<|>|\{\{\{|\{\{|\}\}\}|\}\}|\r?\n={1,6}(?=[^=])|={1,6}\r?\n)/);
+        let bits = text.split(/(<|>|\{{1,}|\}{1,}|\||\r?\n={1,6}(?=[^=])|={1,6}\r?\n)/);
+
+        // reduce matching { and }
+        bits = bits.map(bt => {
+            if(!/\{|\}/.test(bt))
+                return bt;
+
+            if(['{{', '{{{', '}}', '}}}'].includes(bt))
+                return bt;
+
+            if(bt.length == 5 && bt[0] == '{') // template arg + template
+                return ['{{', '{{{'];
+            else if(bt.length == 5 && bt[0] == '}')
+                return ['}}}', '}}'];
+
+            // else - nested templates
+            let r = Array.from({length: Math.floor(bt.length / 2)}, () => bt[0].repeat(2));
+            if(bt.length % 2 == 1)
+                r.push(bt[0]);
+
+            return r;
+        }).flat();
+
+
         function textBit(bit) {
             if(typeof root[root.length -1] == 'string')
                 root[root.length -1] += bit;
@@ -79,7 +102,13 @@ class Preprocessor {
                     continue;
                 }
             }
+            // template argument
             else if(bit == '{{{') {
+                let r = this.parseTemplateArgument(bits, i, root);
+                if(r !== false) {
+                    i = r;
+                    continue;
+                }
             }
             // headers
             else if(/^\r?\n={1,6}$/.test(bit)) {
@@ -283,11 +312,131 @@ class Preprocessor {
      * Parse templates
      */
     parseTemplate(bits, startIdx, root) {
-        let tplEndIdx = bits.findIndex((bt, idx) => idx > startIdx && bt == '}}'); // find template end
-        if(tplEndIdx == -1)
-            return false;
-        let fullTemplate = bits.slice(startIdx, tplEndIdx + 1);
+        let bt = bits.slice(startIdx + 1);
+        let realIdx = startIdx;
 
-        return tplEndIdx;
+        function _readNextPart() {
+            let foundPartEnd = false;
+            let templateLevel = 0;
+
+            bt.some((b, i) => {
+                realIdx++;
+                if(templateLevel == 0 && /^\|$/.test(b)) {
+                    foundPartEnd = i;
+                    return true;
+                }
+                else if(b == '{{')
+                    templateLevel++;
+                else if(b == '}}') {
+                    templateLevel--;
+                    if(templateLevel < 0) { // end of main template {{
+                        foundPartEnd = i;
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if(foundPartEnd !== false)
+                return [bt.slice(0, foundPartEnd), bt.slice(foundPartEnd)];
+            return [false, false];
+        }
+
+        // get template name
+        let templateName = '';
+        ([templateName, bt] = _readNextPart());
+        if(templateName === false)
+            return false;
+        templateName = templateName.join('');
+
+
+        // read params
+        let templateParams = {}, positionalParams = 1;
+        if(bt[0] == '|') {
+            let a = '', b = '';
+            while(bt[0] != '}}' && bt.length > 0) {
+                if(bt[0] == '|') {
+                    bt.shift();
+                    realIdx++;
+                    continue;
+                }
+
+                ([a, bt] = _readNextPart());
+                if(a === false || bt.length == 0)
+                    return false;
+                a = a.join('');
+
+                if(a.indexOf('=') != -1) { // value for named param
+                    b = a.substr(a.indexOf('=') + 1);
+                    a = a.substr(0, a.indexOf('='));
+                    if(a == '')
+                        continue;
+                    templateParams[a] = b;
+                }
+                else {
+                    templateParams[positionalParams] = a;
+                    positionalParams++;
+                }
+
+            }
+        }
+
+        if(bt.length == 0 || bt[0] != '}}') // template end not found
+            return false;
+
+        root.push({
+            type: 'template',
+            name: templateName,
+            params: templateParams
+        });
+
+        return realIdx;
+    }
+
+
+    /**
+     * Parse template argument
+     */
+    parseTemplateArgument(bits, startIdx, root) {
+        // find param end
+        let endIdx = bits.findIndex((bt, idx) => idx > startIdx && (bt == '}}}' || bt == '{{{'));
+        if(endIdx == -1 || bits[endIdx] == '{{{')
+            return false;
+
+        let paramName = bits.slice(startIdx + 1, endIdx);
+
+        // get default value
+        let defaultValue = '';
+        if(paramName.length > 2 && paramName[1] == '|') {
+            let nextDefValFound = false, templateLevel = 0;
+
+            defaultValue = paramName.slice(2).filter(b => { // reduce to next |, do not drop nested templates
+                if(b == '{{')
+                    templateLevel++;
+                else if(b == '}}')
+                    templateLevel--;
+
+                if(templateLevel <= 0 && b == '|')
+                    nextDefValFound = true;
+
+                return !nextDefValFound;
+            }).join('');
+
+            if(bits[endIdx] == '}}}' && bits[endIdx +1] == '}}') { // have }}} and }} after, for {{{param|{{nested template}}}}}
+                endIdx++;
+                defaultValue += '}}';
+            }
+        }
+        paramName = paramName[0];
+        if(paramName == '')
+            return false;
+
+        root.push({
+            type: 'template-argument',
+            name: paramName,
+            defaultValue: defaultValue
+        });
+
+        return endIdx;
     }
 };

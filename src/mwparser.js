@@ -1295,4 +1295,14 @@ class MWParser {
     recursiveTagParse(tagText, frame=false) {
         return this.internalParse(tagText, frame);
     }
+
+
+    templateSubstitution(params, frame) {
+        return '';
+    }
+
+
+    templateArgSubstitution(params, frame) {
+        return '';
+    }
 };

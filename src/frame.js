@@ -63,6 +63,14 @@ class Frame {
                     level: el.level
                 });
             }
+            // template
+            else if(el.type == 'template') {
+                out += this.parser.templateSubstitution(el, this);
+            }
+            // template argument
+            else if(el.type == 'template-argument') {
+                out += this.parser.templateArgSubstitution(el, this);
+            }
         });
 
         return out;
