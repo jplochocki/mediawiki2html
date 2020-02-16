@@ -247,7 +247,7 @@ describe('Test Preprocessor.preprocessToObj', function() {
         expect(result).toEqual([
             'Lorem ', {
                 type: 'template',
-                name: 'ipsum',
+                name: 'Ipsum',
                 params: {}
             }, ' dolor sit amet.'
         ]);
@@ -260,11 +260,11 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 params: {}
             }, {
                 type: 'template',
-                name: 'ipsum',
+                name: 'Ipsum',
                 params: {}
             }, {
                 type: 'template',
-                name: 'dolor',
+                name: 'Dolor',
                 params: {}
             }
         ]);
@@ -291,7 +291,7 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 params: {}
             }, ' {{ipsum dolor sit ', {
                 type: 'template',
-                name: 'amet',
+                name: 'Amet',
                 params: {}
             }, '.'
         ]);
@@ -302,7 +302,7 @@ describe('Test Preprocessor.preprocessToObj', function() {
         expect(result).toEqual([
             'Lorem ', {
                 type: 'template',
-                name: 'ipsum {{dolor}}',
+                name: 'Ipsum {{dolor}}',
                 params: {}
             }, ' sit amet.'
         ]);
@@ -329,7 +329,7 @@ describe('Test Preprocessor.preprocessToObj', function() {
         expect(result).toEqual([
             'Lorem {{ipsum ', {
                 type: 'template',
-                name: 'dolor',
+                name: 'Dolor',
                 params: {}
             }, ' sit amet.'
         ]);
@@ -338,7 +338,7 @@ describe('Test Preprocessor.preprocessToObj', function() {
         expect(result).toEqual([
             'Lorem ', {
                 type: 'template',
-                name: 'ipsum dolor',
+                name: 'Ipsum dolor',
                 params: {}
             }, '}} sit amet.'
         ]);

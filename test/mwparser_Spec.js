@@ -676,5 +676,32 @@ describe('Test tag extensions', function() {
         let result = this.parser.parse('<lorem-ipsum>dolor sit amet</lorem-ipsum>');
         expect(result).toEqual('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
     });
-
 });
+
+
+describe('test templates usage', function() {
+    it('basic template usage', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'LoremIpsum') {
+                    return 'template: Lorem ipsum --{{{dolor|consectetur adipiscing elit}}}--.';
+                }
+                return false;
+            }
+        });
+        let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}}');
+        expect(result).toEqual('Lorem ipsum: template: Lorem ipsum --dolor sit amet--.');
+    });
+
+    it('not existing template', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                return false;
+            }
+        });
+
+        let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}} www [[aaaaa]]');
+
+    });
+});
+

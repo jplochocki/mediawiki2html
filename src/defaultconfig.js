@@ -142,4 +142,13 @@ class DefaultConfig {
     allowExternalImage(url) {
         return false;
     }
+
+
+    /**
+     *
+     *
+     */
+    getTemplate(title) {
+        return false;
+    }
 };

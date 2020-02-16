@@ -39,7 +39,7 @@ class Frame {
      * @param Array root
      * @return String
      */
-    expand(root) {
+    expand(root, parentTemplateArgs=null) {
         let out = '';
 
         root.forEach(el => {
@@ -69,7 +69,7 @@ class Frame {
             }
             // template argument
             else if(el.type == 'template-argument') {
-                out += this.parser.templateArgSubstitution(el, this);
+                out += this.parser.templateArgSubstitution(el, this, parentTemplateArgs);
             }
         });
 

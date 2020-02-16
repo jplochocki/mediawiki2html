@@ -73,7 +73,6 @@ class Preprocessor {
             return r;
         }).flat();
 
-
         function textBit(bit) {
             if(typeof root[root.length -1] == 'string')
                 root[root.length -1] += bit;
@@ -347,8 +346,8 @@ class Preprocessor {
         ([templateName, bt] = _readNextPart());
         if(templateName === false)
             return false;
-        templateName = templateName.join('');
-
+        templateName = templateName.join('').trim();
+        templateName = templateName[0].toUpperCase() + templateName.substr(1);
 
         // read params
         let templateParams = {}, positionalParams = 1;
@@ -357,7 +356,6 @@ class Preprocessor {
             while(bt[0] != '}}' && bt.length > 0) {
                 if(bt[0] == '|') {
                     bt.shift();
-                    realIdx++;
                     continue;
                 }
 
@@ -427,7 +425,7 @@ class Preprocessor {
                 defaultValue += '}}';
             }
         }
-        paramName = paramName[0];
+        paramName = paramName[0].trim();
         if(paramName == '')
             return false;
 

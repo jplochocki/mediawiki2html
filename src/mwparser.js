@@ -35,6 +35,7 @@ class MWParser {
     constructor(config=null) {
         this.parserConfig = new DefaultConfig(config);
         this.preprocessor = new Preprocessor(this);
+        this.frame = new Frame(this.preprocessor);
 
         this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
         this.interwikiLinks = [];
@@ -50,8 +51,7 @@ class MWParser {
 
 
     parse(text) {
-        let frame = new Frame(this.preprocessor);
-        return this.internalParse(text, frame)
+        return this.internalParse(text, this.frame);
     }
 
 
@@ -1298,11 +1298,35 @@ class MWParser {
 
 
     templateSubstitution(params, frame) {
-        return '';
+        let out = '';
+        let {name : templateName, params : templateParams} = params;
+        let templateTitle = Title.newFromText(templateName);
+        templateTitle.mNamespace = Title.NS_TEMPLATE;
+
+        // get template and preprocess it
+        const tpl = this.parserConfig.getTemplate(templateName);
+        if(tpl === false) {
+            return this.makeLinkObj(templateTitle, templateTitle.getPrefixedText(), {action: 'edit', redlink: 1});
+            //<a href="/index.php?title=Template:TestC&amp;" class="new" title="Template:TestC (page does not exist)">Template:TestC</a>
+        }
+        const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
+
+        // replace template params
+        out += frame.expand(tplRoot, params.params);
+        return out;
     }
 
 
-    templateArgSubstitution(params, frame) {
-        return '';
+    templateArgSubstitution(params, frame, parentTemplateArgs) {
+        if(parentTemplateArgs) {
+            let argName = Object.keys(parentTemplateArgs).find(name => name == params.name);
+            if(argName)
+                return parentTemplateArgs[argName];
+        }
+
+        if(params.defaultValue != '')
+            return params.defaultValue;
+
+        return `{{{${ params.name }|${ params.defaultValue }}}}`;
     }
 };
