@@ -890,4 +890,10 @@ class Sanitizer {
             return Sanitizer.escapeHTML(bit);
         }).join('');
     }
+
+
+    static escapeWikiText(text) {
+        // TODO
+        return text;
+    }
 };

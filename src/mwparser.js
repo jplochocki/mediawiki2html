@@ -36,6 +36,7 @@ class MWParser {
         this.parserConfig = new DefaultConfig(config);
         this.preprocessor = new Preprocessor(this);
         this.frame = new Frame(this.preprocessor);
+        this.magicwords = new MagicWords(this);
 
         this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
         this.interwikiLinks = [];
@@ -1300,19 +1301,37 @@ class MWParser {
     templateSubstitution(params, frame) {
         let out = '';
         let {name : templateName, params : templateParams} = params;
-        let templateTitle = Title.newFromText(templateName);
-        templateTitle.mNamespace = Title.NS_TEMPLATE;
 
-        // get template and preprocess it
-        const tpl = this.parserConfig.getTemplate(templateName);
-        if(tpl === false) {
-            return this.makeLinkObj(templateTitle, templateTitle.getPrefixedText(), {action: 'edit', redlink: 1});
-            //<a href="/index.php?title=Template:TestC&amp;" class="new" title="Template:TestC (page does not exist)">Template:TestC</a>
+        // SUBST - ignored, but processed
+        let found = false, subst = false;
+        ({subst, text: templateName} = this.magicwords.matchSubstAtStart(templateName));
+        found = subst !== false;
+
+        // Variables
+        if(!found && Object.keys(templateParams).length == 0) {
+            let id = this.magicwords.matchStartToEnd(templateName);
+            if(id !== false) {
+                out = this.magicwords.expandMagicVariable(id, frame);
+                found = true;
+            }
         }
-        const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
 
-        // replace template params
-        out += frame.expand(tplRoot, params.params);
+        if(!found || subst !== false) {
+            let templateTitle = Title.newFromText(templateName);
+            templateTitle.mNamespace = Title.NS_TEMPLATE;
+
+            // get template and preprocess it
+            const tpl = this.parserConfig.getTemplate(templateName);
+            if(tpl === false) {
+                return this.makeLinkObj(templateTitle, templateTitle.getPrefixedText(), {action: 'edit', redlink: 1});
+                //<a href="/index.php?title=Template:TestC&amp;" class="new" title="Template:TestC (page does not exist)">Template:TestC</a>
+            }
+            const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
+
+            // replace template params
+            out += frame.expand(tplRoot, params.params);
+        }
+
         return out;
     }
 
