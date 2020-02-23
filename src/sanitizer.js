@@ -892,8 +892,55 @@ class Sanitizer {
     }
 
 
+    /**
+     * Escapes the given text so that it may be output using addWikiText()
+     * without any linking, formatting, etc. making its way through. This
+     * is achieved by substituting certain characters with HTML entities.
+     * As required by the callers, "<nowiki>" is not used.
+     *
+     * @param String Text
+     * @return String
+     */
     static escapeWikiText(text) {
-        // TODO
+        const repl = [
+            [/;/g, '&#59;'],
+            [/"/g, '&#34;'],
+            [/&/g, '&#38;'],
+            [/'/g, '&#39;'],
+            [/</g, '&#60;'],
+            [/=/g, '&#61;'],
+            [/>/g, '&#62;'],
+            [/\[/g, '&#91;'],
+            [/\]/g, '&#93;'],
+            [/\{/g, '&#123;'],
+            [/\|/g, '&#124;'],
+            [/\}/g, '&#125;'],
+            [/\n#/g, '\n&#35;'],
+            [/\r#/g, '\r&#35;'],
+            [/\n\*/g, '\n&#42;'],
+            [/\r\*/g, '\r&#42;'],
+            [/\n:/g, '\n&#58;'],
+            [/\r:/g, '\r&#58;'],
+            [/\n /g, '\n&#32;'],
+            [/\r /g, '\r&#32;'],
+            [/\n\n/g, '\n&#10;'],
+            [/\r\n/g, '&#13;\n'],
+            [/\n\r/g, '\n&#13;'],
+            [/\r\r/g, '\r&#13;'],
+            [/\n\t/g, '\n&#9;'],
+            [/\r\t/g, '\r&#9;'], // '\n\t\n" is treated like '\n\n"
+            [/\n----/g, '\n&#45;---'],
+            [/\r----/g, '\r&#45;---'],
+            [/__/g, '_&#95;'],
+            [/:\/\//g, '&#58;//']
+        ];
+        text = repl.reduce((txt, [from, to]) => txt.replace(from, to), text);
+
+        text = Sanitizer.protocolSchemes()
+            .filter(prot => prot.endsWith(':'))
+            .map(prot => ([new RegExp(prot, 'ig'), prot.replace(':', '&#58;')]))
+            .reduce((txt, [from, to]) => txt.replace(from, to), text);
+
         return text;
     }
 };

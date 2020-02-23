@@ -24,6 +24,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+
 describe('Test Sanitizer.fixTagAttributes', function() {
     it('basic tests', function() {
         let result = Sanitizer.fixTagAttributes(`class="wikitable" STYLE="width: 100%;" onclick="alert('should be deleted')"`, 'tr');
@@ -333,12 +335,23 @@ describe('Test Sanitizer.validateTag()', function() {
 });
 
 
-describe('Test ', function() {
+describe('Test Sanitizer.stripAllTags()', function() {
     it('basic tests', function() {
         let r = Sanitizer.stripAllTags('Lorem <div>Lorem ipsum</div> dolor')
         expect(r).toEqual('Lorem Lorem ipsum dolor');
 
         r = Sanitizer.stripAllTags('Lorem <div>Lorem ipsum</div>> dolor<')
         expect(r).toEqual('Lorem Lorem ipsum&gt; dolor&lt;');
+    });
+});
+
+
+describe('tests Sanitizer.escapeWikiText()', function() {
+    it('basic tests', function() {
+        let result = Sanitizer.escapeWikiText('Lorem \'\'\'ipsum\'\'\' dolor <b>sit<i>amet</i></b>.');
+        expect(result).toEqual('Lorem &#39;&#39;&#39;ipsum&#39;&#39;&#39; dolor &#60;b&#62;sit&#60;i&#62;amet&#60;/i&#62;&#60;/b&#62;.');
+
+        result = Sanitizer.escapeWikiText('Lorem https://lorem.ipsum.com/dorol sit amet.');
+        expect(result).toEqual('Lorem https&#58;//lorem.ipsum.com/dorol sit amet.');
     });
 });
