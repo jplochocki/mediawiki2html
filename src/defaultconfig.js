@@ -145,10 +145,31 @@ class DefaultConfig {
 
 
     /**
+     * Get template source for title
      *
-     *
+     * @param String title
+     * @return String
      */
     getTemplate(title) {
         return false;
+    }
+
+
+    /**
+     * Registers new Magic Variables
+     *
+     * @return {id: String, synonyms: String[], caseSensitive: Boolean}
+     */
+    registerNewMagicVariables() {
+        return [];
+    }
+
+
+    /**
+     * Changes the output for a given Magic Variable
+     *
+     */
+    changeMagicVariableOutput(variableId, defaultOutput) {
+        return defaultOutput;
     }
 };

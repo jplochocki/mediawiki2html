@@ -30,86 +30,93 @@ class MagicWords {
     constructor(parser) {
         this.parser = parser;
 
-        this.variableIDs = [
-            '!',
-            'currentmonth',
-            'currentmonth1',
-            'currentmonthname',
-            'currentmonthnamegen',
-            'currentmonthabbrev',
-            'currentday',
-            'currentday2',
-            'currentdayname',
-            'currentyear',
-            'currenttime',
-            'currenthour',
-            'localmonth',
-            'localmonth1',
-            'localmonthname',
-            'localmonthnamegen',
-            'localmonthabbrev',
-            'localday',
-            'localday2',
-            'localdayname',
-            'localyear',
-            'localtime',
-            'localhour',
-            'numberofarticles',
-            'numberoffiles',
-            'numberofedits',
-            'articlepath',
-            'pageid',
-            'sitename',
-            'server',
-            'servername',
-            'scriptpath',
-            'stylepath',
-            'pagename',
-            'pagenamee',
-            'fullpagename',
-            'fullpagenamee',
-            'namespace',
-            'namespacee',
-            'namespacenumber',
-            'currentweek',
-            'currentdow',
-            'localweek',
-            'localdow',
-            'revisionid',
-            'revisionday',
-            'revisionday2',
-            'revisionmonth',
-            'revisionmonth1',
-            'revisionyear',
-            'revisiontimestamp',
-            'revisionuser',
-            'revisionsize',
-            'subpagename',
-            'subpagenamee',
-            'talkspace',
-            'talkspacee',
-            'subjectspace',
-            'subjectspacee',
-            'talkpagename',
-            'talkpagenamee',
-            'subjectpagename',
-            'subjectpagenamee',
-            'numberofusers',
-            'numberofactiveusers',
-            'numberofpages',
-            'currentversion',
-            'rootpagename',
-            'rootpagenamee',
-            'basepagename',
-            'basepagenamee',
-            'currenttimestamp',
-            'localtimestamp',
-            'directionmark',
-            'contentlanguage',
-            'pagelanguage',
-            'numberofadmins',
-            'cascadingsources',
-        ];
+        this.variables = [
+            ['!', ['!'], true],
+            ['currentmonth', ['CURRENTMONTH', 'CURRENTMONTH2'], true],
+            ['currentmonth1', ['CURRENTMONTH1'], true],
+            ['currentmonthname', ['CURRENTMONTHNAME'], true],
+            ['currentmonthnamegen', ['CURRENTMONTHNAMEGEN'], true],
+            ['currentmonthabbrev', ['CURRENTMONTHABBREV'], true],
+            ['currentday', ['CURRENTDAY'], true],
+            ['currentday2', ['CURRENTDAY2'], true],
+            ['currentdayname', ['CURRENTDAYNAME'], true],
+            ['currentyear', ['CURRENTYEAR'], true],
+            ['currenttime', ['CURRENTTIME'], true],
+            ['currenthour', ['CURRENTHOUR'], true],
+            ['localmonth', ['LOCALMONTH', 'LOCALMONTH2'], true],
+            ['localmonth1', ['LOCALMONTH1'], true],
+            ['localmonthname', ['LOCALMONTHNAME'], true],
+            ['localmonthnamegen', ['LOCALMONTHNAMEGEN'], true],
+            ['localmonthabbrev', ['LOCALMONTHABBREV'], true],
+            ['localday', ['LOCALDAY'], true],
+            ['localday2', ['LOCALDAY2'], true],
+            ['localdayname', ['LOCALDAYNAME'], true],
+            ['localyear', ['LOCALYEAR'], true],
+            ['localtime', ['LOCALTIME'], true],
+            ['localhour', ['LOCALHOUR'], true],
+            ['numberofarticles', ['NUMBEROFARTICLES'], true],
+            ['numberoffiles', ['NUMBEROFFILES'], true],
+            ['numberofedits', ['NUMBEROFEDITS'], true],
+            ['articlepath', ['ARTICLEPATH'], false],
+            ['pageid', ['PAGEID'], false],
+            ['sitename', ['SITENAME'], true],
+            ['server', ['SERVER'], false],
+            ['servername', ['SERVERNAME'], false],
+            ['scriptpath', ['SCRIPTPATH'], false],
+            ['stylepath', ['STYLEPATH'], false],
+            ['pagename', ['PAGENAME'], true],
+            ['pagenamee', ['PAGENAMEE'], true],
+            ['fullpagename', ['FULLPAGENAME'], true],
+            ['fullpagenamee', ['FULLPAGENAMEE'], true],
+            ['namespace', ['NAMESPACE'], true],
+            ['namespacee', ['NAMESPACEE'], true],
+            ['namespacenumber', ['NAMESPACENUMBER'], true],
+            ['currentweek', ['CURRENTWEEK'], true],
+            ['currentdow', ['CURRENTDOW'], true],
+            ['localweek', ['LOCALWEEK'], true],
+            ['localdow', ['LOCALDOW'], true],
+            ['revisionid', ['REVISIONID'], true],
+            ['revisionday', ['REVISIONDAY'], true],
+            ['revisionday2', ['REVISIONDAY2'], true],
+            ['revisionmonth', ['REVISIONMONTH'], true],
+            ['revisionmonth1', ['REVISIONMONTH1'], true],
+            ['revisionyear', ['REVISIONYEAR'], true],
+            ['revisiontimestamp', ['REVISIONTIMESTAMP'], true],
+            ['revisionuser', ['REVISIONUSER'], true],
+            ['revisionsize', ['REVISIONSIZE'], true],
+            ['subpagename', ['SUBPAGENAME'], true],
+            ['subpagenamee', ['SUBPAGENAMEE'], true],
+            ['talkspace', ['TALKSPACE'], true],
+            ['talkspacee', ['TALKSPACEE'], true],
+            ['subjectspace', ['SUBJECTSPACE', 'ARTICLESPACE'], true],
+            ['subjectspacee', ['SUBJECTSPACEE', 'ARTICLESPACEE'], true],
+            ['talkpagename', ['TALKPAGENAME'], true],
+            ['talkpagenamee', ['TALKPAGENAMEE'], true],
+            ['subjectpagename', ['SUBJECTPAGENAME', 'ARTICLEPAGENAME'], true],
+            ['subjectpagenamee', ['SUBJECTPAGENAMEE', 'ARTICLEPAGENAMEE'], true],
+            ['numberofusers', ['NUMBEROFUSERS'], true],
+            ['numberofactiveusers', ['NUMBEROFACTIVEUSERS'], true],
+            ['numberofpages', ['NUMBEROFPAGES'], true],
+            ['currentversion', ['CURRENTVERSION'], true],
+            ['rootpagename', ['ROOTPAGENAME'], true],
+            ['rootpagenamee', ['ROOTPAGENAMEE'], true],
+            ['basepagename', ['BASEPAGENAME'], true],
+            ['basepagenamee', ['BASEPAGENAMEE'], true],
+            ['currenttimestamp', ['CURRENTTIMESTAMP'], true],
+            ['localtimestamp', ['LOCALTIMESTAMP'], true],
+            ['directionmark', ['DIRECTIONMARK', 'DIRMARK'], true],
+            ['contentlanguage', ['CONTENTLANGUAGE', 'CONTENTLANG'], true],
+            ['pagelanguage', ['PAGELANGUAGE'], true],
+            ['numberofadmins', ['NUMBEROFADMINS'], true],
+            ['cascadingsources', ['CASCADINGSOURCES'], true],
+        ].map(([id, synonyms, caseSensitive]) => ({
+            id,
+            synonyms,
+            caseSensitive,
+            synonymsRE: new RegExp('^' + synonyms.join('|') + '$', caseSensitive? '' : 'i')
+        }));
+
+        this.variables = [...this.variables, ...this.parser.parserConfig.registerNewMagicVariables()];
 
         this.doubleUnderscoreIDs = [
             'notoc',
@@ -132,12 +139,6 @@ class MagicWords {
             'subst',
             'safesubst',
         ];
-
-        this.variables = this.variableIDs.map(id => ({
-            id,
-            synonyms: [],
-            caseSensitive: false
-        }));
     }
 
 
@@ -167,12 +168,7 @@ class MagicWords {
      * @return String|Boolean False on failure
      */
     matchStartToEnd(text) {
-        let v = this.variables.find(v => {
-            if(v.id == text)
-                return true;
-            return synonyms.findIndex(s => s == text) != -1;
-        });
-
+        let v = this.variables.find(v => synonymsRE.test(text));
         return v ? v.id : false;
     }
 
@@ -375,6 +371,8 @@ class MagicWords {
                 out = ''; // not implemented
                 break;
         }
+
+        out = this.parser.parserConfig.changeMagicVariableOutput(index, out);
         return out;
     }
 };
