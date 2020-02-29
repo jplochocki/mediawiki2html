@@ -92,6 +92,7 @@ class MWParser {
 
         // $text = $this->handleMagicLinks( $text );
         // $text = $this->finalizeHeadings( $text, $origText, $isMain );
+        text = Sanitizer.unarmorHtmlAndLinks(text);
 
         return text;
     }
@@ -586,14 +587,17 @@ class MWParser {
      * @param URLSearchParams|String|Array|Object [query='']
      * @param String [trail='']
      * @param String [prefix='']
+     * @param Boolean|Null [exists=null] page exists (null = use
+     *     Title.exists() to check that)
      * @return String
      */
-    makeLinkObj(nt, html='', query='', trail='', prefix='') {
+    makeLinkObj(nt, html='', query='', trail='', prefix='', exists=null) {
         if(!(query instanceof URLSearchParams))
             query = new URLSearchParams(query ? query : '');
 
         let classes = '';
-        if(!nt.exists() || nt.getNamespace() == Title.NS_SPECIAL) {
+        exists = exists !== null? exists : nt.exists();
+        if(!exists || nt.getNamespace() == Title.NS_SPECIAL) {
             classes = 'new';
             query.append('action', 'edit');
             query.append('redlink', '1');
@@ -1322,10 +1326,11 @@ class MWParser {
 
             // get template and preprocess it
             const tpl = this.parserConfig.getTemplate(templateName);
-            if(tpl === false) {
-                return this.makeLinkObj(templateTitle, templateTitle.getPrefixedText(), {action: 'edit', redlink: 1});
-                //<a href="/index.php?title=Template:TestC&amp;" class="new" title="Template:TestC (page does not exist)">Template:TestC</a>
-            }
+            if(tpl === false)
+                return Sanitizer.armorHtmlAndLinks(this.makeLinkObj(templateTitle,
+                    /* html */ templateTitle.getPrefixedText(), /* query */ '', /* trail */ '',
+                    /* prefix */ '', /* exists */ false));
+
             const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
 
             // replace template params

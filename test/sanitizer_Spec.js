@@ -355,3 +355,14 @@ describe('tests Sanitizer.escapeWikiText()', function() {
         expect(result).toEqual('Lorem https&#58;//lorem.ipsum.com/dorol sit amet.');
     });
 });
+
+
+describe('tests Sanitizer.armorHtmlAndLinks() and Sanitizer.unarmorHtmlAndLinks()', function() {
+    it('basic tests', function() {
+        const src = 'lorem <ipsum> dolor. https://lorem.ipsum.com dolor sit amet';
+        let result = Sanitizer.armorHtmlAndLinks(src);
+        expect(result).toEqual('lorem \x7f\'"`UNIQ-lt-QINU`"\'\x7fipsum\x7f\'"`UNIQ-gt-QINU`"\'\x7f dolor. \x7f\'"`UNIQ-https-QINU`"\'\x7florem.ipsum.com dolor sit amet');
+        result = Sanitizer.unarmorHtmlAndLinks(result);
+        expect(result).toEqual(src);
+    });
+});

@@ -700,8 +700,10 @@ describe('test templates usage', function() {
             }
         });
 
-        let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}} www [[aaaaa]]');
-
+        let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}} consectetur [[adipiscing elit]]');
+        expect(result).toEqual('Lorem ipsum: <a title="Template:LoremIpsum (page does not exist)" '
+            + 'href="//en.wikipedia.org/w/index.php?title=Template%3ALoremIpsum&action=edit&redlink=1" class="new">Template:LoremIpsum</a> '
+            + 'consectetur <a title="Adipiscing elit" href="//en.wikipedia.org/w/index.php?title=Adipiscing_elit">adipiscing elit</a>');
     });
 });
 

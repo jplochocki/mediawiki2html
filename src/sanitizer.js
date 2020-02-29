@@ -943,4 +943,52 @@ class Sanitizer {
 
         return text;
     }
+
+
+    /**
+     * Defends against the sanitization of tags and URLs
+     *
+     * @param String text
+     * @return String
+     */
+    static armorHtmlAndLinks(text) {
+        const MARKER = '\x7f\'"`UNIQ-%1-QINU`"\'\x7f';
+
+        let repl = Sanitizer.protocolSchemes()
+            .filter(prot => prot.indexOf(':') != -1)
+            .map(prot => [
+                new RegExp('\\b' + prot.replace('//', '\\/\\/'), 'gi'),
+                MARKER.replace('%1', prot.replace(/:\/?\/?/, ''))
+            ]);
+        repl.push(
+            [/</g, MARKER.replace('%1', 'lt')],
+            [/>/g, MARKER.replace('%1', 'gt')]
+        );
+
+        return repl.reduce((txt, [from, to]) => txt.replace(from, to), text);
+    }
+
+
+    /**
+     * Reverses the function Sanitizer.armorHtmlAndLinks()
+     *
+     * @param String text
+     * @return String
+     */
+    static unarmorHtmlAndLinks(text) {
+        const MARKER = '\x7f\'"`UNIQ-%1-QINU`"\'\x7f';
+
+        let repl = Sanitizer.protocolSchemes()
+            .filter(prot => prot.indexOf(':') != -1)
+            .map(prot => [
+                new RegExp(MARKER.replace('%1', prot.replace(/:\/?\/?/, '')), 'g'),
+                prot
+            ]);
+        repl.push(
+            [new RegExp(MARKER.replace('%1', 'lt'), 'g'), '<'],
+            [new RegExp(MARKER.replace('%1', 'gt'), 'g'), '>']
+        );
+
+        return repl.reduce((txt, [from, to]) => txt.replace(from, to), text);
+    }
 };
