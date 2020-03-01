@@ -306,13 +306,19 @@ class MagicWords {
                 break;
 
             case 'subpagename':
-            case 'basepagename':
-                // TODO
+                out = Sanitizer.escapeWikiText(title.getSubpageText());
                 break;
 
             case 'subpagenamee':
+                out = encodeURIComponent(Sanitizer.escapeWikiText(title.getSubpageText()));
+                break;
+
+            case 'basepagename':
+                out = Sanitizer.escapeWikiText(title.getBaseText());
+                break;
+
             case 'basepagenamee':
-                // TODO
+                out = encodeURIComponent(Sanitizer.escapeWikiText(title.getBaseText().replace(/ /g, '_')));
                 break;
 
             case 'talkpagename':

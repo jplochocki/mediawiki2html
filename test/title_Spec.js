@@ -315,3 +315,112 @@ describe('Test Title.getImageUploadUrl', function() {
         expect(t.getImageUploadUrl()).toEqual('//en.wikipedia.org/w/index.php?title=Special%3AUpload&wpDestFile=LoremIpsum.png');
     });
 });
+
+
+describe('Test Title.getSubpageText()', function() {
+    it('basic tests', function() {
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor');
+        expect(title.getSubpageText()).toEqual('Dolor');
+
+        // no subpages in title
+        title = Title.newFromText('User:Lorem');
+        expect(title.getSubpageText()).toEqual('Lorem');
+
+        // namespace without subpages support
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        expect(title.getSubpageText()).toEqual('Lorem/Ipsum/Dolor');
+    });
+});
+
+
+describe('Test Title.getSubpage()', function() {
+    it('basic tests', function() {
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor');
+        let title2 = title.getSubpage('Sit');
+
+        expect(title2).toEqual(jasmine.any(Title));
+
+        expect(title.getSubpageText()).toEqual('Dolor');
+        expect(title2.getSubpageText()).toEqual('Sit');
+
+        expect(title.getPrefixedText()).toEqual('User:Lorem/Ipsum/Dolor');
+        expect(title2.getPrefixedText()).toEqual('User:Lorem/Ipsum/Dolor/Sit');
+    });
+});
+
+
+describe('Test Title.getSubpages()', function() {
+    it('title with subpages', function() {
+        let subpages = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet').getSubpages();
+
+        expect(subpages).toEqual(jasmine.any(Array));
+        expect(subpages.length).toEqual(4);
+
+        let expectedSubpages = [
+            'User:Lorem/Ipsum',
+            'User:Lorem/Ipsum/Dolor',
+            'User:Lorem/Ipsum/Dolor/Sit',
+            'User:Lorem/Ipsum/Dolor/Sit/Amet',
+        ];
+
+        subpages.forEach(subpage => {
+            expect(subpage).toEqual(jasmine.any(Title));
+            expect(expectedSubpages).toContain(subpage.getPrefixedText());
+        });
+
+        // no subpages in title
+        title = Title.newFromText('User:Lorem');
+        expect(title.getSubpageText()).toEqual('Lorem');
+
+        // namespace without subpages support
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+    });
+
+    it('title without subpages or namespace without subpages', function() {
+        let subpages = Title.newFromText('User:Lorem').getSubpages();
+
+        expect(subpages).toEqual(jasmine.any(Array));
+        expect(subpages.length).toEqual(0);
+
+        // namespace without subpages support
+        subpages = Title.newFromText('File:Lorem/Ipsum/Dolor').getSubpages();
+
+        expect(subpages).toEqual(jasmine.any(Array));
+        expect(subpages.length).toEqual(0);
+    });
+});
+
+
+describe('Test Title.hasSubpages()', function() {
+    it('basic tests', function() {
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet');
+        expect(title.hasSubpages()).toBeTruthy();
+
+        // title without subpages
+        title = Title.newFromText('User:Lorem');
+        expect(title.hasSubpages()).toBeFalsy();
+
+        // namespace without subpages support
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        expect(title.hasSubpages()).toBeFalsy();
+    });
+});
+
+describe('Test Title.getBaseText()', function() {
+    it('basic tests', function() {
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet');
+        expect(title.getBaseText()).toEqual('Lorem/Ipsum/Dolor/Sit');
+
+        title = Title.newFromText('User:Lorem/Ipsum');
+        expect(title.getBaseText()).toEqual('Lorem');
+
+        // title without subpages
+        title = Title.newFromText('User:Lorem');
+        expect(title.getBaseText()).toEqual('Lorem');
+
+        // namespace without subpages support
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        expect(title.getBaseText()).toEqual('Lorem/Ipsum/Dolor');
+    });
+
+});

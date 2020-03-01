@@ -120,4 +120,22 @@ describe('MagicWords tests', function() {
         result = par.magicwords.expandMagicVariable('namespacenumber');
         expect(result).toEqual(String(Title.NS_TEMPLATE));
     });
+
+    it('expandMagicVariable() title subpage tests', function() {
+        let par = new MWParser({
+            pageTitle: 'Template:Lorem Ipsum/Dolor'
+        });
+
+        let result = par.magicwords.expandMagicVariable('subpagename');
+        expect(result).toEqual('Dolor');
+
+        result = par.magicwords.expandMagicVariable('subpagenamee');
+        expect(result).toEqual('Dolor');
+
+        result = par.magicwords.expandMagicVariable('basepagename');
+        expect(result).toEqual('Lorem Ipsum');
+
+        result = par.magicwords.expandMagicVariable('basepagenamee');
+        expect(result).toEqual('Lorem_Ipsum');
+    });
 });

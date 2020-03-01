@@ -101,6 +101,22 @@ class Title {
             'Dyskusja_kategorii': Title.NS_CATEGORY_TALK
         };
 
+        this.namespacesWithSubpages = [
+            Title.NS_TALK,
+            Title.NS_USER,
+            Title.NS_USER_TALK,
+            Title.NS_PROJECT,
+            Title.NS_PROJECT_TALK,
+            Title.NS_FILE_TALK,
+            Title.NS_MEDIAWIKI,
+            Title.NS_MEDIAWIKI_TALK,
+            Title.NS_TEMPLATE,
+            Title.NS_TEMPLATE_TALK,
+            Title.NS_HELP,
+            Title.NS_HELP_TALK,
+            Title.NS_CATEGORY_TALK
+        ];
+
         if(this.parserConfig.projectName) {
             Object.values(this.namespaceNames).forEach(names => {
                 names[Title.NS_PROJECT] = names[Title.NS_PROJECT].replace('$1', this.parserConfig.projectName);
@@ -623,4 +639,93 @@ class Title {
         return this.parserConfig.uploadFileURL.replace(/\$1/g, q);
     }
 
+
+    /**
+     * Get the lowest-level subpage name, i.e. the rightmost part after any slashes
+     *
+     * @par Example:
+     * @code
+     * Title.newFromText('User:Foo/Bar/Baz').getSubpageText();
+     * # returns: "Baz"
+     * @endcode
+     *
+     * @return string Subpage name
+     */
+    getSubpageText() {
+        if(this.namespacesWithSubpages.indexOf(this.mNamespace) == -1)
+            return this.mTextform;
+        let parts = this.mTextform.split('/');
+        return parts.pop();
+    }
+
+
+    /**
+     * Get the title for a subpage of the current page
+     *
+     * @par Example:
+     * @code
+     * Title.newFromText('User:Foo/Bar/Baz').getSubpage('Asdf');
+     * # returns: Title{User:Foo/Bar/Baz/Asdf}
+     * @endcode
+     *
+     * @param string $text The subpage name to add to the title
+     * @return Title|null Subpage title, or null on an error
+     */
+    getSubpage(text) {
+        return Title.newFromText(this.getPrefixedText() + '/' + text);
+    }
+
+
+    /**
+     * Get all subpages of this page.
+     *
+     * @return Title[] Title array, or empty array if this page's namespace
+     *  doesn't allow subpages
+     */
+    getSubpages() {
+        if(this.namespacesWithSubpages.indexOf(this.mNamespace) == -1)
+            return [];
+
+        let parts = this.getPrefixedText().split('/');
+        let lastTitle = Title.newFromText(parts.shift());
+
+        return parts.map(part => {
+            lastTitle = lastTitle.getSubpage(part);
+            return lastTitle;
+        });
+    }
+
+
+    /**
+     * Does this have subpages?
+     *
+     * @return Boolean
+     */
+    hasSubpages() {
+        return this.getSubpages().length > 0;
+    }
+
+
+    /**
+     * Get the base page name without a namespace, i.e. the part before the subpage name
+     *
+     * @par Example:
+     * @code
+     * Title.newFromText('User:Foo/Bar/Baz').getBaseText();
+     * # returns: 'Foo/Bar'
+     * @endcode
+     *
+     * @return string Base name
+     */
+    getBaseText() {
+        if(this.namespacesWithSubpages.indexOf(this.mNamespace) == -1)
+            return this.mTextform;
+
+        let parts = this.mTextform.split('/');
+        if(parts.length == 1)
+            return this.mTextform;
+
+        parts.pop();
+        return parts.reduce((txt, part) => txt + (txt != '' ? '/' : '') + part, '');
+    }
 }
