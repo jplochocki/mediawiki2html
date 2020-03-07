@@ -1320,6 +1320,7 @@ class MWParser {
             }
         }
 
+        // template page
         if(!found || subst !== false) {
             let templateTitle = Title.newFromText(templateName);
             templateTitle.mNamespace = Title.NS_TEMPLATE;
@@ -1331,10 +1332,13 @@ class MWParser {
                     /* html */ templateTitle.getPrefixedText(), /* query */ '', /* trail */ '',
                     /* prefix */ '', /* exists */ false));
 
-            const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
+            frame.depth++;
+            if(frame.depth <= 10) {
+                const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
 
-            // replace template params
-            out += frame.expand(tplRoot, params.params);
+                // replace template params
+                out += frame.expand(tplRoot, params.params);
+            }
         }
 
         return out;

@@ -691,6 +691,9 @@ describe('test templates usage', function() {
         });
         let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}}');
         expect(result).toEqual('Lorem ipsum: template: Lorem ipsum --dolor sit amet--.');
+
+        result = parser.parse('Lorem ipsum: {{loremIpsum}}');
+        expect(result).toEqual('Lorem ipsum: template: Lorem ipsum --consectetur adipiscing elit--.');
     });
 
     it('not existing template', function() {
@@ -705,5 +708,94 @@ describe('test templates usage', function() {
             + 'href="//en.wikipedia.org/w/index.php?title=Template%3ALoremIpsum&action=edit&redlink=1" class="new">Template:LoremIpsum</a> '
             + 'consectetur <a title="Adipiscing elit" href="//en.wikipedia.org/w/index.php?title=Adipiscing_elit">adipiscing elit</a>');
     });
-});
 
+    it('subst should be ignored', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                return 'ipsum dolor';
+            }
+        });
+
+        spyOn(parser.magicwords, 'matchSubstAtStart').and.callThrough();
+        spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
+
+        let result = parser.parse('Lorem {{subst:Lorem ipsum}} sit amet.');
+        expect(parser.magicwords.matchSubstAtStart).toHaveBeenCalledWith('Subst:Lorem ipsum');
+        expect(parser.magicwords.matchSubstAtStart.calls.mostRecent().returnValue).toEqual({subst: 'subst', text: 'Lorem ipsum'});
+        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Lorem ipsum');
+        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+
+        result = parser.parse('Lorem {{safesubst:Lorem ipsum}} sit amet.');
+        expect(parser.magicwords.matchSubstAtStart).toHaveBeenCalledWith('Safesubst:Lorem ipsum');
+        expect(parser.magicwords.matchSubstAtStart.calls.mostRecent().returnValue).toEqual({subst: 'safesubst', text: 'Lorem ipsum'});
+        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Lorem ipsum');
+        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+    });
+
+    it('check variables in {{ }}', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                return 'ipsum dolor';
+            }
+        });
+        spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
+
+        jasmine.clock().install();
+        jasmine.clock().mockDate(new Date(Date.UTC(2020, 2, 7))); // mock date for revisiontimestamp / localtimestamp / etc
+
+        parser.magicwords.variables.forEach(mvar => {
+            let last = null;
+            mvar.synonyms.forEach(mword => {
+                let resultA_id = parser.magicwords.matchStartToEnd(mword);
+                expect(resultA_id).toBeTruthy();
+                expect(resultA_id).toEqual(mvar.id);
+
+                let resultA = parser.magicwords.expandMagicVariable(resultA_id);
+                let resultB = parser.parse(`{{${mword}}}`);
+
+                expect(resultA).toEqual(resultB);
+                expect(parser.parserConfig.getTemplate).not.toHaveBeenCalled();
+
+                if(last === null)
+                    last = resultA;
+                else
+                    expect(last).toEqual(resultB);
+            });
+        });
+
+        jasmine.clock().uninstall();
+    });
+
+    it('template in template source test', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^lorem ipsum$/i.test(title))
+                    return 'Lorem ipsum {{dolor|dolor=sit amet}}, {{consectetur}}.';
+                else if(/dolor/i.test(title))
+                    return 'dolor {{{dolor|not sit amet}}}{{Lorem ipsum empty template}}'
+                else if(/lorem ipsum empty template/i.test(title))
+                    return '';
+                else if(/consectetur/i.test(title))
+                    return 'consectetur adipiscing elit';
+
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem ipsum}}');
+        expect(result).toEqual('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+    });
+
+    it('template in template too much recursion prevention test', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^lorem ipsum$/i.test(title))
+                    return 'Lorem ipsum {{Lorem ipsum}}';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem ipsum}}');
+        expect(result).toEqual(Array.from({length: 10}, () => 'Lorem ipsum').join(' '));
+    });
+});

@@ -113,7 +113,7 @@ class MagicWords {
             id,
             synonyms,
             caseSensitive,
-            synonymsRE: new RegExp('^' + synonyms.join('|') + '$', caseSensitive? '' : 'i')
+            synonymsRE: new RegExp('^(' + synonyms.join('|') + ')$', caseSensitive? '' : 'i')
         }));
 
         this.variables = [...this.variables, ...this.parser.parserConfig.registerNewMagicVariables()];
@@ -168,7 +168,7 @@ class MagicWords {
      * @return String|Boolean False on failure
      */
     matchStartToEnd(text) {
-        let v = this.variables.find(v => synonymsRE.test(text));
+        let v = this.variables.find(v => v.synonymsRE.test(text));
         return v ? v.id : false;
     }
 
@@ -293,12 +293,12 @@ class MagicWords {
 
             case 'namespace':
             case 'subjectspace':
-                out = title.getNsText();
+                out = title.getNsText() === false? '' : title.getNsText();
                 break;
 
             case 'namespacee':
             case 'subjectspacee':
-                out = encodeURIComponent(title.getNsText());
+                out = encodeURIComponent(title.getNsText() === false? '' : title.getNsText());
                 break;
 
              case 'namespacenumber':
