@@ -787,6 +787,7 @@ describe('test templates usage', function() {
     });
 
     it('template in template too much recursion prevention test', function() {
+        // scenario 1
         let parser = new MWParser({
             getTemplate(title) {
                 if(/^lorem ipsum$/i.test(title))
@@ -796,6 +797,44 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{Lorem ipsum}}');
-        expect(result).toEqual(Array.from({length: 10}, () => 'Lorem ipsum').join(' '));
+        expect(result).toMatch(/^Lorem ipsum <span class="error">Template loop detected: <a/);
+        expect(result).toMatch(/>Template:Lorem ipsum</);
+
+        // scenario 2
+        parser = new MWParser({
+            getTemplate(title) {
+                const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
+                let x = words.findIndex(w => w == title.toLowerCase());
+                if(x >= words.length -1)
+                    return 'A {{lorem}}';
+                if(x != -1)
+                    return `A {{${ words[x + 1] }}}`;
+                return false;
+            }
+        });
+
+        result = parser.parse('{{lorem}}');
+        expect(result).toMatch(/^(A ){41}/);
+        expect(result).toMatch(/Template recursion depth limit exceeded/);
+
+        // scenario 3
+        parser = new MWParser({
+            getTemplate(title) {
+                const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
+                let x = words.findIndex(w => w == title.toLowerCase());
+                if(x >= words.length -1)
+                    return 'A {{lorem}} {{maecenas}}';
+                else if(x != -1)
+                    return `A {{${ words[x + 1] }}} {{maecenas}}`;
+                else if(/maecenas/i.test(title))
+                    return 'B';
+                return false;
+            }
+        });
+
+        result = parser.parse('{{lorem}}');
+        expect(result).toMatch(/^(A ){41}/);
+        expect(result).toMatch(/(B\s?){40}$/);
+        expect(result).toMatch(/Template recursion depth limit exceeded/);
     });
 });

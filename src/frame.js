@@ -27,10 +27,11 @@
 
 
 class Frame {
-    constructor(preprocessor) {
+    constructor(preprocessor, deep=0) {
         this.preprocessor = preprocessor;
         this.parser = preprocessor.parser;
-        this.depth = 0;
+        this.loopCheckTitles = [];
+        this.deep = deep;
     }
 
     /**
@@ -65,7 +66,7 @@ class Frame {
             }
             // template
             else if(el.type == 'template') {
-                out += this.parser.templateSubstitution(el, this);
+                out += this.parser.templateSubstitution(el.name, el.params, this);
             }
             // template argument
             else if(el.type == 'template-argument') {

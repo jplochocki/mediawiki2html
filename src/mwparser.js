@@ -35,7 +35,6 @@ class MWParser {
     constructor(config=null) {
         this.parserConfig = new DefaultConfig(config);
         this.preprocessor = new Preprocessor(this);
-        this.frame = new Frame(this.preprocessor);
         this.magicwords = new MagicWords(this);
 
         this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
@@ -48,11 +47,14 @@ class MWParser {
         this.externalLinksAutoNumber = 0;
 
         this.functionTagHooks = {};
+
+        this.maxTemplateDepth = 40;
     }
 
 
     parse(text) {
-        return this.internalParse(text, this.frame);
+        let frame = new Frame(this.preprocessor);
+        return this.internalParse(text, frame);
     }
 
 
@@ -1302,9 +1304,17 @@ class MWParser {
     }
 
 
-    templateSubstitution(params, frame) {
+    /**
+     * Return the text of a template, after recursively
+     * replacing any variables or templates within the template.
+     *
+     * @param String templateName
+     * @param Object templateParams
+     * @param Frame frame The current frame
+     * @return String The text of the template
+     */
+    templateSubstitution(templateName, templateParams, frame) {
         let out = '';
-        let {name : templateName, params : templateParams} = params;
 
         // SUBST - ignored, but processed
         let found = false, subst = false;
@@ -1332,12 +1342,23 @@ class MWParser {
                     /* html */ templateTitle.getPrefixedText(), /* query */ '', /* trail */ '',
                     /* prefix */ '', /* exists */ false));
 
-            frame.depth++;
-            if(frame.depth <= 10) {
+            if(!frame.loopCheckTitles.includes(templateTitle.getPrefixedText()) && frame.deep <= this.maxTemplateDepth) {
+                frame.loopCheckTitles.push(templateTitle.getPrefixedText());
+
                 const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
 
                 // replace template params
-                out += frame.expand(tplRoot, params.params);
+                let fr = new Frame(this.preprocessor, frame.deep + 1);
+                fr.loopCheckTitles.push(templateTitle.getPrefixedText());
+                out += fr.expand(tplRoot, templateParams);
+            }
+            else if(frame.deep > this.maxTemplateDepth) {
+                out += `<span class="error">Template recursion depth limit exceeded (${ this.maxTemplateDepth })</span>`;
+            }
+            else {
+                out += Sanitizer.armorHtmlAndLinks('<span class="error">Template loop detected: ' +
+                    this.makeLinkObj(templateTitle, /* html */ templateTitle.getPrefixedText(),
+                        /* query */ '', /* trail */ '', /* prefix */ '', /* exists */ true) + '</span>');
             }
         }
 
