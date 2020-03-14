@@ -786,8 +786,7 @@ describe('test templates usage', function() {
         expect(result).toEqual('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
     });
 
-    it('template in template too much recursion prevention test', function() {
-        // scenario 1
+    it('template loop detection - scenario 1 (template infinity recursion)', function() {
         let parser = new MWParser({
             getTemplate(title) {
                 if(/^lorem ipsum$/i.test(title))
@@ -799,9 +798,10 @@ describe('test templates usage', function() {
         let result = parser.parse('{{Lorem ipsum}}');
         expect(result).toMatch(/^Lorem ipsum <span class="error">Template loop detected: <a/);
         expect(result).toMatch(/>Template:Lorem ipsum</);
+    });
 
-        // scenario 2
-        parser = new MWParser({
+    it('template loop detection - scenario 2 (depth limit)', function() {
+        let parser = new MWParser({
             getTemplate(title) {
                 const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
                 let x = words.findIndex(w => w == title.toLowerCase());
@@ -813,11 +813,10 @@ describe('test templates usage', function() {
             }
         });
 
-        result = parser.parse('{{lorem}}');
+        let result = parser.parse('{{lorem}}');
         expect(result).toMatch(/^(A ){41}/);
         expect(result).toMatch(/Template recursion depth limit exceeded/);
 
-        // scenario 3
         parser = new MWParser({
             getTemplate(title) {
                 const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
@@ -836,5 +835,26 @@ describe('test templates usage', function() {
         expect(result).toMatch(/^(A ){41}/);
         expect(result).toMatch(/(B\s?){40}$/);
         expect(result).toMatch(/Template recursion depth limit exceeded/);
+    });
+
+    it('template loop detection - scenario 3 (no recursion schould be detected)', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/lorem/i.test(title))
+                    return 'lorem';
+                else if(/ipsum/i.test(title))
+                    return 'ipsum {{lorem}}';
+                else if(/dolor/i.test(title))
+                    return 'dolor {{ipsum}}';
+                else if(/sit/i.test(title))
+                    return 'sit {{dolor}}';
+                else if(/amet/i.test(title))
+                    return 'amet {{sit}}';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{dolor}} {{sit}} {{amet}}');
+        expect(result).toEqual('lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem dolor ipsum lorem sit dolor ipsum lorem amet sit dolor ipsum lorem');
     });
 });

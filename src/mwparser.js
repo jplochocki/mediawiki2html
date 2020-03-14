@@ -1343,8 +1343,6 @@ class MWParser {
                     /* prefix */ '', /* exists */ false));
 
             if(!frame.loopCheckTitles.includes(templateTitle.getPrefixedText()) && frame.deep <= this.maxTemplateDepth) {
-                frame.loopCheckTitles.push(templateTitle.getPrefixedText());
-
                 const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
 
                 // replace template params
