@@ -1047,7 +1047,7 @@ class MWParser {
     matchImageVariable(txt) {
         // generate test regexes
         if(!this._imageMagicWordsRegExs)
-            this._imageMagicWordsRegExs = Object.entries(this.parserConfig.magicWords)
+            this._imageMagicWordsRegExs = Object.entries(this.magicwords.imageMagicWords)
                 .filter(([k,]) => /^img_/.test(k))
                 .map(([k, v]) =>
                     v.map(v1 => [k, new RegExp('^' + v1.replace(/\$1/g, '(.*?)') + '$')])
@@ -1315,6 +1315,7 @@ class MWParser {
      */
     templateSubstitution(templateName, templateParams, frame) {
         let out = '';
+        let outAsWiki = false;
 
         // SUBST - ignored, but processed
         let found = false, subst = false;
@@ -1330,10 +1331,20 @@ class MWParser {
             }
         }
 
+        // MSG, MSGNW and RAW
+        if(!found) {
+            let {matchedWord, text} = this.magicwords.matchAtStart(templateName, ['msgnw', 'msg', 'raw']);
+            outAsWiki = matchedWord == 'msgnw';
+            // msg + raw are ignored
+        }
+
         // template page
         if(!found || subst !== false) {
             let templateTitle = Title.newFromText(templateName);
-            templateTitle.mNamespace = Title.NS_TEMPLATE;
+            if(templateName.startsWith(':'))
+                templateTitle = Title.newFromText(templateName.substr(1));
+            else if(templateTitle.mNamespace == Title.NS_MAIN)
+                templateTitle.mNamespace = Title.NS_TEMPLATE;
 
             // get template and preprocess it
             const tpl = this.parserConfig.getTemplate(templateName);
@@ -1341,6 +1352,9 @@ class MWParser {
                 return Sanitizer.armorHtmlAndLinks(this.makeLinkObj(templateTitle,
                     /* html */ templateTitle.getPrefixedText(), /* query */ '', /* trail */ '',
                     /* prefix */ '', /* exists */ false));
+
+            if(outAsWiki)
+                return Sanitizer.escapeWikiText(tpl);
 
             if(!frame.loopCheckTitles.includes(templateTitle.getPrefixedText()) && frame.deep <= this.maxTemplateDepth) {
                 const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);

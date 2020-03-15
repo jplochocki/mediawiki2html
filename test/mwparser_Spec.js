@@ -212,7 +212,7 @@ describe('Test MWParser.matchImageVariable', function() {
     it('basic tests', function() {
         const par = new MWParser();
         const lorem = 'lorem ipsum dolor';
-        Object.entries(par.parserConfig.magicWords).forEach(([wordName, values]) => {
+        Object.entries(par.magicwords.imageMagicWords).forEach(([wordName, values]) => {
             values.forEach(val => {
                 let r = par.matchImageVariable(val.replace(/\$1/g, lorem))
                 expect(r.magicName).toEqual(wordName);

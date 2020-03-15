@@ -27,6 +27,21 @@
 
 
 describe('MagicWords tests', function() {
+    it('matchAtStart basic tests', function() {
+        let par = new MWParser();
+        let result = par.magicwords.matchAtStart('subst:LoremIpsum', ['subst']);
+        expect(result).toEqual({matchedWord: 'subst', text: 'LoremIpsum'});
+
+        result = par.magicwords.matchAtStart('subst:LoremIpsum', ['subst1']);
+        expect(result).toEqual({matchedWord: false, text: 'subst:LoremIpsum'});
+
+        result = par.magicwords.matchAtStart('subst:LoremIpsum', ['subst', 'safesubst']);
+        expect(result).toEqual({matchedWord: 'subst', text: 'LoremIpsum'});
+
+        result = par.magicwords.matchAtStart('sUbSt:LoremIpsum', ['subst']);
+        expect(result).toEqual({matchedWord: 'subst', text: 'LoremIpsum'});
+    });
+
     it('matchSubstAtStart basic tests', function() {
         let par = new MWParser();
         let result = par.magicwords.matchSubstAtStart('subst:LoremIpsum');

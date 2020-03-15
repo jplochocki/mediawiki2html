@@ -51,34 +51,6 @@ class DefaultConfig {
         this.imageFileUrl = '/images/';
         this.thumbFileUrl = '/images/thumb/';
 
-        // TODO magic words for other languages
-        this.magicWords = {
-            img_thumbnail: ['thumb', 'thumbnail'],
-            img_manualthumb: ['thumbnail=$1', 'thumb=$1'],
-            img_right: ['right'],
-            img_left: ['left'],
-            img_none: ['none'],
-            img_width: ['$1px'],
-            img_center: ['center', 'centre'],
-            img_framed: ['frame', 'framed', 'enframed'],
-            img_frameless: ['frameless'],
-            img_lang: ['lang=$1'],
-            img_page: ['page=$1', 'page $1'],
-            img_upright: ['upright', 'upright=$1', 'upright $1'],
-            img_border: ['border'],
-            img_baseline: ['baseline'],
-            img_sub: ['sub'],
-            img_super: ['super', 'sup'],
-            img_top: ['top'],
-            img_text_top: ['text-top'],
-            img_middle: ['middle'],
-            img_bottom: ['bottom'],
-            img_text_bottom: ['text-bottom'],
-            img_link: ['link=$1'],
-            img_alt: ['alt=$1'],
-            img_class: ['class=$1'],
-        };
-
         // override default config with user defined
         if(config)
             Object.entries(config).forEach(([k, v]) => this[k] = v);

@@ -139,6 +139,51 @@ class MagicWords {
             'subst',
             'safesubst',
         ];
+
+        this.imageMagicWords = {
+            img_thumbnail: ['thumb', 'thumbnail'],
+            img_manualthumb: ['thumbnail=$1', 'thumb=$1'],
+            img_right: ['right'],
+            img_left: ['left'],
+            img_none: ['none'],
+            img_width: ['$1px'],
+            img_center: ['center', 'centre'],
+            img_framed: ['frame', 'framed', 'enframed'],
+            img_frameless: ['frameless'],
+            img_lang: ['lang=$1'],
+            img_page: ['page=$1', 'page $1'],
+            img_upright: ['upright', 'upright=$1', 'upright $1'],
+            img_border: ['border'],
+            img_baseline: ['baseline'],
+            img_sub: ['sub'],
+            img_super: ['super', 'sup'],
+            img_top: ['top'],
+            img_text_top: ['text-top'],
+            img_middle: ['middle'],
+            img_bottom: ['bottom'],
+            img_text_bottom: ['text-bottom'],
+            img_link: ['link=$1'],
+            img_alt: ['alt=$1'],
+            img_class: ['class=$1'],
+        };
+    }
+
+
+    /**
+     * Match words at start, returns object {matchedWord or false, rest of text}.
+     * I.e. subst:text -> {matchedWord: 'subst', text: 'text'}
+     *
+     * @param String text
+     * @param String[] words
+     * @param Boolean [ignoreCase=true]
+     * @return Object
+     */
+    matchAtStart(text, words, ignoreCase=true) {
+        let re = (new RegExp('^(' + words.join('|') + '):(.*)$', (ignoreCase ? 'i' : ''))).exec(text);
+        if(re)
+            return {matchedWord: re[1].toLowerCase(), text: re[2]};
+
+        return {matchedWord: false, text};
     }
 
 
@@ -146,17 +191,11 @@ class MagicWords {
      * Match subst / safesubst at start, returns object {subst, text}
      *
      * @param String text
-     *
-     * @return Array
+     * @return Object
      */
     matchSubstAtStart(text) {
-        let re = /^(subst|safesubst):/i.exec(text);
-        if(re) {
-            let subst = re[1].toLowerCase();
-            text = text.substr(subst.length + 1);
-            return {subst, text};
-        }
-        return {subst: false, text};
+        let {matchedWord, text: resultText} = this.matchAtStart(text, ['subst', 'safesubst']);
+        return {subst: matchedWord, text: resultText};
     }
 
 
