@@ -1335,7 +1335,21 @@ class MWParser {
         if(!found) {
             let {matchedWord, text} = this.magicwords.matchAtStart(templateName, ['msgnw', 'msg', 'raw']);
             outAsWiki = matchedWord == 'msgnw';
+            templateName = text;
             // msg + raw are ignored
+        }
+
+        // Parser functions
+        if(!found) {
+            if(templateName.indexOf(':') != -1) {
+                let [_, funcName, funcArg1] = /^(.*?):\s*(.*)$/.exec(templateName);
+
+                let result = this.callParserFunction(frame, funcName, funcArg1, templateParams);
+                if(result !== false) {
+                    out = result;
+                    found = true;
+                }
+            }
         }
 
         // template page
@@ -1347,7 +1361,7 @@ class MWParser {
                 templateTitle.mNamespace = Title.NS_TEMPLATE;
 
             // get template and preprocess it
-            const tpl = this.parserConfig.getTemplate(templateName);
+            const tpl = this.parserConfig.getTemplate(templateTitle.getPrefixedText());
             if(tpl === false)
                 return Sanitizer.armorHtmlAndLinks(this.makeLinkObj(templateTitle,
                     /* html */ templateTitle.getPrefixedText(), /* query */ '', /* trail */ '',
@@ -1389,5 +1403,21 @@ class MWParser {
             return params.defaultValue;
 
         return `{{{${ params.name }|${ params.defaultValue }}}}`;
+    }
+
+
+    /**
+     * Call a parser function and return result (or false, when parser function
+     * is unknown).
+     *
+     * @param Frame frame
+     * @param String functionName
+     * @param String funcFirstArg
+     * @param Object funcArguments
+     * @return Object
+     */
+    callParserFunction(frame, functionName, funcFirstArg, funcArguments) {
+        // TODO
+        return false;
     }
 };

@@ -683,7 +683,7 @@ describe('test templates usage', function() {
     it('basic template usage', function() {
         let parser = new MWParser({
             getTemplate(title) {
-                if(title == 'LoremIpsum') {
+                if(title == 'Template:LoremIpsum') {
                     return 'template: Lorem ipsum --{{{dolor|consectetur adipiscing elit}}}--.';
                 }
                 return false;
@@ -709,6 +709,27 @@ describe('test templates usage', function() {
             + 'consectetur <a title="Adipiscing elit" href="//en.wikipedia.org/w/index.php?title=Adipiscing_elit">adipiscing elit</a>');
     });
 
+    it('namespace matching in template title', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                return 'lorem ipsum';
+            }
+        });
+
+        spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
+
+        [
+            ['{{Lorem ipsum}}', 'Template:Lorem ipsum'],
+            ['{{Template:Lorem ipsum}}', 'Template:Lorem ipsum'],
+            ['{{:Lorem ipsum}}', 'Lorem ipsum'],
+            ['{{Talk:Lorem ipsum}}', 'Talk:Lorem ipsum'],
+            ['{{Lorem:Lorem ipsum}}', 'Template:Lorem:Lorem ipsum'],
+        ].forEach(([wikiTxt, calledTemplateTitle]) => {
+            let result = parser.parse(wikiTxt);
+            expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith(calledTemplateTitle);
+        });
+    });
+
     it('subst should be ignored', function() {
         let parser = new MWParser({
             getTemplate(title) {
@@ -722,14 +743,47 @@ describe('test templates usage', function() {
         let result = parser.parse('Lorem {{subst:Lorem ipsum}} sit amet.');
         expect(parser.magicwords.matchSubstAtStart).toHaveBeenCalledWith('Subst:Lorem ipsum');
         expect(parser.magicwords.matchSubstAtStart.calls.mostRecent().returnValue).toEqual({subst: 'subst', text: 'Lorem ipsum'});
-        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Lorem ipsum');
+        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem ipsum');
         expect(result).toEqual('Lorem ipsum dolor sit amet.');
 
         result = parser.parse('Lorem {{safesubst:Lorem ipsum}} sit amet.');
         expect(parser.magicwords.matchSubstAtStart).toHaveBeenCalledWith('Safesubst:Lorem ipsum');
         expect(parser.magicwords.matchSubstAtStart.calls.mostRecent().returnValue).toEqual({subst: 'safesubst', text: 'Lorem ipsum'});
-        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Lorem ipsum');
+        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem ipsum');
         expect(result).toEqual('Lorem ipsum dolor sit amet.');
+    });
+
+    it('msgnw should return wiki text', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:lorem ipsum$/i.test(title))
+                    return 'Lorem [[ipsum]] {{dolor}} sit <b>amet</b>.';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{msgnw:lorem ipsum}}');
+        expect(result).toEqual('Lorem &#91;&#91;ipsum&#93;&#93; &#123;&#123;dolor&#125;&#125; sit &#60;b&#62;amet&#60;/b&#62;.');
+    });
+
+    it('msg + raw should be ignored', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:lorem ipsum$/i.test(title))
+                    return 'Lorem [[ipsum]] dolor sit amet.';
+                return false;
+            }
+        });
+
+        spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
+
+        let result = parser.parse('{{lorem ipsum}}');
+        let resultMSG = parser.parse('{{msg:lorem ipsum}}');
+        let resultRAW = parser.parse('{{raw:lorem ipsum}}');
+
+        expect(result).toEqual('Lorem <a title="Ipsum" href="//en.wikipedia.org/w/index.php?title=Ipsum">ipsum</a> dolor sit amet.');
+        expect(result).toEqual(resultMSG);
+        expect(result).toEqual(resultRAW);
     });
 
     it('check variables in {{ }}', function() {
@@ -769,7 +823,7 @@ describe('test templates usage', function() {
     it('template in template source test', function() {
         let parser = new MWParser({
             getTemplate(title) {
-                if(/^lorem ipsum$/i.test(title))
+                if(/^template:lorem ipsum$/i.test(title))
                     return 'Lorem ipsum {{dolor|dolor=sit amet}}, {{consectetur}}.';
                 else if(/dolor/i.test(title))
                     return 'dolor {{{dolor|not sit amet}}}{{Lorem ipsum empty template}}'
@@ -789,7 +843,7 @@ describe('test templates usage', function() {
     it('template loop detection - scenario 1 (template infinity recursion)', function() {
         let parser = new MWParser({
             getTemplate(title) {
-                if(/^lorem ipsum$/i.test(title))
+                if(/^template:lorem ipsum$/i.test(title))
                     return 'Lorem ipsum {{Lorem ipsum}}';
                 return false;
             }
@@ -804,7 +858,7 @@ describe('test templates usage', function() {
         let parser = new MWParser({
             getTemplate(title) {
                 const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
-                let x = words.findIndex(w => w == title.toLowerCase());
+                let x = words.findIndex(w => 'template:' + w == title.toLowerCase());
                 if(x >= words.length -1)
                     return 'A {{lorem}}';
                 if(x != -1)
@@ -820,7 +874,7 @@ describe('test templates usage', function() {
         parser = new MWParser({
             getTemplate(title) {
                 const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
-                let x = words.findIndex(w => w == title.toLowerCase());
+                let x = words.findIndex(w => 'template:' + w == title.toLowerCase());
                 if(x >= words.length -1)
                     return 'A {{lorem}} {{maecenas}}';
                 else if(x != -1)
