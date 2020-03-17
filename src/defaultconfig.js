@@ -144,4 +144,17 @@ class DefaultConfig {
     changeMagicVariableOutput(variableId, defaultOutput) {
         return defaultOutput;
     }
+
+
+    /**
+     * Called by parser when parser function needed (eg. {{sum:1|2|3}}). Return
+     * parser function result text or false, when function in unknown.
+     *
+     * @param String funcName
+     * @param Object args
+     * @return String|false
+     */
+    callParserFunction(funcName, args) {
+        return false;
+    }
 };

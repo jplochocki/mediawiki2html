@@ -1342,9 +1342,15 @@ class MWParser {
         // Parser functions
         if(!found) {
             if(templateName.indexOf(':') != -1) {
-                let [_, funcName, funcArg1] = /^(.*?):\s*(.*)$/.exec(templateName);
+                let [, funcName, funcArg1] = /^(.*?):\s*(.*)$/.exec(templateName);
+                if(funcArg1.indexOf('=') != -1) {
+                    let [, argName, argValue] = /^\s*(.*?)\s*=\s*(.*?)\s*$/.exec(funcArg1);
+                    funcArg1 = {[argName]: argValue};
+                }
+                else
+                    funcArg1 = {'0': funcArg1};
 
-                let result = this.callParserFunction(frame, funcName, funcArg1, templateParams);
+                let result = this.callParserFunction(frame, funcName, {...funcArg1, ...templateParams});
                 if(result !== false) {
                     out = result;
                     found = true;
@@ -1411,13 +1417,71 @@ class MWParser {
      * is unknown).
      *
      * @param Frame frame
-     * @param String functionName
-     * @param String funcFirstArg
-     * @param Object funcArguments
+     * @param String funcName
+     * @param Object args
      * @return Object
      */
-    callParserFunction(frame, functionName, funcFirstArg, funcArguments) {
-        // TODO
-        return false;
+    callParserFunction(frame, funcName, args) {
+        let out = this.standardParserFunctions(funcName, args);
+        if(out !== false)
+            return out;
+
+        return this.parserConfig.callParserFunction(funcName, args);
+    }
+
+
+    /**
+     * Standard defined wiki parser functions (eg. #language)
+     */
+    standardParserFunctions(funcName, args) {
+        // TODO: more languages
+        const langCodes = {
+            'en': {
+                'ar': 'Arabic',
+                'cs': 'Czech',
+                'da': 'Danish',
+                'de': 'German',
+                'el': 'Modern Greek',
+                'en': 'English',
+                'es': 'Spanish',
+                'fi': 'Finnish',
+                'fr': 'French',
+                'he': 'Hebrew',
+                'hi': 'Hindi',
+                'hu': 'Hungarian',
+                'id': 'Indonesian',
+                'it': 'Italian',
+                'ja': 'Japanese',
+                'ko': 'Korean',
+                'nl': 'Dutch',
+                'no': 'Norwegian',
+                'pl': 'Polish',
+                'pt': 'Portuguese',
+                'ro': 'Romanian',
+                'ru': 'Russian',
+                'sk': 'Slovak',
+                'sv': 'Swedish',
+                'th': 'Thai',
+                'tr': 'Turkish',
+                'zh': 'Chinese'
+            }
+        };
+
+        let out = false;
+
+        switch(funcName.toLowerCase()) {
+            case '#language':
+                let {0: code, 1: inLang='en'} = args;
+
+                if(!langCodes[inLang])
+                    inLang = 'en';
+
+                out = '';
+                if(langCodes[inLang][code])
+                    out = langCodes[inLang][code];
+                break;
+        }
+
+        return out;
     }
 };

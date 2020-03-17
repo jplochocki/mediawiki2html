@@ -911,4 +911,44 @@ describe('test templates usage', function() {
         let result = parser.parse('{{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{dolor}} {{sit}} {{amet}}');
         expect(result).toEqual('lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem dolor ipsum lorem sit dolor ipsum lorem amet sit dolor ipsum lorem');
     });
+
+    it('parser functions basic tests', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                return false;
+            },
+
+            callParserFunction(funcName, args) {
+                if(/#LoremIpsum/.test(funcName))
+                    return `Lorem ${ args['lorem'] } dolor ${ args['dolor'] }.`;
+
+                return false;
+            }
+        });
+
+        spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
+        spyOn(parser.parserConfig, 'callParserFunction').and.callThrough();
+
+        let result = parser.parse('{{#LoremIpsum: lorem=ipsum|dolor=sit amet}}');
+        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+
+        expect(parser.parserConfig.getTemplate).not.toHaveBeenCalled();
+        expect(parser.parserConfig.callParserFunction).toHaveBeenCalledWith('#LoremIpsum', {lorem: 'ipsum', dolor: 'sit amet'});
+    });
+});
+
+
+describe('standard parser functions tests', function() {
+    it('#language basic tests', function() {
+        let parser = new MWParser();
+
+        let result = parser.parse('{{#language:en}}');
+        expect(result).toEqual('English');
+
+        result = parser.parse('{{#lAnGuAgE:en}}'); // names are case insensitive
+        expect(result).toEqual('English');
+
+        result = parser.parse('{{#language:pl}}');
+        expect(result).toEqual('Polish');
+    });
 });
