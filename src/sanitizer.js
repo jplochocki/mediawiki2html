@@ -991,4 +991,15 @@ class Sanitizer {
 
         return repl.reduce((txt, [from, to]) => txt.replace(from, to), text);
     }
+
+
+    /**
+     * Check if string has arored HTML / URLs
+     *
+     * @param String text
+     * @return Boolean
+     */
+    static isStringArmored(text) {
+        return /\x7f'"`UNIQ-.*?-QINU`"'\x7f/.test(text);
+    }
 };

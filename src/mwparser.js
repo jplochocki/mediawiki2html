@@ -1311,11 +1311,48 @@ class MWParser {
      * @param String templateName
      * @param Object templateParams
      * @param Frame frame The current frame
+     * @param Object [parentTemplateArgs={}]
      * @return String The text of the template
      */
-    templateSubstitution(templateName, templateParams, frame) {
+    templateSubstitution(templateName, templateParams, frame, parentTemplateArgs={}) {
         let out = '';
         let outAsWiki = false;
+
+        // preprocess and expand templateName, if necessary
+        if(/\{\{\{?/.test(templateName)) {
+            let dom = this.preprocessor.preprocessToObj(templateName);
+            let errorInResult = false;
+            dom = dom.map(d => {
+                if(typeof d == 'string')
+                    return d;
+                d = frame.expand([d], parentTemplateArgs);
+
+                if(/\{\{\{?/.test(d))
+                    d = Sanitizer.escapeWikiText(d);
+
+                if(Sanitizer.isStringArmored(d))
+                    errorInResult = true;
+
+                return d;
+            })
+
+            // if {{ }} / {{{ }}} not expanded - return template as text
+            if(errorInResult) {
+                out = Object.entries(templateParams).map(([k,v]) => {
+                    if(/^\d+$/.test(k))
+                        return v;
+                    else
+                        return k + '=' + v;
+                }).join('|');
+
+                if(out.length > 0)
+                    out = '|' + out;
+
+                return Sanitizer.escapeWikiText('{{') + dom.join('') + Sanitizer.escapeWikiText(out + '}}');
+            }
+            else
+                templateName = dom.join('');
+        }
 
         // SUBST - ignored, but processed
         let found = false, subst = false;
@@ -1479,6 +1516,15 @@ class MWParser {
                 out = '';
                 if(langCodes[inLang][code])
                     out = langCodes[inLang][code];
+                break;
+
+            case '#tag':
+                let {0: tagName, 1: content=''} = args;
+                let htmlParams = Object.fromEntries(Object.entries(args).filter(([k, v]) => !/^\d+$/.test(k)));
+                htmlParams = Sanitizer.safeEncodeTagAttributes(htmlParams);
+                htmlParams = htmlParams.length > 0 ? ' ' + htmlParams : htmlParams;
+
+                out = `<${ tagName }${ htmlParams }>${ content }</${ tagName }>`;
                 break;
         }
 

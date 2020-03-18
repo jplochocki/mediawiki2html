@@ -366,3 +366,14 @@ describe('tests Sanitizer.armorHtmlAndLinks() and Sanitizer.unarmorHtmlAndLinks(
         expect(result).toEqual(src);
     });
 });
+
+
+describe('tests Sanitizer.isStringArmored()', function() {
+    it('basic tests', function() {
+        const src = 'lorem <ipsum> dolor. https://lorem.ipsum.com dolor sit amet';
+        let result = Sanitizer.armorHtmlAndLinks(src);
+
+        expect(Sanitizer.isStringArmored(result)).toBeTruthy();
+        expect(Sanitizer.isStringArmored(src)).toBeFalsy();
+    });
+});

@@ -317,10 +317,11 @@ class Preprocessor {
         function _readNextPart() {
             let foundPartEnd = false;
             let templateLevel = 0;
+            let templateParamLevel = 0;
 
             bt.some((b, i) => {
                 realIdx++;
-                if(templateLevel == 0 && /^\|$/.test(b)) {
+                if(templateLevel == 0 && templateParamLevel == 0 && /^\|$/.test(b)) {
                     foundPartEnd = i;
                     return true;
                 }
@@ -333,6 +334,10 @@ class Preprocessor {
                         return true;
                     }
                 }
+                else if(b == '{{{')
+                    templateParamLevel++;
+                else if(b == '}}}')
+                    templateParamLevel--;
                 return false;
             });
 

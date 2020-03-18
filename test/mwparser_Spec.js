@@ -938,6 +938,75 @@ describe('test templates usage', function() {
 });
 
 
+describe('template name expansion', function() {
+    it('template in template name basic tests', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:ipsum$/i.test(title))
+                    return 'ipsum';
+                else if(/^template:lorem ipsum dolor$/i.test(title))
+                    return 'Lorem ipsum dolor';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem {{ipsum}} dolor}}');
+        expect(result).toEqual('Lorem ipsum dolor');
+    });
+
+    it('template param should be expanded', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:lorem$/i.test(title))
+                    return '{{Lorem ipsum {{{ipsum}}}}}';
+                else if(/^template:lorem ipsum dolor$/i.test(title))
+                    return 'Lorem ipsum dolor';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=dolor}}');
+        expect(result).toEqual('Lorem ipsum dolor');
+    });
+
+    it('default values should be used if needed', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:lorem$/i.test(title))
+                    return '{{Lorem {{{lorem|ipsum}}} {{{ipsum}}}}}';
+                else if(/^template:lorem ipsum dolor$/i.test(title))
+                    return 'Lorem ipsum dolor';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=dolor}}');
+        expect(result).toEqual('Lorem ipsum dolor');
+    });
+
+    it('not expanded template should be linked and escaped', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:lorem$/i.test(title))
+                    return '{{Lorem {{ipsum}} dolor}}';
+                else if(/^template:lorem ipsum dolor$/i.test(title))
+                    return 'Lorem ipsum dolor';
+                return false;
+            }
+        });
+
+        spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
+
+        let result = parser.parse('{{Lorem}}');
+        expect(result).toEqual('&#123;&#123;Lorem <a title="Template:Ipsum (page does not exist)" href="//en.wikipedia.org/w/index.php?title=Template%3AIpsum&action=edit&redlink=1"'
+            + ' class="new">Template:Ipsum</a> dolor&#125;&#125;');
+
+        expect(parser.parserConfig.getTemplate).not.toHaveBeenCalledWith('Template:Lorem ipsum dolor');
+        expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem');
+    });
+});
+
+
 describe('standard parser functions tests', function() {
     it('#language basic tests', function() {
         let parser = new MWParser();
@@ -950,5 +1019,36 @@ describe('standard parser functions tests', function() {
 
         result = parser.parse('{{#language:pl}}');
         expect(result).toEqual('Polish');
+
+        result = parser.parse('{{#language: {{PAGELANGUAGE}}}}');
+        expect(result).toEqual('English');
+    });
+
+    it('#tag basic tests', function() {
+        let parser = new MWParser();
+
+        let result = parser.parse('{{#tag:b}}'); // no content
+        expect(result).toEqual('<b></b>');
+
+        result = parser.parse('{{#tag:b|}}'); // empty content
+        expect(result).toEqual('<b></b>');
+
+        result = parser.parse('{{#tag:b|Lorem ipsum dolor|sit|amet|lorem}}'); // unnecessary arguments
+        expect(result).toEqual('<b>Lorem ipsum dolor</b>');
+
+        result = parser.parse('{{#tag:b|Lorem ipsum dolor|sit|amet|title=sit amet|lorem}}');
+        expect(result).toEqual('<b title="sit amet">Lorem ipsum dolor</b>');
+
+        result = parser.parse('{{#tag:a}}'); // a should be escaped
+        expect(result).toEqual('&lt;a&gt;&lt;/a&gt;');
+
+        result = parser.parse('{{#tag:lorem}}'); // unknown tag should be escaped
+        expect(result).toEqual('&lt;lorem&gt;&lt;/lorem&gt;');
+
+        result = parser.parse('{{#tag:b|Lorem ipsum dolor|title=sit amet}}'); // content + parameters
+        expect(result).toEqual('<b title="sit amet">Lorem ipsum dolor</b>');
+
+        result = parser.parse('{{#tag:b|Lorem ipsum dolor|lorem=sit amet}}'); // unacceptable parameters
+        expect(result).toEqual('<b>Lorem ipsum dolor</b>');
     });
 });

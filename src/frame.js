@@ -66,7 +66,7 @@ class Frame {
             }
             // template
             else if(el.type == 'template') {
-                out += this.parser.templateSubstitution(el.name, el.params, this);
+                out += this.parser.templateSubstitution(el.name, el.params, this, parentTemplateArgs);
             }
             // template argument
             else if(el.type == 'template-argument') {
