@@ -27,11 +27,24 @@
 
 
 class Frame {
-    constructor(preprocessor, deep=0) {
-        this.preprocessor = preprocessor;
-        this.parser = preprocessor.parser;
+    /**
+     * @param Parser parser
+     * @param Frame [parentFrame=null] parent frame, if available
+     */
+    constructor(parser, parentFrame=null) {
+        this.MAX_TEMPLATE_DEPTH = 40;
+
+        this.parser = parser;
+        this.preprocessor = parser.preprocessor;
         this.loopCheckTitles = [];
-        this.deep = deep;
+        this.parentFrame = parentFrame;
+
+        this.deep = 0;
+        let pf = parentFrame;
+        while(pf != null) {
+            pf = pf.parentFrame;
+            this.deep++;
+        }
     }
 
     /**
@@ -75,5 +88,28 @@ class Frame {
         });
 
         return out;
+    }
+
+
+    /**
+     * Detect template loop or max deep
+     *
+     * @param String templateTitle title of template (as returned by Title.getPrefixedText())
+     * @return {loopDetected: Boolean, maxDeepDetected: Boolean, templateLoopDetected: Boolean}
+     */
+    loopDetection(templateTitle) {
+        if(this.deep >= this.MAX_TEMPLATE_DEPTH)
+            return {loopDetected: true, maxDeepDetected: true};
+
+        // check title in parent frames
+        let pf = this.parentFrame;
+        while(pf) {
+            pf = pf.parentFrame;
+
+            if(pf && pf.loopCheckTitles.includes(templateTitle))
+                return {loopDetected: true, templateLoopDetected: true};
+        }
+
+        return {loopDetected: false};
     }
 }

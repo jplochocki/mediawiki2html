@@ -53,7 +53,7 @@ class MWParser {
 
 
     parse(text) {
-        let frame = new Frame(this.preprocessor);
+        let frame = new Frame(this);
         return this.internalParse(text, frame);
     }
 
@@ -1323,18 +1323,18 @@ class MWParser {
             let dom = this.preprocessor.preprocessToObj(templateName);
             let errorInResult = false;
             dom = dom.map(d => {
-                if(typeof d == 'string')
-                    return d;
                 d = frame.expand([d], parentTemplateArgs);
 
-                if(/\{\{\{?/.test(d))
+                if(/\{\{\{?/.test(d)) {
                     d = Sanitizer.escapeWikiText(d);
+                    errorInResult = true;
+                }
 
                 if(Sanitizer.isStringArmored(d))
                     errorInResult = true;
 
                 return d;
-            })
+            });
 
             // if {{ }} / {{{ }}} not expanded - return template as text
             if(errorInResult) {
@@ -1353,6 +1353,20 @@ class MWParser {
             else
                 templateName = dom.join('');
         }
+
+        // preprocess and expand template arguments
+        Object.entries({...templateParams}).forEach(([k, v]) => {
+            // preprocess param name
+            let newKey = this.preprocessor.preprocessToObj(k);
+            newKey = frame.expand(newKey, parentTemplateArgs);
+
+            // preprocess param value
+            let newValue = this.preprocessor.preprocessToObj(v);
+            newValue = frame.expand(newValue, parentTemplateArgs)
+
+            delete templateParams[k];
+            templateParams[newKey] = newValue;
+        });
 
         // SUBST - ignored, but processed
         let found = false, subst = false;
@@ -1377,21 +1391,19 @@ class MWParser {
         }
 
         // Parser functions
-        if(!found) {
-            if(templateName.indexOf(':') != -1) {
-                let [, funcName, funcArg1] = /^(.*?):\s*(.*)$/.exec(templateName);
-                if(funcArg1.indexOf('=') != -1) {
-                    let [, argName, argValue] = /^\s*(.*?)\s*=\s*(.*?)\s*$/.exec(funcArg1);
-                    funcArg1 = {[argName]: argValue};
-                }
-                else
-                    funcArg1 = {'0': funcArg1};
+        if(!found && templateName.indexOf(':') != -1) {
+            let [, funcName, funcArg1] = /^(.*?):\s*(.*)$/.exec(templateName);
+            if(funcArg1.indexOf('=') != -1) {
+                let [, argName, argValue] = /^\s*(.*?)\s*=\s*(.*?)\s*$/.exec(funcArg1);
+                funcArg1 = {[argName]: argValue};
+            }
+            else
+                funcArg1 = {'0': funcArg1};
 
-                let result = this.callParserFunction(frame, funcName, {...funcArg1, ...templateParams});
-                if(result !== false) {
-                    out = result;
-                    found = true;
-                }
+            let result = this.callParserFunction(frame, funcName, {...funcArg1, ...templateParams});
+            if(result !== false) {
+                out = result;
+                found = true;
             }
         }
 
@@ -1413,15 +1425,17 @@ class MWParser {
             if(outAsWiki)
                 return Sanitizer.escapeWikiText(tpl);
 
-            if(!frame.loopCheckTitles.includes(templateTitle.getPrefixedText()) && frame.deep <= this.maxTemplateDepth) {
+            const loopDetection = frame.loopDetection(templateTitle.getPrefixedText());
+
+            if(!loopDetection.loopDetected) {
                 const tplRoot = this.preprocessor.preprocessToObj(tpl, /* forInclusion */ true);
 
                 // replace template params
-                let fr = new Frame(this.preprocessor, frame.deep + 1);
+                let fr = new Frame(this, frame);
                 fr.loopCheckTitles.push(templateTitle.getPrefixedText());
                 out += fr.expand(tplRoot, templateParams);
             }
-            else if(frame.deep > this.maxTemplateDepth) {
+            else if(loopDetection.maxDeepDetected) {
                 out += `<span class="error">Template recursion depth limit exceeded (${ this.maxTemplateDepth })</span>`;
             }
             else {
@@ -1445,7 +1459,8 @@ class MWParser {
         if(params.defaultValue != '')
             return params.defaultValue;
 
-        return `{{{${ params.name }|${ params.defaultValue }}}}`;
+        let a = params.defaultValue ? '|' + params.defaultValue : '';
+        return `{{{${ params.name }${ a }}}}`;
     }
 
 

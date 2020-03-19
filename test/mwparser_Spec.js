@@ -844,17 +844,17 @@ describe('test templates usage', function() {
         let parser = new MWParser({
             getTemplate(title) {
                 if(/^template:lorem ipsum$/i.test(title))
-                    return 'Lorem ipsum {{Lorem ipsum}}';
+                    return 'Lorem ipsum {{Lorem ipsum}}.';
                 return false;
             }
         });
 
         let result = parser.parse('{{Lorem ipsum}}');
-        expect(result).toMatch(/^Lorem ipsum <span class="error">Template loop detected: <a/);
-        expect(result).toMatch(/>Template:Lorem ipsum</);
+        expect(result).toEqual('Lorem ipsum Lorem ipsum Lorem ipsum <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem ipsum" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem_ipsum">Template:Lorem ipsum</a></span>...');
     });
 
-    it('template loop detection - scenario 2 (depth limit)', function() {
+    it('template loop detection - scenario 2 (template infinity recursion)', function() {
         let parser = new MWParser({
             getTemplate(title) {
                 const words = 'lorem ipsum dolor sit amet consectetur adipiscing elit'.split(/\s/);
@@ -868,8 +868,8 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{lorem}}');
-        expect(result).toMatch(/^(A ){41}/);
-        expect(result).toMatch(/Template recursion depth limit exceeded/);
+        expect(result).toEqual('A A A A A A A A <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span>');
 
         parser = new MWParser({
             getTemplate(title) {
@@ -886,12 +886,28 @@ describe('test templates usage', function() {
         });
 
         result = parser.parse('{{lorem}}');
-        expect(result).toMatch(/^(A ){41}/);
-        expect(result).toMatch(/(B\s?){40}$/);
-        expect(result).toMatch(/Template recursion depth limit exceeded/);
+        expect(result).toEqual('A A A A A A A A <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span> B B B B B B B B');
     });
 
-    it('template loop detection - scenario 3 (no recursion schould be detected)', function() {
+    it('template loop detection - scenario 3 (template max deep)', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                let no = /^template:lorem ipsum (\d+)$/i.exec(title);
+                if(no) {
+                    no = parseInt(no[1], 10);
+                    return `${ no } {{Lorem ipsum ${ no + 1 }}}`;
+                }
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{lorem ipsum 1}}');
+        expect(result).toEqual('1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 '
+            + '<span class="error">Template recursion depth limit exceeded (40)</span>');
+    });
+
+    it('template loop detection - scenario 4 (no recursion schould be detected)', function() {
         let parser = new MWParser({
             getTemplate(title) {
                 if(/lorem/i.test(title))
@@ -1003,6 +1019,115 @@ describe('template name expansion', function() {
 
         expect(parser.parserConfig.getTemplate).not.toHaveBeenCalledWith('Template:Lorem ipsum dolor');
         expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem');
+    });
+
+    it('template recursion check (with template name combined)', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(/^template:lorem$/i.test(title))
+                    return '{{Lorem {{{ipsum}}} dolor}}';
+                else if(/^template:lorem ipsum dolor$/i.test(title))
+                    return 'Lorem ipsum dolor {{Lorem|ipsum=ipsum}}.';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=ipsum}}');
+        expect(result).toEqual('Lorem ipsum dolor Lorem ipsum dolor <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span>..');
+    });
+});
+
+
+describe('template arguments expansion', function() {
+    it('parameters in template arguments expansion', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:Lorem')
+                    return 'Lorem / {{Ipsum|param {{{ipsum}}}=param ipsum value|param dolor=param {{{dolor}}} value}}.';
+                else if(title == 'Template:Ipsum')
+                    return 'param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=ipsum|dolor=dolor}}');
+        expect(result).toEqual('Lorem / param ipsum="param ipsum value" / param dolor="param dolor value".');
+    });
+
+    it('templates in template arguments expansion', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:Ipsum template')
+                    return 'ipsum';
+                else if(title == 'Template:Dolor template')
+                    return 'dolor';
+
+                else if(title == 'Template:Lorem')
+                    return 'Lorem / {{Ipsum|param {{ipsum template}}=param ipsum value|param dolor=param {{dolor template}} value}}.';
+                else if(title == 'Template:Ipsum')
+                    return 'param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=should not be used|dolor=should not be used}}');
+        expect(result).toEqual('Lorem / param ipsum="param ipsum value" / param dolor="param dolor value".');
+    });
+
+    it('unknown parameters in template arguments expansion', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:Lorem')
+                    return 'Lorem / {{Ipsum|param {{{ipsum}}}=param ipsum value|param dolor=param {{{dolor}}} value}}.';
+                else if(title == 'Template:Ipsum')
+                    return 'param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem}}');
+        expect(result).toEqual('Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param {{{dolor}}} value".');
+
+        result = parser.parse('{{Ipsum}}');
+        expect(result).toEqual('param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"');
+    });
+
+    it('unknown templates in template arguments expansion', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:Lorem')
+                    return 'Lorem / {{Ipsum|param {{ipsum template}}=param ipsum value|param dolor=param {{dolor template}} value}}.';
+                else if(title == 'Template:Ipsum')
+                    return 'param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=should not be used|dolor=should not be used}}');
+        expect(result).toEqual('Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param <a title="Template:Dolor template (page does not exist)" '
+            + 'href="//en.wikipedia.org/w/index.php?title=Template%3ADolor_template&action=edit&redlink=1" class="new">Template:Dolor template</a> value".');
+    });
+
+    it('templates in template arguments recursion test', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:Ipsum template')
+                    return 'ipsum {{Ipsum template}}';
+                else if(title == 'Template:Dolor template')
+                    return 'dolor {{Dolor template}}';
+
+                else if(title == 'Template:Lorem')
+                    return 'Lorem / {{Ipsum|param {{ipsum template}}=param ipsum value|param dolor=param {{dolor template}} value}}.';
+                else if(title == 'Template:Ipsum')
+                    return 'param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|ipsum=should not be used|dolor=should not be used}}');
+        expect(result).toEqual('Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param dolor dolor dolor <span class="error">'
+            + 'Template loop detected: <a title="Template:Dolor template" href="//en.wikipedia.org/w/index.php?title=Template%3ADolor_template">Template:Dolor template</a></span> value".');
     });
 });
 
