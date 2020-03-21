@@ -402,42 +402,73 @@ class Preprocessor {
      */
     parseTemplateArgument(bits, startIdx, root) {
         // find param end
-        let endIdx = bits.findIndex((bt, idx) => idx > startIdx && (bt == '}}}' || bt == '{{{'));
-        if(endIdx == -1 || bits[endIdx] == '{{{')
+        let endIdx = -1, defaultValueMarkerIdx = -1, defaultValueNextMarker = -1;
+        let templateLevel = 0, templateParamLevel = 0;
+        bits.some((bt, idx) => {
+            if(idx <= startIdx)
+                return false;
+            if(bt == '{{')
+                templateLevel++;
+            else if(bt == '}}')
+                templateLevel--;
+            else if(bt == '{{{')
+                templateParamLevel++;
+            else if(bt == '}}}') {
+                if(templateLevel == 1 && bits[idx + 1] == '}}') { // }}} and }} after, reverse it
+                    bits[idx] = '}}';
+                    bits[idx + 1] = '}}}';
+                    templateLevel--;
+                    if(templateLevel == 0 && templateParamLevel == 0) {
+                        endIdx = idx + 1;
+                        return true;
+                    }
+                }
+
+                if(templateParamLevel > 0)
+                    templateParamLevel--;
+                else {
+                    endIdx = idx;
+                    return true;
+                }
+            }
+            else if(bt == '|' && templateLevel == 0 && templateParamLevel == 0) {
+                if(defaultValueMarkerIdx == -1)
+                    defaultValueMarkerIdx = idx;
+                else if(defaultValueNextMarker == -1)
+                    defaultValueNextMarker = idx;
+            }
+
+            // we have }}}, }}}, but in bits is }}, }}, }}
+            if(bt == '}}' && bits[idx + 1] == '}}' && bits[idx + 2] == '}}' && templateLevel < 0 && templateParamLevel > 0) {
+                bits[idx] = '';
+                bits[idx+1] = '}}}';
+                bits[idx+2] = '}}}'
+                templateLevel = 0;
+            }
+            return false;
+        });
+        if(endIdx == -1)
             return false;
 
-        let paramName = bits.slice(startIdx + 1, endIdx);
-
-        // get default value
-        let defaultValue = '';
-        if(paramName.length > 2 && paramName[1] == '|') {
-            let nextDefValFound = false, templateLevel = 0;
-
-            defaultValue = paramName.slice(2).filter(b => { // reduce to next |, do not drop nested templates
-                if(b == '{{')
-                    templateLevel++;
-                else if(b == '}}')
-                    templateLevel--;
-
-                if(templateLevel <= 0 && b == '|')
-                    nextDefValFound = true;
-
-                return !nextDefValFound;
-            }).join('');
-
-            if(bits[endIdx] == '}}}' && bits[endIdx +1] == '}}') { // have }}} and }} after, for {{{param|{{nested template}}}}}
-                endIdx++;
-                defaultValue += '}}';
-            }
+        // get default value & param name
+        let name = '', defaultValue = '';
+        if(defaultValueMarkerIdx != -1) {
+            if(defaultValueNextMarker != -1)
+                defaultValue = bits.slice(defaultValueMarkerIdx + 1, defaultValueNextMarker).join('');
+            else
+                defaultValue = bits.slice(defaultValueMarkerIdx + 1, endIdx).join('');
+            name = bits.slice(startIdx + 1, defaultValueMarkerIdx).join('').trim();
         }
-        paramName = paramName[0].trim();
-        if(paramName == '')
+        else
+            name = bits.slice(startIdx + 1, endIdx).join('').trim();
+
+        if(name == '')
             return false;
 
         root.push({
             type: 'template-argument',
-            name: paramName,
-            defaultValue: defaultValue
+            name,
+            defaultValue
         });
 
         return endIdx;

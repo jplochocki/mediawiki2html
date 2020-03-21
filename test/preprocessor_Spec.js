@@ -511,8 +511,16 @@ describe('Test Preprocessor.preprocessToObj', function() {
             }
         ]);
     });
+});
 
-    it('template params', function() {
+
+describe('template params', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        this.preprocessor = this.parser.preprocessor;
+    });
+
+    it('basic numbered and named arguments + default values', function() {
         let result = this.preprocessor.preprocessToObj('Lorem {{{1}}} {{{2|lorem ipsum}}} sit amet.');
         expect(result).toEqual([
             'Lorem ', {
@@ -538,6 +546,17 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 defaultValue: 'lorem ipsum'
             }, ' sit amet.'
         ]);
+    });
+
+    it('ignored part of default value', function() {
+        let result = this.preprocessor.preprocessToObj('Lorem {{{1|lorem ipsum|ignored rest of value}}} sit amet.');
+        expect(result).toEqual([
+            'Lorem ', {
+                type: 'template-argument',
+                name: '1',
+                defaultValue: 'lorem ipsum'
+            }, ' sit amet.'
+        ]);
 
         result = this.preprocessor.preprocessToObj('Lorem {{{ipsum|lorem ipsum|ignored rest of value}}} sit amet.');
         expect(result).toEqual([
@@ -547,8 +566,102 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 defaultValue: 'lorem ipsum'
             }, ' sit amet.'
         ]);
+    });
 
-        result = this.preprocessor.preprocessToObj('Lorem {{{ipsum|{{lorem ipsum}}}}} {{{1|{{lorem ipsum}}}}} sit amet.');
+    it('template / template param in template param name', function() {
+        let result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{ipsum}}}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{ipsum}}',
+                defaultValue: ''
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{{ipsum}}}}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{{ipsum}}}',
+                defaultValue: ''
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{ipsum}}|dolor sit amet}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{ipsum}}',
+                defaultValue: 'dolor sit amet'
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{{ipsum}}}|dolor sit amet}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{{ipsum}}}',
+                defaultValue: 'dolor sit amet'
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{ipsum|dolor sit amet}}}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{ipsum|dolor sit amet}}',
+                defaultValue: ''
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{{ipsum|dolor sit amet}}}}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{{ipsum|dolor sit amet}}}',
+                defaultValue: ''
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{ipsum|dolor sit amet}}|dolor sit amet}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{ipsum|dolor sit amet}}',
+                defaultValue: 'dolor sit amet'
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{{ipsum|dolor sit amet}}}|dolor sit amet}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{{ipsum|dolor sit amet}}}',
+                defaultValue: 'dolor sit amet'
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{ipsum|dolor sit amet}}|dolor sit amet|ignored default value}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{ipsum|dolor sit amet}}',
+                defaultValue: 'dolor sit amet'
+            }, ' dolor.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem ipsum {{{Lorem {{{ipsum|dolor sit amet}}}|dolor sit amet|ignored default value}}} dolor.');
+        expect(result).toEqual([
+            'Lorem ipsum ', {
+                type: 'template-argument',
+                name: 'Lorem {{{ipsum|dolor sit amet}}}',
+                defaultValue: 'dolor sit amet'
+            }, ' dolor.'
+        ]);
+    });
+
+    it('template / template param in default value', function() {
+        let result = this.preprocessor.preprocessToObj('Lorem {{{ipsum|{{lorem ipsum}}}}} {{{1|{{lorem ipsum}}}}} sit amet.');
         expect(result).toEqual([
             'Lorem ', {
                 type: 'template-argument',
@@ -558,6 +671,32 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 type: 'template-argument',
                 name: '1',
                 defaultValue: '{{lorem ipsum}}'
+            }, ' sit amet.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem {{{ipsum|{{{lorem ipsum}}}}}} {{{1|{{{lorem ipsum}}}}}} sit amet.');
+        expect(result).toEqual([
+            'Lorem ', {
+                type: 'template-argument',
+                name: 'ipsum',
+                defaultValue: '{{{lorem ipsum}}}'
+            }, ' ', {
+                type: 'template-argument',
+                name: '1',
+                defaultValue: '{{{lorem ipsum}}}'
+            }, ' sit amet.'
+        ]);
+
+        result = this.preprocessor.preprocessToObj('Lorem {{{ipsum|{{{lorem ipsum|default value}}}}}} {{{1|{{{lorem ipsum|default value}}}}}} sit amet.');
+        expect(result).toEqual([
+            'Lorem ', {
+                type: 'template-argument',
+                name: 'ipsum',
+                defaultValue: '{{{lorem ipsum|default value}}}'
+            }, ' ', {
+                type: 'template-argument',
+                name: '1',
+                defaultValue: '{{{lorem ipsum|default value}}}'
             }, ' sit amet.'
         ]);
 
@@ -573,8 +712,10 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 defaultValue: '{{lorem ipsum}}'
             }, ' sit amet.'
         ]);
+    });
 
-        result = this.preprocessor.preprocessToObj('Lorem {{{ipsum {{{1|default value}}} sit amet.');
+    it('invalud template param formats', function() {
+        let result = this.preprocessor.preprocessToObj('Lorem {{{ipsum {{{1|default value}}} sit amet.');
         expect(result).toEqual([
             'Lorem {{{ipsum ', {
                 type: 'template-argument',

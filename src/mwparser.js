@@ -1449,18 +1449,54 @@ class MWParser {
     }
 
 
+    /**
+     * Triple brace replacement - used for template arguments.
+     *
+     * @param Object params
+     * @param Frame frame
+     * @param Object parentTemplateArgs
+     */
     templateArgSubstitution(params, frame, parentTemplateArgs) {
+        // expand param name
+        let {name: paramName, defaultValue} = params;
+
+        paramName = this.preprocessor.preprocessToObj(paramName);
+        let errorInResult = false;
+        paramName = paramName.map(d => {
+            d = frame.expand([d], parentTemplateArgs);
+
+            if(/\{\{\{?/.test(d)) {
+                d = Sanitizer.escapeWikiText(d);
+                errorInResult = true;
+            }
+
+            if(Sanitizer.isStringArmored(d))
+                errorInResult = true;
+
+            return d;
+        });
+
+        paramName = paramName.join('');
+
+        if(errorInResult)
+            return `{{{${ paramName }${ defaultValue != '' ? '|' + defaultValue : '' }}}}`;
+
+        // find paramName in parent template args
         if(parentTemplateArgs) {
-            let argName = Object.keys(parentTemplateArgs).find(name => name == params.name);
+            let argName = Object.keys(parentTemplateArgs).find(name => name == paramName);
             if(argName)
                 return parentTemplateArgs[argName];
         }
 
-        if(params.defaultValue != '')
-            return params.defaultValue;
+        // expand & use default value, if available
+        if(defaultValue != '') {
+            defaultValue = this.preprocessor.preprocessToObj(defaultValue);
+            defaultValue = frame.expand(defaultValue, parentTemplateArgs);
+            return defaultValue;
+        }
 
-        let a = params.defaultValue ? '|' + params.defaultValue : '';
-        return `{{{${ params.name }${ a }}}}`;
+        // else - show unknown param braces
+        return `{{{${ paramName }${ defaultValue != '' ? '|' + defaultValue : '' }}}}`;
     }
 
 

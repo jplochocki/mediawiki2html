@@ -1132,6 +1132,24 @@ describe('template arguments expansion', function() {
 });
 
 
+describe('template params name & dafault value expansion', function() {
+    it('template and template param in template param name expansion', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:Lorem')
+                    return '{{{lorem}}} {{{param {{dolor|param dolor=dolor}}}}} {{{param {{{sit|default lorem}}}}}}.';
+                else if(title == 'Template:Dolor')
+                    return '{{{param dolor}}}';
+                return false;
+            }
+        });
+
+        let result = parser.parse('{{Lorem|lorem=Lorem ipsum|param dolor=dolor|sit=sit amet|param sit amet=sit amet}}');
+        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+    });
+});
+
+
 describe('standard parser functions tests', function() {
     it('#language basic tests', function() {
         let parser = new MWParser();
