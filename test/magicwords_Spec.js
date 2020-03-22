@@ -105,7 +105,7 @@ describe('MagicWords tests', function() {
         expect(result).toEqual('6');
 
         result = par.magicwords.expandMagicVariable('currenttimestamp');
-        expect(result).toEqual('1582394462000');
+        expect(result).toEqual('202002221912');
 
         jasmine.clock().uninstall();
     });

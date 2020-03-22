@@ -307,7 +307,12 @@ class MagicWords {
             case 'currenttimestamp':
             case 'localtimestamp':
             case 'revisiontimestamp':
-                out = String(Date.now()); // i.e. 1582394462000
+                out = now.toLocaleDateString(lang, {year: 'numeric'})
+                    + now.toLocaleDateString(lang, {month: '2-digit'})
+                    + now.toLocaleDateString(lang, {day: '2-digit'})
+                    + now.toLocaleTimeString(lang, {hour: '2-digit', hour12: false})
+                    + now.toLocaleTimeString(lang, {minute: '2-digit'})
+                    + now.toLocaleTimeString(lang, {second: '2-digit'}); //YYYYMMDDHHmmss
                 break;
 
             case 'pagename':

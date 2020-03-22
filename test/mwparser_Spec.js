@@ -1194,4 +1194,32 @@ describe('standard parser functions tests', function() {
         result = parser.parse('{{#tag:b|Lorem ipsum dolor|lorem=sit amet}}'); // unacceptable parameters
         expect(result).toEqual('<b>Lorem ipsum dolor</b>');
     });
+
+    it('PAGENAME (and other page title related MagicVariables in parser function form)', function() {
+        let parser = new MWParser();
+
+        let result = parser.parse('{{PAGENAME: Category:Lorem ipsum}}');
+        expect(result).toEqual('Lorem ipsum');
+
+        result = parser.parse('{{PAGENAMEE: Category:Lorem ipsum}}');
+        expect(result).toEqual('Lorem_ipsum');
+
+        result = parser.parse('{{FULLPAGENAME: Category:Lorem ipsum}}');
+        expect(result).toEqual('Category:Lorem ipsum');
+
+        result = parser.parse('{{FULLPAGENAMEE: Category:Lorem ipsum}}');
+        expect(result).toEqual('Category:Lorem_ipsum');
+
+        result = parser.parse('{{SUBPAGENAME: User:Lorem ipsum/Dolor}}');
+        expect(result).toEqual('Dolor');
+
+        result = parser.parse('{{SUBPAGENAMEE: User:Lorem ipsum/Dolor}}');
+        expect(result).toEqual('Dolor');
+
+        result = parser.parse('{{BASEPAGENAME: User:Lorem ipsum/Dolor}}');
+        expect(result).toEqual('Lorem ipsum');
+
+        result = parser.parse('{{BASEPAGENAMEE: User:Lorem ipsum/Dolor}}');
+        expect(result).toEqual('Lorem_ipsum');
+    });
 });

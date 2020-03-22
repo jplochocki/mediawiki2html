@@ -1557,6 +1557,7 @@ class MWParser {
 
         let out = false;
 
+        // case insensitive names
         switch(funcName.toLowerCase()) {
             case '#language':
                 let {0: code, 1: inLang='en'} = args;
@@ -1576,6 +1577,98 @@ class MWParser {
                 htmlParams = htmlParams.length > 0 ? ' ' + htmlParams : htmlParams;
 
                 out = `<${ tagName }${ htmlParams }>${ content }</${ tagName }>`;
+                break;
+        }
+
+        // case sensitive names
+        let title = null;
+        switch(funcName) {
+            case 'PAGENAME':
+            case 'ROOTPAGENAME':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = Sanitizer.escapeWikiText(title.getText());
+                break;
+
+            case 'PAGENAMEE':
+            case 'ROOTPAGENAMEE':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = Sanitizer.escapeWikiText(title.getPartialURL());
+                break;
+
+            case 'FULLPAGENAME':
+            case 'SUBJECTPAGENAME':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = Sanitizer.escapeWikiText(title.getPrefixedText());
+                break;
+
+            case 'FULLPAGENAMEE':
+            case 'SUBJECTPAGENAME':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = Sanitizer.escapeWikiText(title.getPrefixedText(false, /* forUrl */ true));
+                break;
+
+            case 'SUBPAGENAME':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = Sanitizer.escapeWikiText(title.getSubpageText());
+                break;
+
+            case 'SUBPAGENAMEE':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = encodeURIComponent(Sanitizer.escapeWikiText(title.getSubpageText()));
+                break;
+
+            case 'BASEPAGENAME':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = Sanitizer.escapeWikiText(title.getBaseText());
+                break;
+
+            case 'BASEPAGENAMEE':
+                ({0: title} = args);
+                title = Title.newFromText(title, this.parserConfig);
+                out = '';
+                if(title)
+                    out = encodeURIComponent(Sanitizer.escapeWikiText(title.getBaseText().replace(/ /g, '_')));
+                break;
+
+            case 'PAGESINCATEGORY':
+            case 'PAGESINCAT':
+            case 'NUMBERINGROUP':
+            case 'NUMINGROUP':
+            case 'PAGESINNS':
+            case 'PAGESINNAMESPACE':
+                out = '0';
+                break;
+
+            case 'PROTECTIONLEVEL':
+            case 'PROTECTIONEXPIRY':
+            case 'DISPLAYTITLE':
+            case 'DEFAULTSORT':
+            case 'DEFAULTSORTKEY':
+            case 'DEFAULTCATEGORYSORT':
+            case 'TALKPAGENAME':
+            case 'TALKPAGENAMEE':
+                out = '';
                 break;
         }
 
