@@ -48,7 +48,10 @@ class MWParser {
 
         this.functionTagHooks = {};
 
-        this.maxTemplateDepth = 40;
+        this.showToc = false;
+        this.forceTocPosition = false;
+        this.doubleUnderscores = [];
+        this.noGallery = false;
     }
 
 
@@ -58,42 +61,26 @@ class MWParser {
     }
 
 
-    internalParse(text, frame=false) {
-        // if $frame is provided, then use $frame for replacing any variables
-        if(frame) {
-            // use frame depth to infer how include/noinclude tags should be handled
-            // depth=0 means this is the top-level document; otherwise it's an included document
-            let dom = this.preprocessor.preprocessToObj(text, /* forInclusion */ frame.depth != 0)
-            text = frame.expand(dom);
-        } else {
-            // # if $frame is not provided, then use old-style replaceVariables
-            // $text = $this->replaceVariables( $text );
-        }
-
+    internalParse(text, frame) {
+        let dom = this.preprocessor.preprocessToObj(text, /* forInclusion */ frame.depth != 0)
+        text = frame.expand(dom);
 
         text = Sanitizer.removeHTMLtags(text, this.attributeStripCallback.bind(this),
             [false,],
-            [], // $this->mTransparentTagHooks
+            [],
             []
         );
 
         text = this.handleTables(text);
+        text = text.replace(/(^|\r?\n)-----*/gm, '$1<hr>');
 
-        // $text = preg_replace( '/(^|\n)-----*/', '\\1<hr />', $text );
-
-        // $text = $this->handleDoubleUnderscore( $text );
-
-        // $text = $this->handleHeadings( $text );
+        text = this.handleDoubleUnderscore(text);
+        text = this.handleHeadings(text);
         text = this.handleInternalLinks(text);
         text = this.handleAllQuotes(text);
         text = this.handleExternalLinks(text);
+        text = this.finalizeHeadings(text); // , $origText, $isMain
 
-        // # handleInternalLinks may sometimes leave behind
-        // # absolute URLs, which have to be masked to hide them from handleExternalLinks
-        // $text = str_replace( self::MARKER_PREFIX . 'NOPARSE', '', $text );
-
-        // $text = $this->handleMagicLinks( $text );
-        // $text = $this->finalizeHeadings( $text, $origText, $isMain );
         text = Sanitizer.unarmorHtmlAndLinks(text);
 
         return text;
@@ -1637,7 +1624,7 @@ class MWParser {
                 out += fr.expand(tplRoot, templateParams);
             }
             else if(loopDetection.maxDeepDetected) {
-                out += `<span class="error">Template recursion depth limit exceeded (${ this.maxTemplateDepth })</span>`;
+                out += `<span class="error">Template recursion depth limit exceeded (${ frame.MAX_TEMPLATE_DEPTH })</span>`;
             }
             else {
                 out += Sanitizer.armorHtmlAndLinks('<span class="error">Template loop detected: ' +
@@ -1874,5 +1861,69 @@ class MWParser {
         }
 
         return out;
+    }
+
+
+    /**
+     * Strip double-underscore items like __NOGALLERY__ and __NOTOC__
+     *
+     * @param String text
+     * @return String
+     */
+    handleDoubleUnderscore(text) {
+        // The position of __TOC__ needs to be recorded
+        let mw = this.magicwords.doubleUnderscores.find(mw => mw.id == 'toc');
+        if(mw.synonymsRE.test(text)) {
+            this.showToc = true;
+            this.forceTocPosition = true;
+
+            // Set a placeholder. At the end we'll fill it in with the TOC.
+            let firstOccurrence = true;
+            text = text.replace(mw.synonymsRE, function(a, b, c) {
+                if(firstOccurrence) {
+                    firstOccurrence = false;
+                    return '<!--MWTOC\'"-->';
+                }
+                return ''; // Only keep the first one.
+            });
+        }
+
+        //Now match and remove the rest of them
+        this.doubleUnderscores = [];
+        this.magicwords.doubleUnderscores.forEach(mw => {
+            if(mw.synonymsRE.test(text)) {
+                this.doubleUnderscores.push(mw.id);
+                text = text.replace(mw.synonymsRE, '');
+            }
+        });
+
+        this.noGallery = this.doubleUnderscores.includes('nogallery');
+        if(this.doubleUnderscores.includes('notoc') && !this.forceTocPosition)
+            this.showToc = false;
+
+        // hiddencat, noindex, index - ignored
+        return text;
+    }
+
+
+    /**
+     * Parse headers and return html
+     *
+     * @param String text
+     * @return String
+     */
+    handleHeadings(text) {
+        for(let i = 6; i >= 1; --i) {
+            const h = '='.repeat(i);
+            // Trim non-newline whitespace from headings
+            // Using \s* will break for: "==\n===\n" and parse as <h2>=</h2>
+            text = text.replace(new RegExp(`^(?:${ h })[ \\t]*(.+?)[ \\t]*(?:${ h })\\s*$`, 'gm'), `<h${ i }>$1</h${ i }>`)
+        }
+        return text;
+    }
+
+
+    finalizeHeadings(text) {
+        return text;
     }
 };

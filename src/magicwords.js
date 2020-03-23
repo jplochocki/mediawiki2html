@@ -118,22 +118,27 @@ class MagicWords {
 
         this.variables = [...this.variables, ...this.parser.parserConfig.registerNewMagicVariables()];
 
-        this.doubleUnderscoreIDs = [
-            'notoc',
-            'nogallery',
-            'forcetoc',
-            'toc',
-            'noeditsection',
-            'newsectionlink',
-            'nonewsectionlink',
-            'hiddencat',
-            'expectunusedcategory',
-            'index',
-            'noindex',
-            'staticredirect',
-            'notitleconvert',
-            'nocontentconvert',
-        ];
+        this.doubleUnderscores = [
+            ['notoc', ['__NOTOC__'], false],
+            ['nogallery', ['__NOGALLERY__'], false],
+            ['forcetoc', ['__FORCETOC__'], false],
+            ['toc', ['__TOC__'], false],
+            ['noeditsection', ['__NOEDITSECTION__'], false],
+            ['newsectionlink', ['__NEWSECTIONLINK__'], true],
+            ['nonewsectionlink', ['__NONEWSECTIONLINK__'], true],
+            ['notitleconvert', ['__NOTITLECONVERT__', '__NOTC__'], false],
+            ['nocontentconvert', ['__NOCONTENTCONVERT__', '__NOCC__'], false],
+            ['hiddencat', ['__HIDDENCAT__'], true],
+            ['expectunusedcategory', ['__EXPECTUNUSEDCATEGORY__'], true],
+            ['index', ['__INDEX__'], true],
+            ['noindex', ['__NOINDEX__'], true],
+            ['staticredirect', ['__STATICREDIRECT__'], false],
+        ].map(([id, synonyms, caseSensitive]) => ({
+            id,
+            synonyms,
+            caseSensitive,
+            synonymsRE: new RegExp('(' + synonyms.join('|') + ')', caseSensitive? 'g' : 'gi')
+        }));
 
         this.substIDs = [
             'subst',

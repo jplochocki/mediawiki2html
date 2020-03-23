@@ -1259,3 +1259,85 @@ describe('Parser.doQuotes()', function() {
         expect(result).toEqual('Lorem &#39;&#39;&#39;<b><i>ipsum dolor sit amet.</i></b>');
     });
 });
+
+
+describe('horizontal lines', function() {
+    it('basic tests', function() {
+        let parser = new MWParser();
+
+        let result = parser.parse('lorem ipsum\n------');
+        expect(result).toEqual('lorem ipsum\n<hr>');
+
+        result = parser.parse('lorem ipsum\n---');
+        expect(result).toEqual('lorem ipsum\n---');
+    });
+});
+
+
+describe('Parser.handleDoubleUnderscore()', function() {
+    it('__TOC__ basic tests', function() {
+        let parser = new MWParser();
+        let result = parser.handleDoubleUnderscore('Lorem ipsum __TOC__ dolor __ToC__ sit amet.');
+        expect(result).toEqual('Lorem ipsum <!--MWTOC\'"--> dolor  sit amet.');
+        expect(parser.showToc).toBeTruthy();
+        expect(parser.forceTocPosition).toBeTruthy();
+
+        parser = new MWParser();
+        result = parser.handleDoubleUnderscore('Lorem ipsum __TOC__ dolor __TOC__ sit amet __NOTOC__.');
+        expect(result).toEqual('Lorem ipsum <!--MWTOC\'"--> dolor  sit amet .');
+        expect(parser.showToc).toBeTruthy();
+        expect(parser.forceTocPosition).toBeTruthy();
+
+        parser = new MWParser();
+        result = parser.handleDoubleUnderscore('Lorem ipsum __NOTOC__ dolor sit amet.');
+        expect(result).toEqual('Lorem ipsum  dolor sit amet.');
+        expect(parser.showToc).toBeFalsy();
+        expect(parser.forceTocPosition).toBeFalsy();
+    });
+
+    it('other double underscores basic tests', function() {
+        let parser = new MWParser();
+        parser.magicwords.doubleUnderscores.forEach(mw => {
+            if(mw.id == 'toc')
+                return;
+
+            mw.synonyms.forEach(wrd => {
+                let result = parser.handleDoubleUnderscore('Lorem ipsum ' + wrd + ' dolor sit amet');
+                expect(result).toEqual('Lorem ipsum  dolor sit amet');
+                expect(parser.doubleUnderscores).toContain(mw.id);
+            });
+        });
+
+        // test all together
+        let all = '';
+        parser = new MWParser();
+        parser.magicwords.doubleUnderscores.forEach(mw => {
+            mw.synonyms.forEach(wrd => all += 'Lorem ipsum ' + wrd + ' dolor sit amet. ');
+        });
+        let result = parser.handleDoubleUnderscore(all);
+        parser.magicwords.doubleUnderscores
+            .filter(mw => mw.id != 'toc')
+            .forEach(mw => expect(parser.doubleUnderscores).toContain(mw.id));
+        expect(result).not.toMatch(/__.*?__/gi);
+
+        // __NOGALLERY__
+        parser = new MWParser();
+        result = parser.handleDoubleUnderscore('Lorem ipsum __NOGALLERY__ dolor sit amet');
+        expect(parser.noGallery).toBeTruthy();
+    });
+});
+
+
+describe('Parser.handleHeadings()', function() {
+    it('basic tests', function() {
+        let parser = new MWParser();
+        let result = parser.handleHeadings('===Lorem ipsum===\ndolor sit amet');
+        expect(result).toEqual('<h3>Lorem ipsum</h3>\ndolor sit amet');
+
+        result = parser.handleHeadings('Lorem ==ipsum== dolor sit amet');
+        expect(result).toEqual('Lorem ==ipsum== dolor sit amet');
+
+        result = parser.handleHeadings('Lorem\n======Lorem======\n ipsum dolor sit amet');
+        expect(result).toEqual('Lorem\n<h6>Lorem</h6>\n ipsum dolor sit amet');
+    });
+});
