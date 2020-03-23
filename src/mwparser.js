@@ -85,7 +85,7 @@ class MWParser {
 
         // $text = $this->handleHeadings( $text );
         text = this.handleInternalLinks(text);
-        // $text = $this->handleAllQuotes( $text );
+        text = this.handleAllQuotes(text);
         text = this.handleExternalLinks(text);
 
         // # handleInternalLinks may sometimes leave behind
@@ -1113,9 +1113,210 @@ class MWParser {
     }
 
 
+    /**
+     * Replace single quotes with HTML markup
+     *
+     * @param String text
+     * @return String
+     */
+    handleAllQuotes(text) {
+        return text.split(/\r?\n/).map(t => this.doQuotes(t)).join('\n');
+    }
+
+
+    /**
+     * Helper function for handleAllQuotes
+     *
+     * @param String text
+     * @return String
+     */
     doQuotes(text) {
-        // TODO
-        return text;
+        let bits = text.split(/(''+)/);
+
+        // elimination of some incorrect sequences
+        let numBold = 0, numItalic = 0;
+        bits = bits.map(b => {
+            // treat four apostrophes as ' (one in text) + bold
+            if(b == "''''") { // 4x'
+                numBold++;
+                return ["'", "'''"];
+            }
+            // If there are more than 5 apostrophes in a row, assume they're
+            // all text except for the last 5.
+            else if(/^'{6,}$/.test(b)) {
+                numBold++;
+                numItalic++;
+                return [Sanitizer.escapeWikiText("'".repeat(b.length - 5)), "'''''"];
+            }
+            else if(b == "''") // 2x'
+                numItalic++;
+            else if(b == "'''") // 3x'
+                numBold++;
+            else if(b == "'''''") { // 5x'
+                numBold++;
+                numItalic++;
+            }
+            return b;
+        }).flat();
+
+        // If there is an odd number of both bold and italics, it is likely
+        // that one of the bold ones was meant to be an apostrophe followed
+        // by italics. Which one we cannot know for certain, but it is more
+        // likely to be one that has a single-letter word before it.
+        if((numBold % 2 == 1) && (numItalic % 2 == 1)) {
+            let firstSingleLetterWord = -1, firstMultiLetterWord = -1, firstSpace = -1;
+
+            bits.some((b, i) => {
+                if(b == "'''") { // 3x'
+                    const x1 = b.substr(b.length -1), x2 = b.substr(b.length -2, 1);
+                    if(x1 == ' ') {
+                        if(firstSpace == -1)
+                            firstSpace = i;
+                    }
+                    else if(x2 == ' ') {
+                        firstSingleLetterWord = i;
+                        // if $firstsingleletterword is set, we don't
+                        // look at the other options, so we can bail early.
+                        return true;
+                    }
+                    else if(firstMultiLetterWord == -1)
+                        firstMultiLetterWord = i;
+                }
+            });
+
+            // If there is a single-letter word, use it!
+            if(firstSingleLetterWord != -1) {
+                bits[firstSingleLetterWord] = "''";
+                bits[firstSingleLetterWord - 1] += "'";
+            }
+            else if(firstMultiLetterWord != -1) {
+                // If not, but there's a multi-letter word, use that one.
+                bits[firstMultiLetterWord] = "''";
+                bits[firstMultiLetterWord - 1] += "'";
+            }
+            else if(firstSpace != -1) {
+                // ... otherwise use the first one that has neither.
+                // (notice that it is possible for all three to be -1 if, for example,
+                // there is only one pentuple-apostrophe in the line)
+                bits[firstSpace] = "''";
+                bits[firstSpace - 1] += "'";
+            }
+        }
+
+        // Now let's actually convert our apostrophic mush to HTML!
+        let out = '', buffer = '', state = '';
+        bits.forEach(b => {
+            if(!/^'{2,5}$/.test(b)) {
+                if(state == 'both')
+                    buffer += b;
+                else
+                    out += b;
+            }
+
+            if(b == "''") { // 2x'
+                switch(state) {
+                    case 'i':
+                        out += '</i>';
+                        state = '';
+                        break;
+
+                    case 'bi':
+                        out += '</i>';
+                        state = 'b';
+                        break;
+
+                    case 'ib':
+                        out += '</b></i><b>';
+                        state = 'b';
+                        break;
+
+                    case 'both':
+                        out += '<b><i>' + buffer + '</i>';
+                        state = 'b';
+                        break;
+
+                    default:
+                        out += '<i>';
+                        state += 'i'; // $state can be 'b' or ''
+                        break;
+                }
+            }
+            else if(b == "'''") { // 3x'
+                switch(state) {
+                    case 'b':
+                        out += '</b>';
+                        state = '';
+                        break;
+
+                    case 'bi':
+                        out += '</i></b><i>';
+                        state = 'i';
+                        break;
+                    case 'ib':
+                        out += '</b>';
+                        state = 'i';
+                        break;
+
+                    case 'both':
+                        out += '<i><b>' + buffer + '</b>';
+                        state = 'i';
+                        break;
+
+                    default:
+                        out += '<b>';
+                        state += 'b'; // $state can be 'i' or ''
+                        break;
+                }
+            }
+            else if(b == "'''''") { // 5x'
+                switch(state) {
+                    case 'b':
+                        out += '</b><i>';
+                        state = 'i';
+                        break;
+
+                    case 'i':
+                        out += '</i><b>';
+                        state = 'b';
+                        break;
+
+                    case 'bi':
+                        out += '</i></b>';
+                        state = '';
+                        break;
+
+                    case 'ib':
+                        out += '</b></i>';
+                        state = '';
+                        break;
+
+                    case 'both':
+                        out += '<i><b>' + buffer + '</b></i>';
+                        state = '';
+                        break;
+
+                    default: // $state == ''
+                        buffer = ''
+                        state = 'both';
+                        break;
+                }
+            }
+        });
+
+        // Now close all remaining tags.  Notice that the order is important.
+        if(state == 'b' || state == 'ib')
+            out += '</b>';
+        if(state == 'i' || state == 'bi' || state == 'ib')
+            out += '</i>';
+        if(state == 'bi')
+            out += '</b>';
+
+        // There might be lonely ''''', so make sure we have a buffer
+        if(state == 'both' && buffer != '') {
+            out += '<b><i>' + buffer + '</i></b>';
+        }
+
+        return out;
     }
 
 

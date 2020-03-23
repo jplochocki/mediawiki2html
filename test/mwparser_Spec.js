@@ -1223,3 +1223,39 @@ describe('standard parser functions tests', function() {
         expect(result).toEqual('Lorem_ipsum');
     });
 });
+
+
+describe('Parser.doQuotes()', function() {
+    it('basic tests', function() {
+        let parser = new MWParser();
+
+        let result = parser.doQuotes("Lorem ''ipsum'' dolor '''sit''' amet.");
+        expect(result).toEqual('Lorem <i>ipsum</i> dolor <b>sit</b> amet.');
+
+        result = parser.doQuotes("Lorem ''''ipsum'''' dolor sit amet.");
+        expect(result).toEqual('Lorem \'<b>ipsum\'</b> dolor sit amet.');
+
+        result = parser.doQuotes("Lorem '''''ipsum dolor''''' sit amet.");
+        expect(result).toEqual('Lorem <i><b>ipsum dolor</b></i> sit amet.');
+
+        result = parser.doQuotes("Lorem '''''ipsum'' dolor''' sit amet.");
+        expect(result).toEqual('Lorem <b><i>ipsum</i> dolor</b> sit amet.');
+
+        result = parser.doQuotes("Lorem '''''ipsum''' dolor'' sit amet.");
+        expect(result).toEqual('Lorem <i><b>ipsum</b> dolor</i> sit amet.');
+
+        result = parser.doQuotes("Lorem ''ipsum dolor sit amet.");
+        expect(result).toEqual('Lorem <i>ipsum dolor sit amet.</i>');
+
+        result = parser.doQuotes("Lorem '''ipsum dolor sit amet.");
+        expect(result).toEqual('Lorem <b>ipsum dolor sit amet.</b>');
+
+        result = parser.doQuotes("Lorem '''''ipsum dolor sit amet.");
+        expect(result).toEqual('Lorem <b><i>ipsum dolor sit amet.</i></b>');
+
+        result = parser.doQuotes("Lorem '''''''ipsum dolor sit amet.");
+        expect(result).toEqual('Lorem &#39;&#39;<b><i>ipsum dolor sit amet.</i></b>');
+        result = parser.doQuotes("Lorem ''''''''ipsum dolor sit amet.");
+        expect(result).toEqual('Lorem &#39;&#39;&#39;<b><i>ipsum dolor sit amet.</i></b>');
+    });
+});
