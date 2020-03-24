@@ -1341,3 +1341,12 @@ describe('Parser.handleHeadings()', function() {
         expect(result).toEqual('Lorem\n<h6>Lorem</h6>\n ipsum dolor sit amet');
     });
 });
+
+
+describe('Parser.finalizeHeadings', function() {
+    it('basic tests', function() {
+        let parser = new MWParser();
+        let result = parser.finalizeHeadings('<h3>Lorem</h3> <h1>ipsum</h1> dolor <h2>sit</h2> amet.<h6>aaa</h6>');
+        // TODO
+    });
+});

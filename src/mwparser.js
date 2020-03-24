@@ -52,6 +52,8 @@ class MWParser {
         this.forceTocPosition = false;
         this.doubleUnderscores = [];
         this.noGallery = false;
+
+        this.MAX_TOC_LEVEL = 999;
     }
 
 
@@ -1923,7 +1925,83 @@ class MWParser {
     }
 
 
+    /**
+     * This function accomplishes several tasks:
+     * 1) Auto-number headings if that option is enabled
+     * 2) Add an [edit] link to sections for users who have enabled the option and can edit the page
+     * 3) Add a Table of contents on the top for users who have enabled the option
+     * 4) Auto-anchor headings
+     *
+     * @param String text
+     * @return String
+     */
     finalizeHeadings(text) {
+        let maybeShowEditLink = this.doubleUnderscores.includes('noeditsection'); // Actual presence will depend on post-cache transforms
+
+        // Get all headlines for numbering them and adding funky stuff like [edit]
+        const matches = text.match(/<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi)
+            .map(m => /<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi.exec(m)); // 1: header level, 2: params + >, 3 header text
+
+        // if there are fewer than 4 headlines in the article, do not show TOC
+        // unless it's been explicitly enabled.
+        let enoughToc = this.showToc && ((matches.length >= 4) || this.forceTocPosition);
+
+        // TODO __NEWSECTIONLINK__
+
+        // if the string __FORCETOC__ (not case-sensitive) occurs in the HTML,
+        // override above conditions and always show TOC above first header
+        if(this.doubleUnderscores.includes('forcetoc')) {
+            this.showToc = true;
+            enoughToc = true;
+        }
+
+        let headers = this.normalizeHeadersIndex(matches);
+
+
         return text;
+    }
+
+
+    /**
+     * Normalize headers index (from regex matched Hx)
+     *
+     * @private
+     */
+    normalizeHeadersIndex(headersMatches) {
+        // normalize levels
+        let lastLevel = 0;
+        let headers = headersMatches.map(([, headLevel, headAttrs, headText]) => {
+            headLevel = parseInt(headLevel, 10);
+            if(lastLevel < headLevel)
+                headLevel = lastLevel + 1;
+            if(headLevel > 6)
+                headLevel = 6;
+            lastLevel = headLevel;
+
+            return {
+                level: headLevel,
+                text: headText
+            }
+        });
+
+        // add indexes
+        let lastIndexes = [0, 0, 0, 0, 0, 0];
+        headers = headers.map(hd => {
+            lastIndexes = lastIndexes.map((lc, lidx) => {
+                if(lidx + 1 <= hd.level)
+                    return lc;
+                return 0;
+            });
+
+            lastIndexes[hd.level - 1] += 1
+            hd.index = lastIndexes.reduce((acc, idx) => {
+                if(idx == 0)
+                    return acc;
+                return acc ? acc + '.' + idx : idx;
+            }, '');
+            return hd;
+        });
+
+        return headers;
     }
 };
