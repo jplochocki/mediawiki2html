@@ -50,7 +50,7 @@ class Preprocessor {
         else
             text = this.reduceTemplateForView(text);
 
-        let bits = text.split(/(<|>|\{{1,}|\}{1,}|\||\r?\n={1,6}(?=[^=])|={1,6}\r?\n)/);
+        let bits = text.split(/(<|>|\{{1,}|\}{1,}|\||\r?\n)/);
 
         // reduce matching { and }
         bits = bits.map(bt => {
@@ -72,6 +72,29 @@ class Preprocessor {
 
             return r;
         }).flat();
+
+        // headers using =* - pre parsing
+        bits = bits.map((bt, idx) => {
+
+            let newLineBefore = /\r?\n/.test(bits[idx - 1]) || (idx - 1) < 0;
+            let newLineAfter = /\r?\n/.test(bits[idx + 1]) || (idx + 1) >= bits.length;
+
+            let a = /^(={1,6})([^=]+)\1$/.exec(bt); // full header in one line
+            if(a && newLineBefore && newLineAfter)
+                return ['\n' + a[1], a[2], a[1]  + '\n'];
+
+            a = /^(={1,6})([^=]+)$/.exec(bt); // header begin
+            if(a && newLineBefore) {
+
+                return ['\n' + a[1], a[2]];
+            }
+
+            a = /^([^=]+)(={1,6})$/.exec(bt); // header end
+            if(a && newLineAfter)
+                return [a[1], a[2]  + '\n'];
+
+            return bt;
+        }).flat().filter(Boolean);
 
         function textBit(bit) {
             if(typeof root[root.length -1] == 'string')
@@ -320,9 +343,9 @@ class Preprocessor {
             let templateParamLevel = 0;
 
             bt.some((b, i) => {
-                realIdx++;
                 if(templateLevel == 0 && templateParamLevel == 0 && /^\|$/.test(b)) {
                     foundPartEnd = i;
+                    realIdx++;
                     return true;
                 }
                 else if(b == '{{')
@@ -331,6 +354,7 @@ class Preprocessor {
                     templateLevel--;
                     if(templateLevel < 0) { // end of main template {{
                         foundPartEnd = i;
+                        realIdx++;
                         return true;
                     }
                 }
@@ -338,6 +362,7 @@ class Preprocessor {
                     templateParamLevel++;
                 else if(b == '}}}')
                     templateParamLevel--;
+                realIdx++;
                 return false;
             });
 
@@ -361,6 +386,12 @@ class Preprocessor {
             while(bt[0] != '}}' && bt.length > 0) {
                 if(bt[0] == '|') {
                     bt.shift();
+                    if(bt[0] == '}}' || bt[0] == '|') {
+                        templateParams[positionalParams] = ''; // | just before }} or | - treat as empty param
+                        positionalParams++;
+                        realIdx++;
+                    }
+
                     continue;
                 }
 
@@ -380,7 +411,6 @@ class Preprocessor {
                     templateParams[positionalParams] = a;
                     positionalParams++;
                 }
-
             }
         }
 

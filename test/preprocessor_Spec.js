@@ -149,60 +149,61 @@ describe('Test Preprocessor.preprocessToObj', function() {
     it('headers (==header==)', function() {
         let result = this.preprocessor.preprocessToObj('Lorem ipsum \n==dolor sit amet==\n consectetur \r\n=adipiscing=\r\n elit');
         expect(result).toEqual([
-            'Lorem ipsum ', {
+            'Lorem ipsum \n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'dolor sit amet',
                 level: 2,
                 index: 1
-            }, ' consectetur ', {
+            }, '\n consectetur \r\n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'adipiscing',
                 level: 1,
                 index: 2
-            }, ' elit'
+            }, '\r\n elit'
         ]);
 
         result = this.preprocessor.preprocessToObj('Lorem ipsum \n======dolor sit amet======\n consectetur \r\n=====adipiscing=====\r\n elit');
         expect(result).toEqual([
-            'Lorem ipsum ', {
+            'Lorem ipsum \n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'dolor sit amet',
                 level: 6,
                 index: 1
-            }, ' consectetur ', {
+            }, '\n consectetur \r\n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'adipiscing',
                 level: 5,
                 index: 2
-            }, ' elit'
+            }, '\r\n elit'
         ]);
     });
 
     it('invalid header sytuations', function() {
         let result = this.preprocessor.preprocessToObj('Lorem ipsum \n==dolor sit amet== consectetur \r\n==adipiscing==\r\n elit');
+
         expect(result).toEqual([
-            'Lorem ipsum \n==dolor sit amet== consectetur ', {
+            'Lorem ipsum \n==dolor sit amet== consectetur \r\n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'adipiscing',
                 level: 2,
                 index: 1
-            }, ' elit'
+            }, '\r\n elit'
         ]);
 
         result = this.preprocessor.preprocessToObj('Lorem ipsum \n==dolor sit amet===\n consectetur \n==adipiscing==\n elit');
         expect(result).toEqual([
-            'Lorem ipsum \n==dolor sit amet===\n consectetur ', {
+            'Lorem ipsum \n==dolor sit amet===\n consectetur \n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'adipiscing',
                 level: 2,
                 index: 1
-            }, ' elit'
+            }, '\n elit'
         ]);
     });
 
@@ -215,13 +216,13 @@ describe('Test Preprocessor.preprocessToObj', function() {
     it('headers based on tags', function() {
         let result = this.preprocessor.preprocessToObj('Lorem\n==ipsum==\n dolor sit amet, <h3>consectetur</h3> adipiscing elit.');
         expect(result).toEqual([
-            'Lorem', {
+            'Lorem\n', {
                 type: 'header',
                 headerType: 'equal-signs',
                 title: 'ipsum',
                 level: 2,
                 index: 1
-            }, ' dolor sit amet, ', {
+            }, '\n dolor sit amet, ', {
                 type: 'header',
                 headerType: 'header-tag',
                 title: 'consectetur',
@@ -240,6 +241,63 @@ describe('Test Preprocessor.preprocessToObj', function() {
                 index: 1
             }, ' dolor sit amet.'
         ]);
+    });
+
+    it('headers bug #1 (line before/after)', function() {
+        // BUG: if the header started at the beginning of string,
+        // ended at the end of string, or the headers followed one after
+        // other - they were not parsed
+
+        let result = this.preprocessor.preprocessToObj(`===Lorem ipsum (l3 -> l1)===
+=Lorem ipsum l1=
+==Lorem ipsum l2 A==
+====Lorem ipsum l4====
+=====Lorem ipsum l3=====
+==Lorem ipsum l2 B==
+==Lorem ipsum l2 C==`);
+        expect(result).toEqual([{
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum (l3 -> l1)',
+            level: 3,
+            index: 1
+        }, '\n', {
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum l1',
+            level: 1,
+            index: 2
+        }, '\n', {
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum l2 A',
+            level: 2,
+            index: 3
+        }, '\n', {
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum l4',
+            level: 4,
+            index: 4
+        }, '\n', {
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum l3',
+            level: 5,
+            index: 5
+        }, '\n', {
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum l2 B',
+            level: 2,
+            index: 6
+        }, '\n', {
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Lorem ipsum l2 C',
+            level: 2,
+            index: 7
+        }]);
     });
 
     it('basic template without parameters', function() {
