@@ -53,7 +53,11 @@ class MWParser {
         this.doubleUnderscores = [];
         this.noGallery = false;
 
+
+        // constants
         this.MAX_TOC_LEVEL = 999;
+        this.PARSER_MARKER_PREFIX = '\x7f\'"`PARSER-UNIQ-';
+        this.PARSER_MARKER_SUFFIX = '-QINU-RESRAP`"\'\x7f';
     }
 
 
@@ -1939,8 +1943,8 @@ class MWParser {
         let maybeShowEditLink = this.doubleUnderscores.includes('noeditsection'); // Actual presence will depend on post-cache transforms
 
         // Get all headlines for numbering them and adding funky stuff like [edit]
-        const matches = text.match(/<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi)
-            .map(m => /<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi.exec(m)); // 1: header level, 2: params + >, 3 header text
+        let matches = text.match(/<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi);
+        matches = !matches ? [] : matches.map(m => /<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi.exec(m)); // 1: header level, 2: params + >, 3 header text
 
         // if there are fewer than 4 headlines in the article, do not show TOC
         // unless it's been explicitly enabled.
@@ -1971,6 +1975,8 @@ class MWParser {
         // normalize levels
         let lastLevel = 0;
         let headers = headersMatches.map(([, headLevel, headAttrs, headText]) => {
+            let {headerTitle, headingsIndex} = this.normalizeHeaderTitle(headText) // +normalize title
+
             headLevel = parseInt(headLevel, 10);
             if(lastLevel < headLevel)
                 headLevel = lastLevel + 1;
@@ -1979,8 +1985,9 @@ class MWParser {
             lastLevel = headLevel;
 
             return {
-                level: headLevel,
-                text: headText
+                tocLevel: headLevel,
+                text: headerTitle,
+                //headingsIndex
             }
         });
 
@@ -1988,12 +1995,12 @@ class MWParser {
         let lastIndexes = [0, 0, 0, 0, 0, 0];
         headers = headers.map(hd => {
             lastIndexes = lastIndexes.map((lc, lidx) => {
-                if(lidx + 1 <= hd.level)
+                if(lidx + 1 <= hd.tocLevel)
                     return lc;
                 return 0;
             });
 
-            lastIndexes[hd.level - 1] += 1
+            lastIndexes[hd.tocLevel - 1] += 1
             hd.index = lastIndexes.reduce((acc, idx) => {
                 if(idx == 0)
                     return acc;
@@ -2003,5 +2010,50 @@ class MWParser {
         });
 
         return headers;
+    }
+
+
+    normalizeHeaderTitle(headerTitle) {
+        // get internal index
+        const markerRegex = `${ this.PARSER_MARKER_PREFIX }-h-(\\d+)-${ this.PARSER_MARKER_SUFFIX }`;
+        let headingsIndex = (new RegExp('^' + markerRegex)).exec(headerTitle);
+        if(headingsIndex)
+            headingsIndex = parseInt(headingsIndex[1], 10);
+        else
+            headingsIndex = -1;
+
+        if(headingsIndex >= this.headings.length)
+            headingsIndex = -1;
+
+        headerTitle = headerTitle.replace(new RegExp('^' + markerRegex + '\\s*'), '');
+
+        // Strip out HTML
+        const allowedTags = ['span', 'sup', 'sub', 'bdi', 'i', 'b', 's', 'strike'];
+        headerTitle = headerTitle.replace(/<(\/?)(.+?>)/gi, (a, isEnd, tagName) => {
+            let attrs = '';
+            if(tagName.indexOf(' ') != -1) {
+                attrs = tagName.substr(tagName.indexOf(' ') + 1);
+                tagName = tagName.substr(0, tagName.indexOf(' '));
+            }
+            if(tagName[tagName.length -1] == '>')
+                tagName = tagName.substr(0, tagName.length -1);
+
+            tagName = tagName.toLowerCase();
+
+            if(!allowedTags.includes(tagName))
+                return `<${ isEnd ? '/' : ''}${ tagName }>`;
+
+            if(tagName == 'span' && attrs.length > 7) { // attrs - only <span> with dir=ltr/rtl
+                let b = /dir\s*=\s*['"](rtl|ltr)['"]/gi.exec(attrs);
+                if(b)
+                    return `<span dir="${ b[1] }">`;
+            }
+            return `<${ isEnd ? '/' : ''}${ tagName }>`;
+        });
+
+        return {
+            headerTitle,
+            headingsIndex
+        };
     }
 };

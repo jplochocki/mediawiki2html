@@ -1346,7 +1346,73 @@ describe('Parser.handleHeadings()', function() {
 describe('Parser.finalizeHeadings', function() {
     it('basic tests', function() {
         let parser = new MWParser();
-        let result = parser.finalizeHeadings('<h3>Lorem</h3> <h1>ipsum</h1> dolor <h2>sit</h2> amet.<h6>aaa</h6>');
+
+        let result = parser.parse('<h3>Lorem</h3> <h1>ipsum</h1> dolor <h2>sit</h2> amet.<h6>aaa</h6>');
         // TODO
+    });
+});
+
+
+describe('Parser.normalizeHeadersIndex()', function() {
+    it('basic tests', function() {
+        let parser = new MWParser();
+
+        spyOn(parser, 'normalizeHeadersIndex').and.callThrough();
+        let result = parser.parse(`===Lorem ipsum (l3 -> l1)===
+<h1>Lorem ipsum l1</h1>
+==Lorem ipsum l2 A==
+====Lorem ipsum l4====
+=====Lorem ipsum l3=====
+==Lorem ipsum l2 B==
+==Lorem ipsum l2 C==`);
+
+        expect(parser.normalizeHeadersIndex).toHaveBeenCalled();
+        let result2 = parser.normalizeHeadersIndex.calls.mostRecent().returnValue;
+        expect(result2).toEqual([{
+                tocLevel: 1,
+                text: 'Lorem ipsum (l3 -&gt; l1)',
+                index: 1
+            }, {
+                tocLevel: 1,
+                text: 'Lorem ipsum l1',
+                index: 2
+            }, {
+                tocLevel: 2,
+                text: 'Lorem ipsum l2 A',
+                index: '2.1'
+            }, {
+                tocLevel: 3,
+                text: 'Lorem ipsum l4',
+                index: '2.1.1'
+            }, {
+                tocLevel: 4,
+                text: 'Lorem ipsum l3',
+                index: '2.1.1.1'
+            }, {
+                tocLevel: 2,
+                text: 'Lorem ipsum l2 B',
+                index: '2.2'
+            }, {
+                tocLevel: 2,
+                text: 'Lorem ipsum l2 C',
+                index: '2.3'
+        }]);
+    });
+});
+
+
+describe('Parser.normalizeHeaderTitle()', function() {
+    it('basic tests', function() {
+        let parser = new MWParser();
+        spyOn(parser, 'normalizeHeaderTitle').and.callThrough();
+        let result = parser.parse('==Lorem <span dir="ltr">ipsum</span> <a>dolor</a>.==');
+
+        expect(parser.normalizeHeaderTitle).toHaveBeenCalled();
+        let result2 = parser.normalizeHeaderTitle.calls.mostRecent().returnValue;
+
+        expect(result2).toEqual({
+            headerTitle: 'Lorem <span dir="ltr">ipsum</span> &lt;a&gt;dolor&lt;/a&gt;.',
+            headingsIndex: 0
+        });
     });
 });

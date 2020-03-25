@@ -71,11 +71,12 @@ class Frame {
             // headers
             else if(el.type == 'header') {
                 let [begin, end] = el.headerType == 'header-tag' ? [`<h${ el.level }>`, `</h${ el.level }>`] : ['\n' + '='.repeat(el.level), '='.repeat(el.level) + '\n'];
-                out += `${ begin }${ el.title }${ end }`;
-                this.parser.headings.push({
+                let serial = this.parser.headings.push({
                     title: el.title,
                     level: el.level
-                });
+                }) - 1;
+                serial = `${ this.parser.PARSER_MARKER_PREFIX }-h-${ serial }-${ this.parser.PARSER_MARKER_SUFFIX }`;
+                out += `${ begin }${ serial }${ el.title }${ end }`;
             }
             // template
             else if(el.type == 'template') {
