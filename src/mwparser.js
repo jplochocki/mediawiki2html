@@ -1975,7 +1975,7 @@ class MWParser {
         // normalize levels
         let lastLevel = 0;
         let headers = headersMatches.map(([, headLevel, headAttrs, headText]) => {
-            let {headerTitle, headingsIndex} = this.normalizeHeaderTitle(headText) // +normalize title
+            let {tocHeaderTitle, headingsIndex} = this.normalizeHeaderTitle(headText) // +normalize title
 
             headLevel = parseInt(headLevel, 10);
             if(lastLevel < headLevel)
@@ -1986,7 +1986,7 @@ class MWParser {
 
             return {
                 tocLevel: headLevel,
-                text: headerTitle,
+                text: tocHeaderTitle,
                 //headingsIndex
             }
         });
@@ -2027,9 +2027,9 @@ class MWParser {
 
         headerTitle = headerTitle.replace(new RegExp('^' + markerRegex + '\\s*'), '');
 
-        // Strip out HTML
+        // Strip out HTML form title for TOC
         const allowedTags = ['span', 'sup', 'sub', 'bdi', 'i', 'b', 's', 'strike'];
-        headerTitle = headerTitle.replace(/<(\/?)(.+?>)/gi, (a, isEnd, tagName) => {
+        let tocHeaderTitle = headerTitle.replace(/<(\/?)(.+?>)/gi, (a, isEnd, tagName) => {
             let attrs = '';
             if(tagName.indexOf(' ') != -1) {
                 attrs = tagName.substr(tagName.indexOf(' ') + 1);
@@ -2050,10 +2050,26 @@ class MWParser {
             }
             return `<${ isEnd ? '/' : ''}${ tagName }>`;
         });
+        tocHeaderTitle = tocHeaderTitle.replace(/<span><\/span>/gi, '').trim();
+
+
+        // strip out HTML for edit section hint & anchor
+        let headerHint = headerTitle.replace(/<.*?>/g, '').replace(/[ _]+/g, ' ').trim();
+
+        // Anchor
+        let headerAnchor = Sanitizer.decodeCharReferencesAndNormalize(headerHint);
+        try {
+            const t = Title.newFromText('#' + headerAnchor, this.parserConfig);
+            headerAnchor = t.getFragment();
+        }
+        catch(Error) {}
+        headerAnchor = Sanitizer.escapeId(headerAnchor, 'legacy');
 
         return {
-            headerTitle,
-            headingsIndex
+            tocHeaderTitle,
+            headingsIndex,
+            headerHint,
+            headerAnchor
         };
     }
 };

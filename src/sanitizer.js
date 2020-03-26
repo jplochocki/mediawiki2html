@@ -524,7 +524,7 @@ class Sanitizer {
                 break;
             case 'legacy':
                 // This corresponds to 'noninitial' mode of the old escapeId()
-                id = urlEncodeFragment(id.replace(/ /g, '_'));
+                id = encodeURIComponent(id.replace(/ /g, '_'));
                 id = id.replace(/%3A/g, ':');
                 id = id.replace(/%/g, '.');
                 break;

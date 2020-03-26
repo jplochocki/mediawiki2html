@@ -1411,8 +1411,10 @@ describe('Parser.normalizeHeaderTitle()', function() {
         let result2 = parser.normalizeHeaderTitle.calls.mostRecent().returnValue;
 
         expect(result2).toEqual({
-            headerTitle: 'Lorem <span dir="ltr">ipsum</span> &lt;a&gt;dolor&lt;/a&gt;.',
-            headingsIndex: 0
+            tocHeaderTitle: 'Lorem <span dir="ltr">ipsum</span> &lt;a&gt;dolor&lt;/a&gt;.',
+            headingsIndex: 0,
+            headerHint: 'Lorem ipsum &lt;a&gt;dolor&lt;/a&gt;.',
+	        headerAnchor: 'Lorem_ipsum_.3Ca.3Edolor.3C.2Fa.3E.'
         });
     });
 });
