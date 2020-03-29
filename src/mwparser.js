@@ -1960,6 +1960,7 @@ class MWParser {
         }
 
         let headers = this.normalizeHeadersIndex(matches);
+        let toc = this.generateTOC(headers);
 
 
         return text;
@@ -1972,26 +1973,37 @@ class MWParser {
      * @private
      */
     normalizeHeadersIndex(headersMatches) {
-        // normalize levels
-        let lastLevel = 0;
-        let headers = headersMatches.map(([, headLevel, headAttrs, headText]) => {
-            let {tocHeaderTitle, headingsIndex} = this.normalizeHeaderTitle(headText) // +normalize title
+        // normalize title
+        let headers = [];
+        headersMatches.forEach(([, headLevel, headAttrs, headText]) => {
+            let {tocHeaderTitle, headingsIndex, headerHint, headerAnchor} = this.normalizeHeaderTitle(headText, headers);
 
-            headLevel = parseInt(headLevel, 10);
-            if(lastLevel < headLevel)
-                headLevel = lastLevel + 1;
-            if(headLevel > 6)
-                headLevel = 6;
-            lastLevel = headLevel;
-
-            return {
+            headers.push({
                 tocLevel: headLevel,
                 text: tocHeaderTitle,
-                //headingsIndex
-            }
+                headingsIndex,
+                headerHint,
+                headerAnchor
+            });
         });
 
-        // add indexes
+        // normalize levels
+        let lastLevel = 0;
+        headers = headers.map(hd => {
+            let tocLevel = parseInt(hd.tocLevel, 10);
+            if(lastLevel < tocLevel)
+                tocLevel = lastLevel + 1;
+            if(tocLevel > 6)
+                tocLevel = 6;
+            lastLevel = tocLevel;
+
+            return {
+                ...hd,
+                tocLevel
+            };
+        });
+
+        // // add indexes
         let lastIndexes = [0, 0, 0, 0, 0, 0];
         headers = headers.map(hd => {
             lastIndexes = lastIndexes.map((lc, lidx) => {
@@ -2006,6 +2018,7 @@ class MWParser {
                     return acc;
                 return acc ? acc + '.' + idx : idx;
             }, '');
+
             return hd;
         });
 
@@ -2013,7 +2026,15 @@ class MWParser {
     }
 
 
-    normalizeHeaderTitle(headerTitle) {
+    /**
+     * Normalize header title (+generate links)
+     *
+     * @private
+     * @param String headerTitle
+     * @param Array allHeaders
+     * @return Object
+     */
+    normalizeHeaderTitle(headerTitle, allHeaders) {
         // get internal index
         const markerRegex = `${ this.PARSER_MARKER_PREFIX }-h-(\\d+)-${ this.PARSER_MARKER_SUFFIX }`;
         let headingsIndex = (new RegExp('^' + markerRegex)).exec(headerTitle);
@@ -2065,11 +2086,65 @@ class MWParser {
         catch(Error) {}
         headerAnchor = Sanitizer.escapeId(headerAnchor, 'legacy');
 
+        // Anchor must be unique
+        let newHeaderAnchor = headerAnchor, idx = 1;
+        while(allHeaders.findIndex(hd => hd.headerAnchor == newHeaderAnchor) != -1) {
+            newHeaderAnchor = `${ headerAnchor }_${ idx }`;
+            idx++;
+        }
+
         return {
             tocHeaderTitle,
             headingsIndex,
             headerHint,
-            headerAnchor
+            headerAnchor: newHeaderAnchor
         };
+    }
+
+
+    /**
+     * Generate TOC from headers index
+     *
+     * @private
+     * @param Array allHeaders
+     * @return String
+     */
+    generateTOC(allHeaders) {
+        let out = '';
+
+        let previousLevel = 0;
+        allHeaders.forEach((hd, idx) => {
+            if(hd.tocLevel > previousLevel) // indent
+                out += '<ul>\n'.repeat(hd.tocLevel - previousLevel);
+            else if(hd.tocLevel < previousLevel)
+                out += '</li>\n' + '</ul>\n</li>\n'.repeat(previousLevel - hd.tocLevel);
+            else if(hd.tocLevel == previousLevel)
+                out += '</li>\n';
+
+            previousLevel = hd.tocLevel;
+
+            let cls = `toclevel-${ hd.tocLevel } tocsection-${ idx + 1 }`;
+            out += `\n<li class="${ cls }">
+<a href="#${ hd.headerAnchor }">
+<span class="tocnumber">${ hd.index }</span>
+<span class="toctext">${ hd.text }</span>
+</a>`;
+        });
+
+        if(previousLevel >= 1) {
+            out += '</li>\n' + '</ul>\n</li>\n'.repeat(previousLevel - 1);
+            out += '</ul>';
+        }
+
+        out = `<div id="toc" class="toc">
+<input type="checkbox" role="button" id="toctogglecheckbox" class="toctogglecheckbox" style="display:none">
+<div class="toctitle" dir="ltr" lang="en">
+<h2>Contents</h2>
+<span class="toctogglespan"><label class="toctogglelabel" for="toctogglecheckbox"></label>
+</span></div>
+${ out }
+</div>`;
+
+        return out;
     }
 };

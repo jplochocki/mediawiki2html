@@ -1343,12 +1343,50 @@ describe('Parser.handleHeadings()', function() {
 });
 
 
-describe('Parser.finalizeHeadings', function() {
+describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() {
+    beforeAll(async function() {
+        this.oneHeader = '==Lorem <span dir="ltr">ipsum</span> dolor <a>sit amet</a>.==';
+        this.manyHeaders = `===Lorem ipsum (l3 -> l1)===
+<h1>Lorem ipsum l1</h1>
+==Lorem ipsum l2 A==
+====Lorem ipsum l4====
+=====Lorem ipsum l3=====
+==Lorem ipsum l2 B==
+==Lorem ipsum l2 C==
+=Lorem ipsum l1=`;
+
+        this.oneHeader_resultTOC = await getFixture('toc_oneHeader.html');
+        this.manyHeaders_resultTOC = await getFixture('toc_manyHeaders.html');
+    });
+
     it('basic tests', function() {
         let parser = new MWParser();
 
         let result = parser.parse('<h3>Lorem</h3> <h1>ipsum</h1> dolor <h2>sit</h2> amet.<h6>aaa</h6>');
         // TODO
+    });
+
+    describe('Parser.generateTOC()', function() {
+        beforeEach(function() {
+            this.parser = new MWParser();
+            spyOn(this.parser, 'generateTOC').and.callThrough();
+        });
+
+        it('basic tests', function() {
+            this.parser.parse(this.oneHeader);
+
+            expect(this.parser.generateTOC).toHaveBeenCalled();
+            let result = this.parser.generateTOC.calls.mostRecent().returnValue + '\n';
+            expect(result).toEqual(this.oneHeader_resultTOC);
+        });
+
+        it('many levels test', function() {
+            this.parser.parse(this.manyHeaders);
+
+            expect(this.parser.generateTOC).toHaveBeenCalled();
+            let result = this.parser.generateTOC.calls.mostRecent().returnValue + '\n';
+            expect(result).toBe(this.manyHeaders_resultTOC);
+        });
     });
 });
 
@@ -1371,32 +1409,53 @@ describe('Parser.normalizeHeadersIndex()', function() {
         expect(result2).toEqual([{
                 tocLevel: 1,
                 text: 'Lorem ipsum (l3 -&gt; l1)',
-                index: 1
+                index: 1,
+                headingsIndex: 0,
+                headerHint: 'Lorem ipsum (l3 -&gt; l1)',
+	            headerAnchor: 'Lorem_ipsum_(l3_-.3E_l1)'
             }, {
                 tocLevel: 1,
                 text: 'Lorem ipsum l1',
-                index: 2
+                index: 2,
+                headingsIndex: 1,
+	            headerHint: 'Lorem ipsum l1',
+	            headerAnchor: 'Lorem_ipsum_l1'
             }, {
                 tocLevel: 2,
                 text: 'Lorem ipsum l2 A',
-                index: '2.1'
+                index: '2.1',
+                headingsIndex: 2,
+	            headerHint: 'Lorem ipsum l2 A',
+	            headerAnchor: 'Lorem_ipsum_l2_A'
             }, {
                 tocLevel: 3,
                 text: 'Lorem ipsum l4',
-                index: '2.1.1'
+                index: '2.1.1',
+                headingsIndex: 3,
+	            headerHint: 'Lorem ipsum l4',
+	            headerAnchor: 'Lorem_ipsum_l4'
             }, {
                 tocLevel: 4,
                 text: 'Lorem ipsum l3',
-                index: '2.1.1.1'
+                index: '2.1.1.1',
+                headingsIndex: 4,
+	            headerHint: 'Lorem ipsum l3',
+	            headerAnchor: 'Lorem_ipsum_l3'
             }, {
                 tocLevel: 2,
                 text: 'Lorem ipsum l2 B',
-                index: '2.2'
+                index: '2.2',
+                headingsIndex: 5,
+	            headerHint: 'Lorem ipsum l2 B',
+	            headerAnchor: 'Lorem_ipsum_l2_B'
             }, {
                 tocLevel: 2,
                 text: 'Lorem ipsum l2 C',
-                index: '2.3'
-        }]);
+                index: '2.3',
+                headingsIndex: 6,
+	            headerHint: 'Lorem ipsum l2 C',
+	            headerAnchor: 'Lorem_ipsum_l2_C'
+            }]);
     });
 });
 
