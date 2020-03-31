@@ -55,7 +55,6 @@ class MWParser {
 
 
         // constants
-        this.MAX_TOC_LEVEL = 999;
         this.PARSER_MARKER_PREFIX = '\x7f\'"`PARSER-UNIQ-';
         this.PARSER_MARKER_SUFFIX = '-QINU-RESRAP`"\'\x7f';
     }
@@ -1940,7 +1939,7 @@ class MWParser {
      * @return String
      */
     finalizeHeadings(text) {
-        let maybeShowEditLink = this.doubleUnderscores.includes('noeditsection'); // Actual presence will depend on post-cache transforms
+        let showEditLink = !this.doubleUnderscores.includes('noeditsection');
 
         // Get all headlines for numbering them and adding funky stuff like [edit]
         let matches = text.match(/<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi);
@@ -1960,8 +1959,17 @@ class MWParser {
         }
 
         let headers = this.normalizeHeadersIndex(matches);
+
+        // TOC generation
         let toc = this.generateTOC(headers);
 
+        if(headers.length > 0)
+            enoughToc = false; // show toc only, if it has headers
+
+        if(enoughToc && this.forceTocPosition)
+            text = text.replace('<!--MWTOC\'"-->', toc);
+        else if(enoughToc)
+            text = toc + '\n' + text;
 
         return text;
     }
@@ -2003,7 +2011,7 @@ class MWParser {
             };
         });
 
-        // // add indexes
+        // add indexes
         let lastIndexes = [0, 0, 0, 0, 0, 0];
         headers = headers.map(hd => {
             lastIndexes = lastIndexes.map((lc, lidx) => {
@@ -2027,7 +2035,7 @@ class MWParser {
 
 
     /**
-     * Normalize header title (+generate links)
+     * Normalize header title (+generate links data)
      *
      * @private
      * @param String headerTitle
@@ -2062,7 +2070,7 @@ class MWParser {
             tagName = tagName.toLowerCase();
 
             if(!allowedTags.includes(tagName))
-                return `<${ isEnd ? '/' : ''}${ tagName }>`;
+                return '';
 
             if(tagName == 'span' && attrs.length > 7) { // attrs - only <span> with dir=ltr/rtl
                 let b = /dir\s*=\s*['"](rtl|ltr)['"]/gi.exec(attrs);

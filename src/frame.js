@@ -70,13 +70,16 @@ class Frame {
             }
             // headers
             else if(el.type == 'header') {
+                let title = this.preprocessor.preprocessToObj(el.title); // expand header title
+                title = this.expand(title, parentTemplateArgs);
+
                 let [begin, end] = el.headerType == 'header-tag' ? [`<h${ el.level }>`, `</h${ el.level }>`] : ['\n' + '='.repeat(el.level), '='.repeat(el.level) + '\n'];
                 let serial = this.parser.headings.push({
-                    title: el.title,
+                    title,
                     level: el.level
                 }) - 1;
                 serial = `${ this.parser.PARSER_MARKER_PREFIX }-h-${ serial }-${ this.parser.PARSER_MARKER_SUFFIX }`;
-                out += `${ begin }${ serial }${ el.title }${ end }`;
+                out += `${ begin }${ serial }${ title }${ end }`;
             }
             // template
             else if(el.type == 'template') {

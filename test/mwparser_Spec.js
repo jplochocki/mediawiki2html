@@ -1150,6 +1150,29 @@ describe('template params name & dafault value expansion', function() {
 });
 
 
+describe('headers & templates', function() {
+    it('template expansion in header title', function() {
+        let parser = new MWParser({
+            getTemplate(title) {
+                if(title == 'Template:LoremIpsum') {
+                    return 'Lorem ipsum';
+                }
+                return false;
+            }
+        });
+
+        let result = parser.parse('=={{LoremIpsum}} dolor sit amet 1==\n\n<h1>{{LoremIpsum}} dolor sit amet 2</h1>');
+        expect(parser.headings).toEqual([{
+            title: 'Lorem ipsum dolor sit amet 1',
+            level: 2
+        }, {
+            title: 'Lorem ipsum dolor sit amet 2',
+            level: 1
+        }]);
+    });
+});
+
+
 describe('standard parser functions tests', function() {
     it('#language basic tests', function() {
         let parser = new MWParser();
@@ -1366,6 +1389,10 @@ describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() 
         // TODO
     });
 
+    it('__TOC__ and __FORCETOC__ should work', function() {
+        // TODO
+    });
+
     describe('Parser.generateTOC()', function() {
         beforeEach(function() {
             this.parser = new MWParser();
@@ -1456,6 +1483,33 @@ describe('Parser.normalizeHeadersIndex()', function() {
 	            headerHint: 'Lorem ipsum l2 C',
 	            headerAnchor: 'Lorem_ipsum_l2_C'
             }]);
+
+        result = parser.parse(`===Lorem ipsum (l3 -> l1)===
+<h1>Lorem ipsum l1</h1>
+==Lorem ipsum l2 A==
+====Lorem ipsum l4====
+=====Lorem ipsum l3=====
+==Lorem ipsum l2 B==
+==Lorem ipsum l2 C==
+===Lorem l3===
+====Lorem l4====
+`);
+        result2 = parser.normalizeHeadersIndex.calls.mostRecent().returnValue;
+        const expValues = [
+            [1, 'Lorem ipsum (l3 -&gt; l1)'],
+            [2, 'Lorem ipsum l1'],
+            ['2.1', 'Lorem ipsum l2 A'],
+            ['2.1.1', 'Lorem ipsum l4'],
+            ['2.1.1.1', 'Lorem ipsum l3'],
+            ['2.2', 'Lorem ipsum l2 B'],
+            ['2.3', 'Lorem ipsum l2 C'],
+            ['2.3.1', 'Lorem l3'],
+            ['2.3.1.1', 'Lorem l4']
+        ];
+        result2.forEach((h, idx) => {
+            expect(h.index).toEqual(expValues[idx][0]);
+            expect(h.text).toEqual(expValues[idx][1]);
+        });
     });
 });
 
@@ -1475,5 +1529,73 @@ describe('Parser.normalizeHeaderTitle()', function() {
             headerHint: 'Lorem ipsum &lt;a&gt;dolor&lt;/a&gt;.',
 	        headerAnchor: 'Lorem_ipsum_.3Ca.3Edolor.3C.2Fa.3E.'
         });
+    });
+
+    it('find valid header index & reduce index marker in title', function() {
+        let parser = new MWParser();
+
+        let result = parser.normalizeHeaderTitle(`${ parser.PARSER_MARKER_PREFIX }-h-123-${ parser.PARSER_MARKER_SUFFIX }Lorem ipsum dolor`, []);
+        expect(result.headingsIndex).toEqual(-1);
+        expect(result.tocHeaderTitle).toEqual('Lorem ipsum dolor');
+
+        parser.headings = Array.from({length: 124}, (idx) => 'Lorem ipsum ' + idx);
+        result = parser.normalizeHeaderTitle(`${ parser.PARSER_MARKER_PREFIX }-h-123-${ parser.PARSER_MARKER_SUFFIX }Lorem ipsum dolor`, []);
+        expect(result.headingsIndex).toEqual(123);
+        expect(result.tocHeaderTitle).toEqual('Lorem ipsum dolor');
+    });
+
+    it('valid tags & invalid tags transformation', function() {
+        let parser = new MWParser();
+
+        const validTags = ['span', 'sup', 'sub', 'bdi', 'i', 'b', 's', 'strike'];
+        validTags.forEach(tag => {
+            let result = parser.normalizeHeaderTitle(`<${tag}>Lorem ipsum dolor</${tag}>`, []);
+            expect(result.tocHeaderTitle).toEqual(`<${tag}>Lorem ipsum dolor</${tag}>`);
+            expect(result.headerHint).toEqual('Lorem ipsum dolor');
+            expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor');
+
+            // + reduce parameters
+            result = parser.normalizeHeaderTitle(`<${tag} lorem="ipsum" class="sitAmet">Lorem ipsum dolor</${tag}>`, []);
+            expect(result.tocHeaderTitle).toEqual(`<${tag}>Lorem ipsum dolor</${tag}>`);
+            expect(result.headerHint).toEqual('Lorem ipsum dolor');
+            expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor');
+
+            // many tags
+            result = parser.normalizeHeaderTitle(`<${tag}>Lorem</${tag}> ipsum <${tag}>dolor</${tag}>`, []);
+            expect(result.tocHeaderTitle).toEqual(`<${tag}>Lorem</${tag}> ipsum <${tag}>dolor</${tag}>`);
+            expect(result.headerHint).toEqual('Lorem ipsum dolor');
+            expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor');
+        });
+
+        // span + dir
+        let result = parser.normalizeHeaderTitle(`<span dir="ltr">Lorem</span> ipsum <span class="lorem" dir='rtl' lorem="ipsum">dolor</span>`, []);
+        expect(result).toEqual({
+            tocHeaderTitle: '<span dir="ltr">Lorem</span> ipsum <span dir="rtl">dolor</span>',
+            headingsIndex: -1,
+            headerHint: 'Lorem ipsum dolor',
+            headerAnchor: 'Lorem_ipsum_dolor'
+        });
+
+        // reduce invalid tags - example
+        const invalidTags = ['a', 'div', 'lorem', 'pre'];
+        invalidTags.forEach(tag => {
+            let result = parser.normalizeHeaderTitle(`<${tag}>Lorem ipsum dolor</${tag}>`, []);
+            expect(result.tocHeaderTitle).toEqual(`Lorem ipsum dolor`);
+            expect(result.headerHint).toEqual('Lorem ipsum dolor');
+            expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor');
+
+            // many tags
+            result = parser.normalizeHeaderTitle(`<${tag}>Lorem</${tag}> ipsum <${tag}>dolor</${tag}>`, []);
+            expect(result.tocHeaderTitle).toEqual(`Lorem ipsum dolor`);
+            expect(result.headerHint).toEqual('Lorem ipsum dolor');
+            expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor');
+        });
+    });
+
+    it('anchor must be unique', function() {
+        let parser = new MWParser();
+
+        let result = parser.normalizeHeaderTitle('Lorem ipsum dolor', [{headerAnchor: 'Lorem_ipsum_dolor'}, {headerAnchor: 'Lorem_ipsum_dolor_1'}, {headerAnchor: 'Lorem_ipsum_dolor_2'}]);
+        expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor_3');
     });
 });
