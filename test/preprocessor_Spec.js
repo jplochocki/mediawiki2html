@@ -300,6 +300,26 @@ describe('Test Preprocessor.preprocessToObj', function() {
         }]);
     });
 
+    it('headers bug #2 (template at begin / end)', function() {
+        let result = this.preprocessor.preprocessToObj('=={{LoremIpsum}} dolor sit amet==');
+        expect(result).toEqual([{
+            type: 'header',
+            headerType: 'equal-signs',
+            title: '{{LoremIpsum}} dolor sit amet',
+            level: 2,
+            index: 1
+        }]);
+
+        result = this.preprocessor.preprocessToObj('==Dolor sit amet {{LoremIpsum}}==');
+        expect(result).toEqual([{
+            type: 'header',
+            headerType: 'equal-signs',
+            title: 'Dolor sit amet {{LoremIpsum}}',
+            level: 2,
+            index: 1
+        }]);
+    });
+
     it('basic template without parameters', function() {
         let result = this.preprocessor.preprocessToObj('Lorem {{ipsum}} dolor sit amet.');
         expect(result).toEqual([

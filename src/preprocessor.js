@@ -75,7 +75,6 @@ class Preprocessor {
 
         // headers using =* - pre parsing
         bits = bits.map((bt, idx) => {
-
             let newLineBefore = /\r?\n/.test(bits[idx - 1]) || (idx - 1) < 0;
             let newLineAfter = /\r?\n/.test(bits[idx + 1]) || (idx + 1) >= bits.length;
 
@@ -83,13 +82,11 @@ class Preprocessor {
             if(a && newLineBefore && newLineAfter)
                 return ['\n' + a[1], a[2], a[1]  + '\n'];
 
-            a = /^(={1,6})([^=]+)$/.exec(bt); // header begin
-            if(a && newLineBefore) {
-
+            a = /^(={1,6})([^=]*)$/.exec(bt); // header begin
+            if(a && newLineBefore)
                 return ['\n' + a[1], a[2]];
-            }
 
-            a = /^([^=]+)(={1,6})$/.exec(bt); // header end
+            a = /^([^=]*)(={1,6})$/.exec(bt); // header end
             if(a && newLineAfter)
                 return [a[1], a[2]  + '\n'];
 
