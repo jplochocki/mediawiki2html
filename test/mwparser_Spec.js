@@ -1380,17 +1380,28 @@ describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() 
 
         this.oneHeader_resultTOC = await getFixture('toc_oneHeader.html');
         this.manyHeaders_resultTOC = await getFixture('toc_manyHeaders.html');
-    });
-
-    it('basic tests', function() {
-        let parser = new MWParser();
-
-        let result = parser.parse('<h3>Lorem</h3> <h1>ipsum</h1> dolor <h2>sit</h2> amet.<h6>aaa</h6>');
-        // TODO
+        this.manyHeaders_result = await getFixture('result_manyHeaders.html');
     });
 
     it('__TOC__ and __FORCETOC__ should work', function() {
-        // TODO
+        // not enough headers - no toc
+        let parser = new MWParser();
+        let result = parser.parse(this.oneHeader);
+        expect(result).not.toMatch(/<div id="toc"/);
+
+        // automatic toc at begin
+        parser = new MWParser();
+        result = parser.parse(this.manyHeaders);
+        expect(result).toMatch(/<div id="toc"/);
+
+        // toc / force toc
+        parser = new MWParser();
+        result = parser.parse('__TOC__\n\n' + this.oneHeader);
+        expect(result).toMatch(/<div id="toc"/);
+
+        parser = new MWParser();
+        result = parser.parse('__FORCETOC__\n\n' + this.oneHeader);
+        expect(result).toMatch(/<div id="toc"/);
     });
 
     describe('Parser.generateTOC()', function() {
@@ -1413,6 +1424,27 @@ describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() 
             expect(this.parser.generateTOC).toHaveBeenCalled();
             let result = this.parser.generateTOC.calls.mostRecent().returnValue + '\n';
             expect(result).toBe(this.manyHeaders_resultTOC);
+        });
+
+        it('__NOEDITSECTION__', function() {
+            let result = this.parser.parse(this.manyHeaders + '\n__NOEDITSECTION__');
+            expect(this.parser.generateTOC).toHaveBeenCalled();
+            expect(result).toMatch(/<span class="mw-headline"/gi);
+            expect(result).not.toMatch(/<span class="mw-editsection">/gi);
+        });
+    });
+
+
+    describe('Parser.normalizeHeadersHtml()', function() {
+        beforeEach(function() {
+            this.parser = new MWParser();
+            spyOn(this.parser, 'normalizeHeadersHtml').and.callThrough();
+        });
+
+        it('basic tests', function() {
+            let result = this.parser.parse(this.manyHeaders);
+            expect(this.parser.normalizeHeadersHtml).toHaveBeenCalled();
+            expect(result + '\n').toEqual(this.manyHeaders_result);
         });
     });
 });

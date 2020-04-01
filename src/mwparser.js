@@ -1941,29 +1941,28 @@ class MWParser {
     finalizeHeadings(text) {
         let showEditLink = !this.doubleUnderscores.includes('noeditsection');
 
-        // Get all headlines for numbering them and adding funky stuff like [edit]
+        // get all headlines
         let matches = text.match(/<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi);
         matches = !matches ? [] : matches.map(m => /<H([1-6])(.*?>)([\s\S]*?)<\/H[1-6] *>/gi.exec(m)); // 1: header level, 2: params + >, 3 header text
 
-        // if there are fewer than 4 headlines in the article, do not show TOC
-        // unless it's been explicitly enabled.
-        let enoughToc = this.showToc && ((matches.length >= 4) || this.forceTocPosition);
+        // should toc be showed
+        let enoughToc = this.showToc || matches.length >= 4 || this.forceTocPosition;
 
         // TODO __NEWSECTIONLINK__
 
         // if the string __FORCETOC__ (not case-sensitive) occurs in the HTML,
         // override above conditions and always show TOC above first header
-        if(this.doubleUnderscores.includes('forcetoc')) {
-            this.showToc = true;
+        if(this.doubleUnderscores.includes('forcetoc'))
             enoughToc = true;
-        }
 
+        // normalize headers index & html
         let headers = this.normalizeHeadersIndex(matches);
+        text = this.normalizeHeadersHtml(text, headers, showEditLink);
 
         // TOC generation
         let toc = this.generateTOC(headers);
 
-        if(headers.length > 0)
+        if(headers.length == 0)
             enoughToc = false; // show toc only, if it has headers
 
         if(enoughToc && this.forceTocPosition)
@@ -2031,6 +2030,55 @@ class MWParser {
         });
 
         return headers;
+    }
+
+
+    /**
+     * Normalize headers in wiki text
+     *
+     * @param String text
+     * @param Array allHeaders
+     * @return String
+     */
+    normalizeHeadersHtml(text, allHeaders, showEditLink) {
+        const markerRegex = new RegExp(`^${ this.PARSER_MARKER_PREFIX }-h-(\\d+)-${ this.PARSER_MARKER_SUFFIX }`);
+
+        let bits = text.split(/(<\/?h[1-6](?:.*?>))/gi);
+
+        let inHeader = false, headerText = '';
+        bits = bits.map(bt => {
+            if(/^<h[1-6](?:.*?>)$/i.test(bt)) {
+                inHeader = true;
+                headerText = '';
+            }
+            else if(/^<\/h[1-6](?:.*?>)$/i.test(bt)) {
+                inHeader = false;
+
+                let headIdx = markerRegex.exec(headerText);
+                if(headIdx) {
+                    headerText = headerText.replace(markerRegex, '');
+                    headIdx = parseInt(headIdx[1], 10);
+                    let headerInfo = allHeaders.find(hd => hd.headingsIndex == headIdx);
+                    let {headerHint = headerText, headerAnchor = ''} = headerInfo? headerInfo : {};
+
+                    let out = `\n<span class="mw-headline" id="${ headerAnchor }">${ headerText }</span>`
+
+                    if(showEditLink)
+                        out += `\n<span class="mw-editsection"><span class="mw-editsection-bracket">[</span>
+<a href="${ this.pageTitle.getFullURL({action: 'edit', section: headIdx + 1}) }" title="Edit section: ${ headerHint }">edit</a>
+<span class="mw-editsection-bracket">]</span>`;
+
+                    return `${ out }</span>\n${ bt }`;
+                }
+                return headerText + bt;
+            }
+            else if(inHeader) {
+                headerText += bt;
+                return '';
+            }
+            return bt;
+        });
+        return bits.join('');
     }
 
 
