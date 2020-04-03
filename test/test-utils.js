@@ -215,3 +215,101 @@ const colors = {
     purple: '\033[35m',
     brown: '\033[33m'
 };
+
+
+/**
+ * @class HtmlCompareMatchers
+ *
+ * Jasmine custom matcher to compare HTML codes
+ *
+ * @code
+ *
+ * beforeEach(function() {
+ *      jasmine.addMatchers(HtmlCompareMatchers);
+ * });
+ *
+ */
+let HtmlCompareMatchers = {
+    htmlToBeEqual(util, customEqualityTesters) {
+        return {
+            compare(actual, expected) {
+                let actLst = actual.split(/(<\/?[^>]+>)/);
+                let expLst = expected.split(/(<\/?[^>]+>)/);
+
+                const maxLength = Math.max(actLst.length, expLst.length);
+                let line = 0;
+
+                for(let i = 0; i < maxLength; i++) {
+                    let act = actLst[i] ? actLst[i].trim() : '';
+                    let exp = expLst[i] ? expLst[i].trim() : '';
+
+                    if(act.startsWith('<')) { // tag compare
+                        let [, act_isEnd, act_name, act_attrs] = /^<(\/?)([a-z]+)(\s*.*)>$/i.exec(act);
+                        let [, exp_isEnd, exp_name, exp_attrs] = /^<(\/?)([a-z]+)(\s*.*)>$/i.exec(exp);
+                        act_name = act_name.toLowerCase();
+                        exp_name = exp_name.toLowerCase();
+
+                        if(act_name != exp_name)
+                            return {
+                                pass: false,
+                                message: `Expected tag name "${ exp_name }" to be equal "${ act_name }" (on line ${ line }).`
+                            };
+
+                        if(act_isEnd != exp_isEnd)
+                            return {
+                                pass: false,
+                                message: `Expected both tags "${ exp_name }" to be ${ exp_isEnd == '/'? 'end' : 'start' } tags (on line ${ line }).`
+                            };
+
+                        act_attrs = Sanitizer.decodeTagAttributes(act_attrs);
+                        exp_attrs = Sanitizer.decodeTagAttributes(exp_attrs);
+
+                        let result = null;
+                        Object.entries(exp_attrs).some(([k, v]) => {
+                            if(act_attrs[k] === undefined) {
+                                result = {
+                                    pass: false,
+                                    message: `Expected param "${ k }" in tag '${ act }' (on line ${ line }).`
+                                };
+                                return true;
+                            }
+
+                            if(act_attrs[k] != v) {
+                                result = {
+                                    pass: false,
+                                    message: `Expected param "${ k }" in tag "${ exp_name }" with value "${ v }" but got "${ act_attrs[k] }" (on line ${ line }).`
+                                };
+                                return true;
+                            }
+
+                            delete act_attrs[k];
+                            return false;
+                        });
+
+                        if(result)
+                            return result;
+
+                        if(Object.keys(act_attrs).length > 0)
+                            return {
+                                pass: false,
+                                message: `Unexpected params '${ Sanitizer.safeEncodeTagAttributes(act_attrs) }' in tag '${ act }' (on line ${ line }).`
+                            };
+                    }
+                    else if(act != exp.trim()) // string compare
+                        return {
+                            pass: false,
+                            message: `Expected text "${ exp }" to be equal "${ act }" (on line ${ line })`
+                        };
+
+                    let a = act.match(/\n/g);
+                    line += a? a.length : 0;
+                }
+
+                return {
+                    pass: true,
+                    message: 'expected not equal html strings'
+                };
+            }
+        };
+    }
+};
