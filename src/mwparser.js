@@ -66,7 +66,7 @@ class MWParser {
     }
 
 
-    internalParse(text, frame) {
+    internalParse(text, frame, lineStart=true) {
         let dom = this.preprocessor.preprocessToObj(text, /* forInclusion */ frame.depth != 0)
         text = frame.expand(dom);
 
@@ -84,7 +84,8 @@ class MWParser {
         text = this.handleInternalLinks(text);
         text = this.handleAllQuotes(text);
         text = this.handleExternalLinks(text);
-        text = this.finalizeHeadings(text); // , $origText, $isMain
+        text = this.handleBlockLevels(text, lineStart);
+        text = this.finalizeHeadings(text);
 
         text = Sanitizer.unarmorHtmlAndLinks(text);
 
@@ -1489,11 +1490,13 @@ class MWParser {
      * can be called from an extension tag hook.
      *
      * @param String tagText
-     * @param Frame|Boolean [frame=false]
+     * @param Frame frame
+     * @param Boolean lineStart Whether or not this is at the start of a line
+     * (false = first line is continuation of existing line)
      * @return String
      */
-    recursiveTagParse(tagText, frame=false) {
-        return this.internalParse(tagText, frame);
+    recursiveTagParse(tagText, frame, lineStart) {
+        return this.internalParse(tagText, frame, lineStart);
     }
 
 
@@ -2202,5 +2205,320 @@ ${ out }
 </div>`;
 
         return out;
+    }
+
+
+    /**
+     * Make lists from lines starting with ':', '*', '#', etc.
+     *
+     * @param String text
+     * @param Boolean lineStart Whether or not this is at the start of a line
+     *     (false = first line is continuation of existing line)
+     * @return String
+     */
+    handleBlockLevels(text, lineStart) {
+        // * = ul
+        // # = ol
+        // ; = dt
+        // : = dd
+        let DTopen = false, lastParagraph = '', inPre = false, pendingPTag = false, lastPrefix = '', inBlockElem = false, inBlockquote = false;
+        function _closeParagraph(atTheEnd = false) {
+            let out = '';
+            if(lastParagraph != '') {
+                out = `</${ lastParagraph }>`;
+                if(!atTheEnd)
+                   out += '\n';
+            }
+            inPre = false;
+            lastParagraph = '';
+            return out;
+        }
+
+
+        function _openList(char) {
+            let out = _closeParagraph();
+
+            if(char == '*')
+                return out + '<ul><li>';
+            else if(char == '#')
+                return out + '<ol><li>';
+            else if(char == ':')
+                return out + '<dl><dd>';
+            else if(char == ';') {
+                DTopen = true;
+                return out + '<dl><dt>';
+            }
+            return '<!-- ERR 1 -->';
+        }
+
+
+        function _closeList(char) {
+            if(char == '*')
+                return '</li></ul>\n';
+            else if(char == '#')
+                return '</li></ol>\n';
+            else if(char == ':') {
+                if(DTopen) {
+                    DTopen = false;
+                    return '</dt></dl>\n';
+                } else
+                    return '</dd></dl>\n';
+            }
+            return '<!-- ERR 3 -->';
+        }
+
+
+        function _nextItem(char) {
+            if(char == '*' || char == '#' )
+                return '</li>\n<li>';
+            else if(char == ':' || char == ';' ) {
+                let close = '</dd>\n';
+                if(DTopen)
+                    close = '</dt>\n';
+                if(char == ';') {
+                    DTopen = true;
+                    return close + '<dt>';
+                } else {
+                    DTopen = false;
+                    return close + '<dd>';
+                }
+            }
+            return '<!-- ERR 2 -->';
+        }
+
+
+        /* returns the length of the longest common substring of both arguments, starting at the beginning of both.*/
+        function _getCommon(a, b) {
+            let shorter = Math.min(a.length, b.length), i = 0;
+
+            for(i = 0; i < shorter; ++i) {
+                if(a[i] != b[i])
+                    break;
+            }
+            return i;
+        }
+
+
+        /* Split up a string on ':', ignoring any occurrences inside tags to prevent illegal overlapping */
+        function _findColonNoLinks(text) {
+            let before = '', after = false;
+            let insideTagLevel = 0;
+            const emptyTags = /^<(area|frame|link|base|hr|img|meta|basefont|param|br|input|font|isindex)/i;
+
+            text.split(/(<\/?[^>]+>)/).forEach(tg => {
+                if(tg.startsWith('</'))
+                    insideTagLevel--;
+                else if(tg.startsWith('<') && !emptyTags.test(tg) && !/\/\s*>\s*$/.test(tg))
+                    insideTagLevel++;
+
+                if(after === false && insideTagLevel == 0 && tg.indexOf(':') != -1) {
+                    before += tg.substr(0, tg.indexOf(':'));
+                    after = tg.substr(tg.indexOf(':') + 1);
+                }
+                else if(after !== false)
+                    after += tg;
+                else
+                    before += tg;
+            });
+
+            if(after === false)
+                after = '';
+            return {before, after};
+        }
+
+
+        let lines = text.split(/\r?\n/).map((ln, idx) => {
+            ln = ln.split(/(<\/?(?:table|pre|p|ul|ol|dl|td|th|tr|dt|dd|li)[^>]*?>\s*)/i);
+
+            if(ln.length > 1 && ln[0] != '')
+               ln.unshift('');
+            return ln;
+        }).flat();
+
+        lines = lines.map((line, idx) => {
+            if(!lineStart) {
+                lineStart = true;
+                return line;
+            }
+            const isLastLine = idx == lines.length -1;
+
+            const preCloseMatch = /<\/pre/i.test(line);
+            const preOpenMatch = /<pre/i.test(line);
+
+            let out = '', out1 = line;
+
+            let prefixLength = 0, prefix = '', prefix2 = '';
+            if(!inPre) {
+                prefix = /^([\*#:;]+)/.exec(line);
+                prefix = prefix? prefix[1] : '';
+
+                prefix2 = prefix.replace(/;/g, ':') // ; and : are both the same
+                out1 = line.substr(prefix.length);
+                inPre = preOpenMatch;
+            }
+            else {
+                prefix = '';
+                prefix2 = '';
+            }
+
+            // List generation
+            if(prefix.length && lastPrefix == prefix2) {
+                // Same as the last item, so no need to deal with nesting or opening stuff
+                out += _nextItem(prefix.substr(-1));
+                pendingPTag = false;
+
+                if(prefix.substr(-1) == ';' ) {
+                    //  The one nasty exception: definition lists work like this:
+                    //  ; title : definition text
+                    //  So we check for : in the remainder text to split up the
+                    //  title and definition, without b0rking links.
+                    let {before, after} = _findColonNoLinks(out1);
+                    if(after != '') {
+                        out += before.trim() + _nextItem(':');
+                        out1 = after;
+                    }
+                }
+            }
+            else if(prefix.length || lastPrefix.length) {
+                // We need to open or close prefixes, or both.
+
+                // Either open or close a level...
+                let commonPrefixLength = _getCommon(prefix, lastPrefix);
+                pendingPTag = false;
+
+                // Close all the prefixes which aren't shared.
+                let lastPrefixLength = lastPrefix.length;
+                while(commonPrefixLength < lastPrefixLength) {
+                    out += _closeList(lastPrefix[lastPrefixLength - 1]);
+                    --lastPrefixLength;
+                }
+
+                // Continue the current prefix if appropriate.
+                if(prefix.length <= commonPrefixLength && commonPrefixLength > 0)
+                    out += _nextItem(prefix[commonPrefixLength - 1]);
+
+
+                // Close an open <dt> if we have a <dd> (":") starting on this line
+                if(DTopen && commonPrefixLength > 0 && prefix[commonPrefixLength - 1] == ':')
+                    out += _nextItem(':');
+
+                // Open prefixes where appropriate.
+                if(lastPrefix && prefix.length > commonPrefixLength)
+                    out += '\n';
+
+                while(prefix.length > commonPrefixLength) {
+                    let char = prefix[commonPrefixLength];
+                    out += _openList(char);
+
+                    if(char == ';') {
+                        let {before, after} = _findColonNoLinks(out1);
+                        if(after != '') {
+                            out += before.trim() + _nextItem(':');
+                            out1 = after;
+                        }
+                    }
+                    ++commonPrefixLength;
+                }
+                if(!prefix.length && lastPrefix)
+                    out += '\n';
+
+                lastPrefix = prefix2;
+            }
+
+            // If we have no prefixes, go to paragraph mode
+            if(!prefix.length) {
+                let openMatch = /<((table|h1|h2|h3|h4|h5|h6|pre|p|ul|ol|dl)|\/(td|th)|\/?(tr|dt|dd|li))\b/i.test(out1);
+                let closeMatch = /<(\/(table|h1|h2|h3|h4|h5|h6|pre|p|ul|ol|dl)|(td|th)|\/?(center|blockquote|div|hr|mw:))\b/i.test(out1);
+
+                // Any match closes the paragraph, but only when `!closeMatch` do we enter block mode.
+                if(openMatch || closeMatch) {
+                    pendingPTag = false;
+                    // Only close the paragraph if we're not inside a <pre> tag, or if
+                    // that <pre> tag has just been opened
+                    if(!inPre || preOpenMatch)
+                        out += _closeParagraph();
+
+                    if(preOpenMatch && !preCloseMatch)
+                        inPre = true;
+
+                    // $bqOffset = 0;
+                    // while ( preg_match( '/<(\\/?)blockquote[\s>]/i', $t,
+                    //  $bqMatch, PREG_OFFSET_CAPTURE, $bqOffset )
+                    // ) {
+                    //  $inBlockquote = !$bqMatch[1][0]; // is this a close tag?
+                    //  $bqOffset = $bqMatch[0][1] + strlen( $bqMatch[0][0] );
+                    // }
+                    inBlockElem = !closeMatch;
+                }
+                else if(!inBlockElem && !inPre) {
+                    if(/^ /.test(out1) && (lastParagraph === 'pre' || out1.trim() != '') && !inBlockquote) {
+                        // pre
+                        if(lastParagraph != 'pre') {
+                            pendingPTag = false;
+                            out += _closeParagraph() + '<pre>';
+                            lastParagraph = 'pre';
+                        }
+                        out = out.substr(1);
+                    } else if(/^(<style\b[^>]*>.*?<\/style>\s*|<link\b[^>]*>\s*)+$/i.test(out1)) {
+                        //  <style> or <link> by itself on a line shouldn't open or close paragraphs. But it should clear pendingPTag.
+                        if(pendingPTag) {
+                            out += _closeParagraph();
+                            pendingPTag = false;
+                        }
+                    } else {
+                        // paragraph
+                        if(out1.trim() == '') {
+                            if(pendingPTag) {
+                                out += pendingPTag + '<br />';
+                                pendingPTag = false;
+                                lastParagraph = 'p';
+                            } else if(lastParagraph != 'p') {
+                                out += _closeParagraph();
+                                pendingPTag = '<p>';
+                            } else
+                                pendingPTag = '</p><p>';
+                        } else if(pendingPTag) {
+                            out += pendingPTag;
+                            pendingPTag = false;
+                            lastParagraph = 'p';
+                        } else if(lastParagraph != 'p') {
+                            out += _closeParagraph() + '<p>';
+                            lastParagraph = 'p';
+                        }
+                    }
+                }
+            }
+
+            // somewhere above we forget to get out of pre block (T2785)
+            if(preCloseMatch && inPre)
+                inPre = false;
+
+            if(pendingPTag === false) {
+                if(prefix.length == 0) {
+                    out += out1;
+                    // Add a newline if there's an open paragraph
+                    // or we've yet to reach the last line.
+                    if(!isLastLine || lastParagraph !== '')
+                       out += '\n';
+
+                } else
+                    out += out1.trim();
+            }
+
+            return out;
+        });
+
+        text = lines.join('');
+        let lastPrefixLength = lastPrefix.length;
+        while(lastPrefixLength) {
+            text += _closeList(lastPrefix[lastPrefixLength - 1]);
+            --lastPrefixLength;
+            if(!lastPrefixLength && lastParagraph !== '')
+                text += '\n';
+        }
+
+        text += _closeParagraph(true);
+
+        return text;
     }
 };

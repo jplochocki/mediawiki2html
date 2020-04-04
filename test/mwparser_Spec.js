@@ -668,18 +668,26 @@ describe('Test MWParser.maybeMakeExternalImage', function() {
 
 
 describe('Test tag extensions', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('Basic tests', function() {
         this.parser = new MWParser();
         this.parser.setFunctionTagHook('lorem-ipsum', (inner, attrs, parser, frame) => {
-            return 'Lorem ipsum ' + parser.recursiveTagParse(inner, frame) + ', consectetur adipiscing elit.';
+            return 'Lorem ipsum ' + parser.recursiveTagParse(inner, frame, false) + ', consectetur adipiscing elit.';
         });
         let result = this.parser.parse('<lorem-ipsum>dolor sit amet</lorem-ipsum>');
-        expect(result).toEqual('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>');
     });
 });
 
 
 describe('test templates usage', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('basic template usage', function() {
         let parser = new MWParser({
             getTemplate(title) {
@@ -690,10 +698,10 @@ describe('test templates usage', function() {
             }
         });
         let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}}');
-        expect(result).toEqual('Lorem ipsum: template: Lorem ipsum --dolor sit amet--.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum: template: Lorem ipsum --dolor sit amet--.</p>');
 
         result = parser.parse('Lorem ipsum: {{loremIpsum}}');
-        expect(result).toEqual('Lorem ipsum: template: Lorem ipsum --consectetur adipiscing elit--.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum: template: Lorem ipsum --consectetur adipiscing elit--.</p>');
     });
 
     it('not existing template', function() {
@@ -704,9 +712,10 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('Lorem ipsum: {{loremIpsum|dolor=dolor sit amet}} consectetur [[adipiscing elit]]');
-        expect(result).toEqual('Lorem ipsum: <a title="Template:LoremIpsum (page does not exist)" '
+
+        expect(result).htmlToBeEqual('<p>Lorem ipsum: <a title="Template:LoremIpsum (page does not exist)" '
             + 'href="//en.wikipedia.org/w/index.php?title=Template%3ALoremIpsum&action=edit&redlink=1" class="new">Template:LoremIpsum</a> '
-            + 'consectetur <a title="Adipiscing elit" href="//en.wikipedia.org/w/index.php?title=Adipiscing_elit">adipiscing elit</a>');
+            + 'consectetur <a title="Adipiscing elit" href="//en.wikipedia.org/w/index.php?title=Adipiscing_elit">adipiscing elit</a></p>');
     });
 
     it('namespace matching in template title', function() {
@@ -744,13 +753,13 @@ describe('test templates usage', function() {
         expect(parser.magicwords.matchSubstAtStart).toHaveBeenCalledWith('Subst:Lorem ipsum');
         expect(parser.magicwords.matchSubstAtStart.calls.mostRecent().returnValue).toEqual({subst: 'subst', text: 'Lorem ipsum'});
         expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem ipsum');
-        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet.</p>');
 
         result = parser.parse('Lorem {{safesubst:Lorem ipsum}} sit amet.');
         expect(parser.magicwords.matchSubstAtStart).toHaveBeenCalledWith('Safesubst:Lorem ipsum');
         expect(parser.magicwords.matchSubstAtStart.calls.mostRecent().returnValue).toEqual({subst: 'safesubst', text: 'Lorem ipsum'});
         expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem ipsum');
-        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet.</p>');
     });
 
     it('msgnw should return wiki text', function() {
@@ -763,7 +772,7 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{msgnw:lorem ipsum}}');
-        expect(result).toEqual('Lorem &#91;&#91;ipsum&#93;&#93; &#123;&#123;dolor&#125;&#125; sit &#60;b&#62;amet&#60;/b&#62;.');
+        expect(result).htmlToBeEqual('<p>Lorem &#91;&#91;ipsum&#93;&#93; &#123;&#123;dolor&#125;&#125; sit &#60;b&#62;amet&#60;/b&#62;.</p>');
     });
 
     it('msg + raw should be ignored', function() {
@@ -781,9 +790,9 @@ describe('test templates usage', function() {
         let resultMSG = parser.parse('{{msg:lorem ipsum}}');
         let resultRAW = parser.parse('{{raw:lorem ipsum}}');
 
-        expect(result).toEqual('Lorem <a title="Ipsum" href="//en.wikipedia.org/w/index.php?title=Ipsum">ipsum</a> dolor sit amet.');
-        expect(result).toEqual(resultMSG);
-        expect(result).toEqual(resultRAW);
+        expect(result).htmlToBeEqual('<p>Lorem <a title="Ipsum" href="//en.wikipedia.org/w/index.php?title=Ipsum">ipsum</a> dolor sit amet.</p>');
+        expect(result).htmlToBeEqual(resultMSG);
+        expect(result).htmlToBeEqual(resultRAW);
     });
 
     it('check variables in {{ }}', function() {
@@ -805,15 +814,17 @@ describe('test templates usage', function() {
                 expect(resultA_id).toEqual(mvar.id);
 
                 let resultA = parser.magicwords.expandMagicVariable(resultA_id);
+                if(resultA)
+                    resultA = '<p>' + resultA + '</p>';
                 let resultB = parser.parse(`{{${mword}}}`);
 
-                expect(resultA).toEqual(resultB);
+                expect(resultA).htmlToBeEqual(resultB);
                 expect(parser.parserConfig.getTemplate).not.toHaveBeenCalled();
 
                 if(last === null)
                     last = resultA;
                 else
-                    expect(last).toEqual(resultB);
+                    expect(last).htmlToBeEqual(resultB);
             });
         });
 
@@ -837,7 +848,7 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{Lorem ipsum}}');
-        expect(result).toEqual('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>');
     });
 
     it('template loop detection - scenario 1 (template infinity recursion)', function() {
@@ -850,8 +861,8 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{Lorem ipsum}}');
-        expect(result).toEqual('Lorem ipsum Lorem ipsum Lorem ipsum <span class="error">Template loop detected: '
-            + '<a title="Template:Lorem ipsum" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem_ipsum">Template:Lorem ipsum</a></span>...');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum Lorem ipsum Lorem ipsum <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem ipsum" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem_ipsum">Template:Lorem ipsum</a></span>...</p>');
     });
 
     it('template loop detection - scenario 2 (template infinity recursion)', function() {
@@ -868,8 +879,8 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{lorem}}');
-        expect(result).toEqual('A A A A A A A A <span class="error">Template loop detected: '
-            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span>');
+        expect(result).htmlToBeEqual('<p>A A A A A A A A <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span></p>');
 
         parser = new MWParser({
             getTemplate(title) {
@@ -886,8 +897,8 @@ describe('test templates usage', function() {
         });
 
         result = parser.parse('{{lorem}}');
-        expect(result).toEqual('A A A A A A A A <span class="error">Template loop detected: '
-            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span> B B B B B B B B');
+        expect(result).htmlToBeEqual('<p>A A A A A A A A <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span> B B B B B B B B</p>');
     });
 
     it('template loop detection - scenario 3 (template max deep)', function() {
@@ -903,8 +914,8 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{lorem ipsum 1}}');
-        expect(result).toEqual('1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 '
-            + '<span class="error">Template recursion depth limit exceeded (40)</span>');
+        expect(result).htmlToBeEqual('<p>1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 '
+            + '<span class="error">Template recursion depth limit exceeded (40)</span></p>');
     });
 
     it('template loop detection - scenario 4 (no recursion schould be detected)', function() {
@@ -925,7 +936,7 @@ describe('test templates usage', function() {
         });
 
         let result = parser.parse('{{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{lorem}} {{ipsum}} {{dolor}} {{sit}} {{amet}}');
-        expect(result).toEqual('lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem dolor ipsum lorem sit dolor ipsum lorem amet sit dolor ipsum lorem');
+        expect(result).htmlToBeEqual('<p>lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem lorem ipsum lorem dolor ipsum lorem sit dolor ipsum lorem amet sit dolor ipsum lorem</p>');
     });
 
     it('parser functions basic tests', function() {
@@ -946,7 +957,7 @@ describe('test templates usage', function() {
         spyOn(parser.parserConfig, 'callParserFunction').and.callThrough();
 
         let result = parser.parse('{{#LoremIpsum: lorem=ipsum|dolor=sit amet}}');
-        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet.</p>');
 
         expect(parser.parserConfig.getTemplate).not.toHaveBeenCalled();
         expect(parser.parserConfig.callParserFunction).toHaveBeenCalledWith('#LoremIpsum', {lorem: 'ipsum', dolor: 'sit amet'});
@@ -955,6 +966,10 @@ describe('test templates usage', function() {
 
 
 describe('template name expansion', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('template in template name basic tests', function() {
         let parser = new MWParser({
             getTemplate(title) {
@@ -967,7 +982,7 @@ describe('template name expansion', function() {
         });
 
         let result = parser.parse('{{Lorem {{ipsum}} dolor}}');
-        expect(result).toEqual('Lorem ipsum dolor');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor</p>');
     });
 
     it('template param should be expanded', function() {
@@ -982,7 +997,7 @@ describe('template name expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=dolor}}');
-        expect(result).toEqual('Lorem ipsum dolor');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor</p>');
     });
 
     it('default values should be used if needed', function() {
@@ -997,7 +1012,7 @@ describe('template name expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=dolor}}');
-        expect(result).toEqual('Lorem ipsum dolor');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor</p>');
     });
 
     it('not expanded template should be linked and escaped', function() {
@@ -1014,8 +1029,8 @@ describe('template name expansion', function() {
         spyOn(parser.parserConfig, 'getTemplate').and.callThrough();
 
         let result = parser.parse('{{Lorem}}');
-        expect(result).toEqual('&#123;&#123;Lorem <a title="Template:Ipsum (page does not exist)" href="//en.wikipedia.org/w/index.php?title=Template%3AIpsum&action=edit&redlink=1"'
-            + ' class="new">Template:Ipsum</a> dolor&#125;&#125;');
+        expect(result).htmlToBeEqual('<p>&#123;&#123;Lorem <a title="Template:Ipsum (page does not exist)" href="//en.wikipedia.org/w/index.php?title=Template%3AIpsum&action=edit&redlink=1"'
+            + ' class="new">Template:Ipsum</a> dolor&#125;&#125;</p>');
 
         expect(parser.parserConfig.getTemplate).not.toHaveBeenCalledWith('Template:Lorem ipsum dolor');
         expect(parser.parserConfig.getTemplate).toHaveBeenCalledWith('Template:Lorem');
@@ -1033,13 +1048,17 @@ describe('template name expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=ipsum}}');
-        expect(result).toEqual('Lorem ipsum dolor Lorem ipsum dolor <span class="error">Template loop detected: '
-            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span>..');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor Lorem ipsum dolor <span class="error">Template loop detected: '
+            + '<a title="Template:Lorem" href="//en.wikipedia.org/w/index.php?title=Template%3ALorem">Template:Lorem</a></span>..</p>');
     });
 });
 
 
 describe('template arguments expansion', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('parameters in template arguments expansion', function() {
         let parser = new MWParser({
             getTemplate(title) {
@@ -1052,7 +1071,7 @@ describe('template arguments expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=ipsum|dolor=dolor}}');
-        expect(result).toEqual('Lorem / param ipsum="param ipsum value" / param dolor="param dolor value".');
+        expect(result).htmlToBeEqual('<p>Lorem / param ipsum="param ipsum value" / param dolor="param dolor value".</p>');
     });
 
     it('templates in template arguments expansion', function() {
@@ -1072,7 +1091,7 @@ describe('template arguments expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=should not be used|dolor=should not be used}}');
-        expect(result).toEqual('Lorem / param ipsum="param ipsum value" / param dolor="param dolor value".');
+        expect(result).htmlToBeEqual('<p>Lorem / param ipsum="param ipsum value" / param dolor="param dolor value".</p>');
     });
 
     it('unknown parameters in template arguments expansion', function() {
@@ -1087,10 +1106,10 @@ describe('template arguments expansion', function() {
         });
 
         let result = parser.parse('{{Lorem}}');
-        expect(result).toEqual('Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param {{{dolor}}} value".');
+        expect(result).htmlToBeEqual('<p>Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param {{{dolor}}} value".</p>');
 
         result = parser.parse('{{Ipsum}}');
-        expect(result).toEqual('param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"');
+        expect(result).htmlToBeEqual('<p>param ipsum="{{{param ipsum}}}" / param dolor="{{{param dolor}}}"</p>');
     });
 
     it('unknown templates in template arguments expansion', function() {
@@ -1105,8 +1124,8 @@ describe('template arguments expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=should not be used|dolor=should not be used}}');
-        expect(result).toEqual('Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param <a title="Template:Dolor template (page does not exist)" '
-            + 'href="//en.wikipedia.org/w/index.php?title=Template%3ADolor_template&action=edit&redlink=1" class="new">Template:Dolor template</a> value".');
+        expect(result).htmlToBeEqual('<p>Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param <a title="Template:Dolor template (page does not exist)" '
+            + 'href="//en.wikipedia.org/w/index.php?title=Template%3ADolor_template&action=edit&redlink=1" class="new">Template:Dolor template</a> value".</p>');
     });
 
     it('templates in template arguments recursion test', function() {
@@ -1126,13 +1145,18 @@ describe('template arguments expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|ipsum=should not be used|dolor=should not be used}}');
-        expect(result).toEqual('Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param dolor dolor dolor <span class="error">'
-            + 'Template loop detected: <a title="Template:Dolor template" href="//en.wikipedia.org/w/index.php?title=Template%3ADolor_template">Template:Dolor template</a></span> value".');
+        expect(result).htmlToBeEqual('<p>Lorem / param ipsum="{{{param ipsum}}}" / param dolor="param dolor dolor dolor <span class="error">'
+            + 'Template loop detected: <a title="Template:Dolor template" href="//en.wikipedia.org/w/index.php?title=Template%3ADolor_template">'
+            + 'Template:Dolor template</a></span> value".</p>');
     });
 });
 
 
 describe('template params name & dafault value expansion', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('template and template param in template param name expansion', function() {
         let parser = new MWParser({
             getTemplate(title) {
@@ -1145,7 +1169,7 @@ describe('template params name & dafault value expansion', function() {
         });
 
         let result = parser.parse('{{Lorem|lorem=Lorem ipsum|param dolor=dolor|sit=sit amet|param sit amet=sit amet}}');
-        expect(result).toEqual('Lorem ipsum dolor sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet.</p>');
     });
 });
 
@@ -1174,76 +1198,80 @@ describe('headers & templates', function() {
 
 
 describe('standard parser functions tests', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('#language basic tests', function() {
         let parser = new MWParser();
 
         let result = parser.parse('{{#language:en}}');
-        expect(result).toEqual('English');
+        expect(result).htmlToBeEqual('<p>English</p>');
 
         result = parser.parse('{{#lAnGuAgE:en}}'); // names are case insensitive
-        expect(result).toEqual('English');
+        expect(result).htmlToBeEqual('<p>English</p>');
 
         result = parser.parse('{{#language:pl}}');
-        expect(result).toEqual('Polish');
+        expect(result).htmlToBeEqual('<p>Polish</p>');
 
         result = parser.parse('{{#language: {{PAGELANGUAGE}}}}');
-        expect(result).toEqual('English');
+        expect(result).htmlToBeEqual('<p>English</p>');
     });
 
     it('#tag basic tests', function() {
         let parser = new MWParser();
 
         let result = parser.parse('{{#tag:b}}'); // no content
-        expect(result).toEqual('<b></b>');
+        expect(result).htmlToBeEqual('<p><b></b></p>');
 
         result = parser.parse('{{#tag:b|}}'); // empty content
-        expect(result).toEqual('<b></b>');
+        expect(result).htmlToBeEqual('<p><b></b></p>');
 
         result = parser.parse('{{#tag:b|Lorem ipsum dolor|sit|amet|lorem}}'); // unnecessary arguments
-        expect(result).toEqual('<b>Lorem ipsum dolor</b>');
+        expect(result).htmlToBeEqual('<p><b>Lorem ipsum dolor</b></p>');
 
         result = parser.parse('{{#tag:b|Lorem ipsum dolor|sit|amet|title=sit amet|lorem}}');
-        expect(result).toEqual('<b title="sit amet">Lorem ipsum dolor</b>');
+        expect(result).htmlToBeEqual('<p><b title="sit amet">Lorem ipsum dolor</b></p>');
 
         result = parser.parse('{{#tag:a}}'); // a should be escaped
-        expect(result).toEqual('&lt;a&gt;&lt;/a&gt;');
+        expect(result).htmlToBeEqual('<p>&lt;a&gt;&lt;/a&gt;</p>');
 
         result = parser.parse('{{#tag:lorem}}'); // unknown tag should be escaped
-        expect(result).toEqual('&lt;lorem&gt;&lt;/lorem&gt;');
+        expect(result).htmlToBeEqual('<p>&lt;lorem&gt;&lt;/lorem&gt;</p>');
 
         result = parser.parse('{{#tag:b|Lorem ipsum dolor|title=sit amet}}'); // content + parameters
-        expect(result).toEqual('<b title="sit amet">Lorem ipsum dolor</b>');
+        expect(result).htmlToBeEqual('<p><b title="sit amet">Lorem ipsum dolor</b></p>');
 
         result = parser.parse('{{#tag:b|Lorem ipsum dolor|lorem=sit amet}}'); // unacceptable parameters
-        expect(result).toEqual('<b>Lorem ipsum dolor</b>');
+        expect(result).htmlToBeEqual('<p><b>Lorem ipsum dolor</b></p>');
     });
 
     it('PAGENAME (and other page title related MagicVariables in parser function form)', function() {
         let parser = new MWParser();
 
         let result = parser.parse('{{PAGENAME: Category:Lorem ipsum}}');
-        expect(result).toEqual('Lorem ipsum');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum</p>');
 
         result = parser.parse('{{PAGENAMEE: Category:Lorem ipsum}}');
-        expect(result).toEqual('Lorem_ipsum');
+        expect(result).htmlToBeEqual('<p>Lorem_ipsum</p>');
 
         result = parser.parse('{{FULLPAGENAME: Category:Lorem ipsum}}');
-        expect(result).toEqual('Category:Lorem ipsum');
+        expect(result).htmlToBeEqual('<p>Category:Lorem ipsum</p>');
 
         result = parser.parse('{{FULLPAGENAMEE: Category:Lorem ipsum}}');
-        expect(result).toEqual('Category:Lorem_ipsum');
+        expect(result).htmlToBeEqual('<p>Category:Lorem_ipsum</p>');
 
         result = parser.parse('{{SUBPAGENAME: User:Lorem ipsum/Dolor}}');
-        expect(result).toEqual('Dolor');
+        expect(result).htmlToBeEqual('<p>Dolor</p>');
 
         result = parser.parse('{{SUBPAGENAMEE: User:Lorem ipsum/Dolor}}');
-        expect(result).toEqual('Dolor');
+        expect(result).htmlToBeEqual('<p>Dolor</p>');
 
         result = parser.parse('{{BASEPAGENAME: User:Lorem ipsum/Dolor}}');
-        expect(result).toEqual('Lorem ipsum');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum</p>');
 
         result = parser.parse('{{BASEPAGENAMEE: User:Lorem ipsum/Dolor}}');
-        expect(result).toEqual('Lorem_ipsum');
+        expect(result).htmlToBeEqual('<p>Lorem_ipsum</p>');
     });
 });
 
@@ -1285,14 +1313,18 @@ describe('Parser.doQuotes()', function() {
 
 
 describe('horizontal lines', function() {
+    beforeAll(function() {
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
     it('basic tests', function() {
         let parser = new MWParser();
 
         let result = parser.parse('lorem ipsum\n------');
-        expect(result).toEqual('lorem ipsum\n<hr>');
+        expect(result).htmlToBeEqual('<p>lorem ipsum</p>\n<hr>');
 
         result = parser.parse('lorem ipsum\n---');
-        expect(result).toEqual('lorem ipsum\n---');
+        expect(result).htmlToBeEqual('<p>lorem ipsum\n---</p>');
     });
 });
 
@@ -1381,6 +1413,8 @@ describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() 
         this.oneHeader_resultTOC = await getFixture('toc_oneHeader.html');
         this.manyHeaders_resultTOC = await getFixture('toc_manyHeaders.html');
         this.manyHeaders_result = await getFixture('result_manyHeaders.html');
+
+        jasmine.addMatchers(HtmlCompareMatchers);
     });
 
     it('__TOC__ and __FORCETOC__ should work', function() {
@@ -1415,7 +1449,7 @@ describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() 
 
             expect(this.parser.generateTOC).toHaveBeenCalled();
             let result = this.parser.generateTOC.calls.mostRecent().returnValue + '\n';
-            expect(result).toEqual(this.oneHeader_resultTOC);
+            expect(result).htmlToBeEqual(this.oneHeader_resultTOC);
         });
 
         it('many levels test', function() {
@@ -1444,7 +1478,7 @@ describe('Parser.finalizeHeadings tests (with ecosystem functions)', function() 
         it('basic tests', function() {
             let result = this.parser.parse(this.manyHeaders);
             expect(this.parser.normalizeHeadersHtml).toHaveBeenCalled();
-            expect(result + '\n').toEqual(this.manyHeaders_result);
+            expect(result).htmlToBeEqual(this.manyHeaders_result);
         });
     });
 });
@@ -1629,5 +1663,84 @@ describe('Parser.normalizeHeaderTitle()', function() {
 
         let result = parser.normalizeHeaderTitle('Lorem ipsum dolor', [{headerAnchor: 'Lorem_ipsum_dolor'}, {headerAnchor: 'Lorem_ipsum_dolor_1'}, {headerAnchor: 'Lorem_ipsum_dolor_2'}]);
         expect(result.headerAnchor).toEqual('Lorem_ipsum_dolor_3');
+    });
+});
+
+
+describe('Parser.handleBlockLevels()', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
+    it('Paragraphs test', function() {
+        let result = this.parser.parse('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>');
+
+        result = this.parser.parse('Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit.</p>');
+
+        result = this.parser.parse('Lorem ipsum dolor sit amet,\n\nconsectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet,</p><p>consectetur adipiscing elit.</p>');
+
+        result = this.parser.parse('Lorem ipsum dolor sit amet,\n\n\nconsectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet,</p><p><br />consectetur adipiscing elit.</p>');
+
+        result = this.parser.parse('Lorem ipsum dolor sit amet,\n\n\n\nconsectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet,</p><p><br /></p><p>consectetur adipiscing elit.</p>');
+
+        result = this.parser.parse('Lorem ipsum dolor sit amet,\n\n\n\n\nconsectetur adipiscing elit.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet,</p><p><br /></p><p><br />consectetur adipiscing elit.</p>');
+    });
+
+    it('list tests', function() {
+        let result = this.parser.parse('* Lorem ipsum dolor sit amet\n**Lorem ipsum dolor sit amet L2\n***Lorem ipsum dolor sit amet L3');
+        expect(result).htmlToBeEqual('<ul><li>Lorem ipsum dolor sit amet<ul><li>Lorem ipsum dolor sit amet L2<ul><li>Lorem ipsum dolor sit amet L3</li></ul></li></ul></li></ul>');
+
+        result = this.parser.parse('# Lorem ipsum dolor sit amet\n##Lorem ipsum dolor sit amet L2\n###Lorem ipsum dolor sit amet L3');
+        expect(result).htmlToBeEqual('<ol><li>Lorem ipsum dolor sit amet<ol><li>Lorem ipsum dolor sit amet L2<ol><li>Lorem ipsum dolor sit amet L3</li></ol></li></ol></li></ol>');
+
+        result = this.parser.parse('# Lorem ipsum dolor sit amet\n**Lorem ipsum dolor sit amet L2\n***Lorem ipsum dolor sit amet L3');
+        expect(result).htmlToBeEqual('<ol><li>Lorem ipsum dolor sit amet</li></ol><ul><li><ul><li>Lorem ipsum dolor sit amet L2<ul><li>Lorem ipsum dolor sit amet L3'
+            + '</li></ul></li></ul></li></ul>');
+
+        result = this.parser.parse('# Lorem ipsum dolor sit amet\n##Lorem ipsum dolor sit amet L2\n***Lorem ipsum dolor sit amet L3');
+        expect(result).htmlToBeEqual('<ol><li>Lorem ipsum dolor sit amet<ol><li>Lorem ipsum dolor sit amet L2</li></ol></li></ol><ul><li><ul><li><ul><li>'
+            + 'Lorem ipsum dolor sit amet L3</li></ul></li></ul></li></ul>');
+
+        result = this.parser.parse('# Lorem ipsum dolor sit amet\n##Lorem ipsum dolor sit amet L2\n###Lorem ipsum dolor sit amet L3');
+        expect(result).htmlToBeEqual('<ol><li>Lorem ipsum dolor sit amet<ol><li>Lorem ipsum dolor sit amet L2<ol><li>Lorem ipsum dolor sit amet L3</li></ol></li></ol></li></ol>');
+    });
+
+    it('lists and paragraphs', function() {
+        // TODO
+    });
+
+    it('pre sections', function() {
+        // TODO
+    });
+
+    it('definition list tests', function() {
+        let result = this.parser.parse(';Lorem ipsum:dolor sit amet');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem ipsum</dt><dd>dolor sit amet</dd></dl>');
+
+        result = this.parser.parse(';Lorem <div>ipsum:dolor sit amet');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem <div>ipsum:dolor sit amet</div></dt></dl>');
+
+        result = this.parser.parse(';Lorem <div>:ipsum</div>:dolor sit amet');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem <div>:ipsum</div></dt><dd>dolor sit amet</dd></dl>');
+
+        result = this.parser.parse(';Lorem <div>:ipsum</div><br>:dolor sit amet');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem <div>:ipsum</div><br></dt><dd>dolor sit amet</dd></dl>');
+
+        result = this.parser.parse(';Lorem <div>:ipsum</div><br />:dolor sit amet');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem <div>:ipsum</div><br></dt><dd>dolor sit amet</dd></dl>');
+
+        result = this.parser.parse(';Lorem :ipsum :dolor sit amet');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem</dt><dd>ipsum :dolor sit amet</dd></dl>');
+
+        result = this.parser.parse(';Lorem ipsum 1:dolor sit amet 1\n;Lorem ipsum 2:dolor sit amet 2\n;Lorem ipsum 3:dolor sit amet 3');
+        expect(result).htmlToBeEqual('<dl><dt>Lorem ipsum 1</dt><dd>dolor sit amet 1</dd><dt>Lorem ipsum 2</dt><dd>dolor sit amet 2</dd>'
+            + '<dt>Lorem ipsum 3</dt><dd>dolor sit amet 3</dd></dl>');
     });
 });
