@@ -124,7 +124,7 @@ class MWParser {
         let indent_level = 0; // table indent level
 
         text.split(/\r?\n/).forEach(line => {
-            line = line.trim();
+            //line = line.trim();
 
             // add empty lines
             if(line == '') {
@@ -2328,7 +2328,7 @@ ${ out }
 
 
         let lines = text.split(/\r?\n/).map((ln, idx) => {
-            ln = ln.split(/(<\/?(?:table|pre|p|ul|ol|dl|td|th|tr|dt|dd|li)[^>]*?>\s*)/i);
+            ln = ln.split(/(<\/?(?:table|pre|p|ul|ol|dl|td|th|tr|dt|dd|li|blockquote)[^>]*?>\s*)/i);
 
             if(ln.length > 1 && ln[0] != '')
                ln.unshift('');
@@ -2391,6 +2391,9 @@ ${ out }
                 while(commonPrefixLength < lastPrefixLength) {
                     out += _closeList(lastPrefix[lastPrefixLength - 1]);
                     --lastPrefixLength;
+
+                    if(lastPrefixLength > 1 && lastPrefix[0] == ':')
+                        DTopen = true;
                 }
 
                 // Continue the current prefix if appropriate.
@@ -2441,13 +2444,11 @@ ${ out }
                     if(preOpenMatch && !preCloseMatch)
                         inPre = true;
 
-                    // $bqOffset = 0;
-                    // while ( preg_match( '/<(\\/?)blockquote[\s>]/i', $t,
-                    //  $bqMatch, PREG_OFFSET_CAPTURE, $bqOffset )
-                    // ) {
-                    //  $inBlockquote = !$bqMatch[1][0]; // is this a close tag?
-                    //  $bqOffset = $bqMatch[0][1] + strlen( $bqMatch[0][0] );
-                    // }
+                    let bgReg = /<(\/?)blockquote[\s>]/ig, bqMatch;
+                    while((bqMatch = bgReg.exec(out1))) {
+                        inBlockquote = bqMatch[1] != '/'; // is this a close tag?
+                    }
+
                     inBlockElem = !closeMatch;
                 }
                 else if(!inBlockElem && !inPre) {
@@ -2458,7 +2459,7 @@ ${ out }
                             out += _closeParagraph() + '<pre>';
                             lastParagraph = 'pre';
                         }
-                        out = out.substr(1);
+                        out1 = out1.substr(1);
                     } else if(/^(<style\b[^>]*>.*?<\/style>\s*|<link\b[^>]*>\s*)+$/i.test(out1)) {
                         //  <style> or <link> by itself on a line shouldn't open or close paragraphs. But it should clear pendingPTag.
                         if(pendingPTag) {
@@ -2513,6 +2514,10 @@ ${ out }
         while(lastPrefixLength) {
             text += _closeList(lastPrefix[lastPrefixLength - 1]);
             --lastPrefixLength;
+
+            if(lastPrefixLength > 1 && lastPrefix[0] == ':')
+                DTopen = true;
+
             if(!lastPrefixLength && lastParagraph !== '')
                 text += '\n';
         }

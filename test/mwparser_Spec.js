@@ -1505,49 +1505,49 @@ describe('Parser.normalizeHeadersIndex()', function() {
                 index: 1,
                 headingsIndex: 0,
                 headerHint: 'Lorem ipsum (l3 -&gt; l1)',
-	            headerAnchor: 'Lorem_ipsum_(l3_-.3E_l1)'
+                headerAnchor: 'Lorem_ipsum_(l3_-.3E_l1)'
             }, {
                 tocLevel: 1,
                 text: 'Lorem ipsum l1',
                 index: 2,
                 headingsIndex: 1,
-	            headerHint: 'Lorem ipsum l1',
-	            headerAnchor: 'Lorem_ipsum_l1'
+                headerHint: 'Lorem ipsum l1',
+                headerAnchor: 'Lorem_ipsum_l1'
             }, {
                 tocLevel: 2,
                 text: 'Lorem ipsum l2 A',
                 index: '2.1',
                 headingsIndex: 2,
-	            headerHint: 'Lorem ipsum l2 A',
-	            headerAnchor: 'Lorem_ipsum_l2_A'
+                headerHint: 'Lorem ipsum l2 A',
+                headerAnchor: 'Lorem_ipsum_l2_A'
             }, {
                 tocLevel: 3,
                 text: 'Lorem ipsum l4',
                 index: '2.1.1',
                 headingsIndex: 3,
-	            headerHint: 'Lorem ipsum l4',
-	            headerAnchor: 'Lorem_ipsum_l4'
+                headerHint: 'Lorem ipsum l4',
+                headerAnchor: 'Lorem_ipsum_l4'
             }, {
                 tocLevel: 4,
                 text: 'Lorem ipsum l3',
                 index: '2.1.1.1',
                 headingsIndex: 4,
-	            headerHint: 'Lorem ipsum l3',
-	            headerAnchor: 'Lorem_ipsum_l3'
+                headerHint: 'Lorem ipsum l3',
+                headerAnchor: 'Lorem_ipsum_l3'
             }, {
                 tocLevel: 2,
                 text: 'Lorem ipsum l2 B',
                 index: '2.2',
                 headingsIndex: 5,
-	            headerHint: 'Lorem ipsum l2 B',
-	            headerAnchor: 'Lorem_ipsum_l2_B'
+                headerHint: 'Lorem ipsum l2 B',
+                headerAnchor: 'Lorem_ipsum_l2_B'
             }, {
                 tocLevel: 2,
                 text: 'Lorem ipsum l2 C',
                 index: '2.3',
                 headingsIndex: 6,
-	            headerHint: 'Lorem ipsum l2 C',
-	            headerAnchor: 'Lorem_ipsum_l2_C'
+                headerHint: 'Lorem ipsum l2 C',
+                headerAnchor: 'Lorem_ipsum_l2_C'
             }]);
 
         result = parser.parse(`===Lorem ipsum (l3 -> l1)===
@@ -1593,7 +1593,7 @@ describe('Parser.normalizeHeaderTitle()', function() {
             tocHeaderTitle: 'Lorem <span dir="ltr">ipsum</span> &lt;a&gt;dolor&lt;/a&gt;.',
             headingsIndex: 0,
             headerHint: 'Lorem ipsum &lt;a&gt;dolor&lt;/a&gt;.',
-	        headerAnchor: 'Lorem_ipsum_.3Ca.3Edolor.3C.2Fa.3E.'
+            headerAnchor: 'Lorem_ipsum_.3Ca.3Edolor.3C.2Fa.3E.'
         });
     });
 
@@ -1712,12 +1712,30 @@ describe('Parser.handleBlockLevels()', function() {
         expect(result).htmlToBeEqual('<ol><li>Lorem ipsum dolor sit amet<ol><li>Lorem ipsum dolor sit amet L2<ol><li>Lorem ipsum dolor sit amet L3</li></ol></li></ol></li></ol>');
     });
 
-    it('lists and paragraphs', function() {
-        // TODO
+    it('pre sections', function() {
+        let result = this.parser.parse(' lorem ipsum dolor');
+        expect(result).htmlToBeEqual('<pre>lorem ipsum dolor</pre>');
+
+        result = this.parser.parse('Lorem ipsum (paragraph 1).\n Lorem ipsum\n dolor sit amet.\nLorem ipsum (paragraph 2).');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum (paragraph 1).</p><pre>Lorem ipsum\ndolor sit amet.</pre><p>Lorem ipsum (paragraph 2).</p>');
+
+        result = this.parser.parse('Lorem ipsum (paragraph 1).\n\n Lorem ipsum\n dolor sit amet.\n\nLorem ipsum (paragraph 2).');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum (paragraph 1).</p><pre>Lorem ipsum\ndolor sit amet.</pre><p>Lorem ipsum (paragraph 2).</p>');
+
+        result = this.parser.parse('Lorem ipsum (paragraph 1).\n\n\n Lorem ipsum\n dolor sit amet.\n\n\nLorem ipsum (paragraph 2).');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum (paragraph 1).</p><p><br></p><pre>Lorem ipsum\ndolor sit amet.</pre><p><br>Lorem ipsum (paragraph 2).</p>');
+
+        result = this.parser.parse(' Lorem ipsum\n\n dolor sit amet.\n');
+        expect(result).htmlToBeEqual('<pre>Lorem ipsum</pre><pre>dolor sit amet.</pre>');
     });
 
-    it('pre sections', function() {
-        // TODO
+    it('lists, pre and paragraphs', function() {
+        let result = this.parser.parse('Lorem ipsum dolor sit amet (paragraph 1).\n* Lorem ipsum dolor L1 A\n* Lorem ipsum dolor L1 B\n'
+            + '** Lorem ipsum dolor L2\n*** Lorem ipsum dolor L3 A\n*** Lorem ipsum dolor L3 B\n** Lorem ipsum dolor L2 CD\n* Lorem ipsum dolor L1 CD'
+            + '\n\n Lorem ipsum dolor (pre)\n\nLorem ipsum dolor (paragraph 2)');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum dolor sit amet (paragraph 1).</p><ul><li>Lorem ipsum dolor L1 A</li><li>Lorem ipsum dolor L1 B<ul>'
+            + '<li>Lorem ipsum dolor L2<ul><li>Lorem ipsum dolor L3 A</li><li>Lorem ipsum dolor L3 B</li></ul></li><li>Lorem ipsum dolor L2 CD</li></ul>'
+            + '</li><li>Lorem ipsum dolor L1 CD</li></ul><pre>Lorem ipsum dolor (pre)</pre><p>Lorem ipsum dolor (paragraph 2)</p>');
     });
 
     it('definition list tests', function() {
@@ -1742,5 +1760,36 @@ describe('Parser.handleBlockLevels()', function() {
         result = this.parser.parse(';Lorem ipsum 1:dolor sit amet 1\n;Lorem ipsum 2:dolor sit amet 2\n;Lorem ipsum 3:dolor sit amet 3');
         expect(result).htmlToBeEqual('<dl><dt>Lorem ipsum 1</dt><dd>dolor sit amet 1</dd><dt>Lorem ipsum 2</dt><dd>dolor sit amet 2</dd>'
             + '<dt>Lorem ipsum 3</dt><dd>dolor sit amet 3</dd></dl>');
+    });
+
+    it('many line definition lists', function() {
+        let result = this.parser.parse(';lorem:ipsum\n;;lorem 2:ipsum');
+        expect(result).htmlToBeEqual('<dl><dt>lorem</dt><dd>ipsum</dd></dl><dl><dt>lorem 2</dt><dd><dl><dt>ipsum</dt></dl></dd></dl>');
+
+        result = this.parser.parse(';lorem:ipsum\n;;lorem 2:ipsum 2\n;;lorem 3:ipsum 3');
+        expect(result).htmlToBeEqual('<dl><dt>lorem</dt><dd>ipsum</dd></dl><dl><dt>lorem 2</dt><dd><dl><dt>ipsum 2</dt><dt>lorem 3</dt><dd>ipsum 3</dd></dl></dd></dl>');
+
+        result = this.parser.parse(';lorem:ipsum\n;;lorem 2:ipsum 2\n;;;lorem 3:ipsum 3');
+        expect(result).htmlToBeEqual('<dl><dt>lorem</dt><dd>ipsum</dd></dl><dl><dt>lorem 2</dt><dd><dl><dt>ipsum 2</dt></dl></dd></dl><dl><dt>lorem 3'
+            + '</dt><dd><dl><dt><dl><dt>ipsum 3</dt></dl></dt></dl></dd></dl>');
+
+        result = this.parser.parse(';lorem:ipsum\n;;lorem 2:ipsum 2\n;;;lorem 3:ipsum 3\n;;lorem 4:ipsum 4');
+        expect(result).htmlToBeEqual('<dl><dt>lorem</dt><dd>ipsum</dd></dl><dl><dt>lorem 2</dt><dd><dl><dt>ipsum 2</dt></dl></dd></dl><dl><dt>lorem 3'
+            + '</dt><dd><dl><dt><dl><dt>ipsum 3</dt></dl></dt></dl></dd></dl><dl><dt>lorem 4</dt><dd><dl><dt>ipsum 4</dt></dl></dd></dl>');
+
+        result = this.parser.parse(';lorem:ipsum\n;;lorem 2:ipsum 2\n;;;lorem 3:ipsum 3\n;;lorem 4:ipsum 4\n;lorem 5:ipsum 5');
+        expect(result).htmlToBeEqual('<dl><dt>lorem</dt><dd>ipsum</dd></dl><dl><dt>lorem 2</dt><dd><dl><dt>ipsum 2</dt></dl></dd></dl><dl><dt>lorem 3'
+            + '</dt><dd><dl><dt><dl><dt>ipsum 3</dt></dl></dt></dl></dd></dl><dl><dt>lorem 4</dt><dd><dl><dt>ipsum 4</dt></dl></dd></dl><dl><dt>lorem 5</dt><dd>ipsum 5</dd></dl>');
+    });
+
+    it('blockquote', function() {
+        let result = this.parser.parse('<blockquote cite="https://lorem.com">\nLorem ipsum\ndolor sit\namet\n</blockquote>');
+        expect(result).htmlToBeEqual('<blockquote  cite="https://lorem.com"><p>Lorem ipsum\ndolor sit\namet</p></blockquote>');
+
+        result = this.parser.parse('<blockquote>Lorem ipsum dolor sit amet</blockquote>');
+        expect(result).htmlToBeEqual('<blockquote><p>Lorem ipsum dolor sit amet</p></blockquote>');
+
+        result = this.parser.parse('Lorem ipsum (paragraph)\n<blockquote cite="https://lorem.com">\nLorem ipsum dolor sit amet\n</blockquote>\n* Lorem ipsum (list)');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum (paragraph)</p><blockquote cite="https://lorem.com"><p>Lorem ipsum dolor sit amet</p></blockquote><ul><li>Lorem ipsum (list)</li></ul>');
     });
 });
