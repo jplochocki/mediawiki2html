@@ -30,7 +30,7 @@
  *
  * @class StringUtils
  */
-class StringUtils {
+export class StringUtils {
     /**
      * More or less "markup-safe" str_replace()
      * Ignores any instances of the separator inside `<...>`
@@ -189,7 +189,7 @@ class StringUtils {
  * @param Number|Boolean [thumbHeigth=false]
  * @return Array width and height of thumb
  */
-function calcThumbnailSize(width, height, thumbWidth=false, thumbHeight=false) {
+export function calcThumbnailSize(width, height, thumbWidth=false, thumbHeight=false) {
     if(width <= thumbWidth || (thumbWidth === false && thumbHeight === false))
         return [width, height];
 

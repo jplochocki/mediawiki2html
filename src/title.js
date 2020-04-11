@@ -27,7 +27,11 @@
  */
 
 
-class Title {
+import { Sanitizer } from './sanitizer.js';
+import { DefaultConfig } from './defaultconfig.js';
+
+
+export class Title {
     constructor(parserConfig=null) {
         // valid namespace consts
         Title.NS_MAIN = 0;

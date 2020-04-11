@@ -26,6 +26,9 @@
  */
 
 
+import { Sanitizer } from '../src/sanitizer.js';
+
+
 describe('Test Sanitizer.fixTagAttributes', function() {
     it('basic tests', function() {
         let result = Sanitizer.fixTagAttributes(`class="wikitable" STYLE="width: 100%;" onclick="alert('should be deleted')"`, 'tr');

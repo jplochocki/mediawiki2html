@@ -26,7 +26,11 @@
  */
 
 
-class MagicWords {
+import { Sanitizer } from './sanitizer.js';
+import { Title } from './title.js';
+
+
+export class MagicWords {
     constructor(parser) {
         this.parser = parser;
 

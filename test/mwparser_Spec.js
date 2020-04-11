@@ -26,6 +26,12 @@
  */
 
 
+import { MWParser } from '../src/mwparser.js';
+import { Title } from '../src/title.js';
+import { getFixture, compareTest, HtmlCompareMatchers } from './test_utils.js';
+import { calcThumbnailSize } from '../src/utils.js';
+
+
 describe('Testy handleTables()', function() {
     beforeEach(function() {
     });

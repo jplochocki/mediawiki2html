@@ -26,7 +26,10 @@
  */
 
 
-class Preprocessor {
+import { Sanitizer } from './sanitizer.js';
+
+
+export class Preprocessor {
     constructor(parser) {
         this.parser = parser;
     }

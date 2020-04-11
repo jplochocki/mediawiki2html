@@ -26,6 +26,9 @@
  */
 
 
+import { Title } from '../src/title.js';
+
+
 describe('Test Title.secureAndSplit', function() {
     it('trim spaces (and _) from start and end', function() {
         let t = new Title();
@@ -369,7 +372,7 @@ describe('Test Title.getSubpages()', function() {
         });
 
         // no subpages in title
-        title = Title.newFromText('User:Lorem');
+        let title = Title.newFromText('User:Lorem');
         expect(title.getSubpageText()).toEqual('Lorem');
 
         // namespace without subpages support

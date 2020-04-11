@@ -26,6 +26,10 @@
  */
 
 
+import { MWParser } from '../src/mwparser.js';
+import { Preprocessor } from '../src/preprocessor.js';
+
+
 describe('Test Preprocessor.reduceTemplateForInclusion', function() {
     beforeEach(function() {
         this.parser = new MWParser();

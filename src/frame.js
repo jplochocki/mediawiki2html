@@ -26,7 +26,7 @@
  */
 
 
-class Frame {
+export class Frame {
     /**
      * @param Parser parser
      * @param Frame [parentFrame=null] parent frame, if available

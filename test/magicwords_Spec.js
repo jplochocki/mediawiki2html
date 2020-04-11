@@ -26,6 +26,9 @@
  */
 
 
+import { MWParser } from '../src/mwparser.js';
+import { Title } from '../src/title.js';
+
 describe('MagicWords tests', function() {
     it('matchAtStart basic tests', function() {
         let par = new MWParser();
@@ -62,7 +65,7 @@ describe('MagicWords tests', function() {
 
     it('expandMagicVariable() date time tests', function() {
         jasmine.clock().install();
-        jasmine.clock().mockDate(new Date(Date.UTC(2020, 1, 22, 18, 01, 02)));
+        jasmine.clock().mockDate(new Date(Date.UTC(2020, 1, 22, 18, 1, 2)));
 
         let par = new MWParser();
         let result = par.magicwords.expandMagicVariable('currentmonth');

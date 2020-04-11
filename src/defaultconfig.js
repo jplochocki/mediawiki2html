@@ -26,7 +26,7 @@
  */
 
 
-class DefaultConfig {
+export class DefaultConfig {
     constructor(config=null) {
         this.language = 'en';
         this.useLinkPrefixExtension = false;

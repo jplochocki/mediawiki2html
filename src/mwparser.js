@@ -26,12 +26,24 @@
  */
 
 
+
+import { DefaultConfig } from './defaultconfig.js';
+import { Frame } from './frame.js';
+import { MagicWords } from './magicwords.js';
+import { Preprocessor } from './preprocessor.js';
+import { Sanitizer } from './sanitizer.js';
+import { Title } from './title.js';
+import { StringUtils } from './utils.js';
+import { calcThumbnailSize } from './utils.js';
+
+
+
 /**
  * Base class for MediaWiki parser.
  *
  * @class MWParser
  */
-class MWParser {
+export class MWParser {
     constructor(config=null) {
         this.parserConfig = new DefaultConfig(config);
         this.preprocessor = new Preprocessor(this);

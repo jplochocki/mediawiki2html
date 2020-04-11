@@ -29,7 +29,7 @@
 /**
  * @class Sanitizer
  */
-class Sanitizer {
+export class Sanitizer {
     /**
      * Normalize text fragment listing an HTML element's attributes,
      * discarding unwanted attributes.

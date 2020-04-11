@@ -26,10 +26,13 @@
  */
 
 
+import { Sanitizer } from '../src/sanitizer.js';
+
+
 /**
  * Get fixture file from Karma
  */
-async function getFixture(file) {
+export async function getFixture(file) {
     const r = await axios.get('/base/test/' + file);
     return r.data;
 }
@@ -135,7 +138,7 @@ function splitHtmlParts(txt) {
 /**
  * Makes a comparative test with MediaWiki results
  */
-async function compareTest(testFilePrefix, testCallback) {
+export async function compareTest(testFilePrefix, testCallback) {
     document.write('<script type="module" src="/base/node_modules/diff/lib/index.es6.js"></script>');
     const JsDiff = await import('/base/node_modules/diff/lib/index.es6.js');
 
@@ -206,14 +209,14 @@ async function compareTest(testFilePrefix, testCallback) {
 
 
 const colors = {
-    reset: '\033[0m',
-    green: '\033[32m',
-    red: '\033[31m',
-    black: '\033[30m',
-    blue: '\033[34m',
-    cyan: '\033[36m',
-    purple: '\033[35m',
-    brown: '\033[33m'
+    reset: '\0o33[0m',
+    green: '\0o33[32m',
+    red: '\0o33[31m',
+    black: '\0o33[30m',
+    blue: '\0o33[34m',
+    cyan: '\0o33[36m',
+    purple: '\0o33[35m',
+    brown: '\0o33[33m'
 };
 
 
@@ -229,7 +232,7 @@ const colors = {
  * });
  *
  */
-let HtmlCompareMatchers = {
+export let HtmlCompareMatchers = {
     htmlToBeEqual(util, customEqualityTesters) {
         return {
             compare(actual, expected) {

@@ -26,6 +26,9 @@
  */
 
 
+import { StringUtils, calcThumbnailSize } from '../src/utils.js';
+
+
 describe('Test StringUtils.replaceMarkup()', function() {
     it('basic tests', function() {
         let result = StringUtils.replaceMarkup('lorem', 'dolor',
@@ -45,28 +48,28 @@ describe('Tests StringUtils.delimiterReplaceCallback()', function() {
     it('result is the same without replace', function() {
         let result = StringUtils.delimiterReplaceCallback('<', '>', (a) => {
             return a[0];
-        }, this.inputWithTags, flags='i');
+        }, this.inputWithTags, /* flags */ 'i');
         expect(result).toEqual(this.inputWithTags);
     });
 
     it('result is the same without replace / long delimiters', function() {
         let result = StringUtils.delimiterReplaceCallback('---', '==', (a) => {
             return a[0];
-        }, this.inputWithLongDelimiter, flags='i');
+        }, this.inputWithLongDelimiter, /* flags */ 'i');
         expect(result).toEqual(this.inputWithLongDelimiter);
     });
 
     it('replace change string', function() {
         let result = StringUtils.delimiterReplaceCallback('<', '>', (a) => {
             return '<Lorem ipsum>';
-        }, this.inputWithTags, flags='i');
+        }, this.inputWithTags, /* flags */ 'i');
         expect(result).toEqual('Lorem ipsum <Lorem ipsum>dolor sit amet<Lorem ipsum>, consectetur <Lorem ipsum>adipiscing elit');
     });
 
     it('replace change string / long delimiter', function() {
         let result = StringUtils.delimiterReplaceCallback('---', '==', (a) => {
             return '<Lorem ipsum>';
-        }, this.inputWithLongDelimiter, flags='i');
+        }, this.inputWithLongDelimiter, /* flags */ 'i');
         expect(result).toEqual('Lorem ipsum <Lorem ipsum>dolor sit amet<Lorem ipsum>, consectetur <Lorem ipsum>adipiscing elit');
     });
 });
