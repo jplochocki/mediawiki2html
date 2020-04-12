@@ -32,28 +32,113 @@ import { getFixture, compareTest, HtmlCompareMatchers } from './test_utils.js';
 import { calcThumbnailSize } from '../src/utils.js';
 
 
-describe('Testy handleTables()', function() {
+describe('Tests MWParser.handleTables()', function() {
     beforeEach(function() {
+        this.par = new MWParser();
+        jasmine.addMatchers(HtmlCompareMatchers);
     });
 
-    it('...', function() {
-        const testTable = `
-{|class="wikitable" style="width: 100%;"
-|aaa
-|bbb
-|ccc
+    it('basic tests', function() {
+        const testTable = `{|class="wikitable" style="width: 100%;"
+|Lorem ipsum L1 A
+|Lorem ipsum L1 B
+|Lorem ipsum L1 C
 |-
-|aaa2
-|bbb2
-|ccc2
-|}
-        `
-        const par = new MWParser();
-        const out = par.handleTables(testTable);
+|Lorem ipsum L2 A
+|Lorem ipsum L2 B
+|Lorem ipsum L2 C
+|}`
 
+        let result = this.par.handleTables(testTable);
+        expect(result).htmlToBeEqual(`<table class="wikitable" style="width: 100%;">
+<tr>
+<td>Lorem ipsum L1 A
+</td>
+<td>Lorem ipsum L1 B
+</td>
+<td>Lorem ipsum L1 C
+</td></tr>
+<tr>
+<td>Lorem ipsum L2 A
+</td>
+<td>Lorem ipsum L2 B
+</td>
+<td>Lorem ipsum L2 C
+</td></tr></table>`);
     });
 
-    afterEach(function() {
+    it('table indention', function() {
+        [0, 1, 2, 3, 4, 5, 6].forEach(indentLevel => {
+            let result = this.par.handleTables(':'.repeat(indentLevel) + '{|class="wikitable" style="width: 100%;"\n|}');
+            expect(result).toMatch(new RegExp(`^(<dl><dd>){${ indentLevel }}\s*<table`, 'i'));
+            expect(result).toMatch(new RegExp(`<\\/table>\s*(<\\/dd><\\/dl>){${ indentLevel }}$`, 'i'));
+        });
+    });
+
+    it('row tag attributes', function() {
+        let result = this.par.handleTables(`{|
+|-class="lorem-ipsum" style="color: red;"
+|Lorem ipsum dolor
+|}`);
+        expect(result).htmlToBeEqual(`<table><tr class="lorem-ipsum" style="color: red;"><td>Lorem ipsum dolor</td></tr></table>`);
+    });
+
+    it('header row an cells', function() {
+        let result = this.par.handleTables(`{|
+|-
+!Lorem header
+!dolor header
+|-
+|Lorem ipsum
+|dolor sit amet
+|}`);
+        expect(result).htmlToBeEqual(`<table><tr><th>Lorem header</th><th>dolor header</th></tr><tr><td>Lorem ipsum</td><td>dolor sit amet</td></tr></table>`);
+    });
+
+    it('many cells in one line', function() {
+        let result = this.par.handleTables(`{|
+|-
+|Lorem ipsum||dolor||sit amet
+|}`);
+        expect(result).htmlToBeEqual(`<table><tr><td>Lorem ipsum</td><td>dolor</td><td>sit amet</td></tr></table>`);
+    });
+
+    it('cell tag attributes', function() {
+        let result = this.par.handleTables(`{|
+|-
+|class="lorem-ipsum" style="color: red;"|Lorem ipsum dolor
+|}`);
+        expect(result).htmlToBeEqual(`<table><tr><td class="lorem-ipsum" style="color: red;">Lorem ipsum dolor</td></tr></table>`);
+    });
+
+    it('table caption', function() {
+        let result = this.par.handleTables(`{|
+|+Lorem ipsum caption
+|-
+|Lorem ipsum dolor
+|}`);
+        expect(result).htmlToBeEqual(`<table><caption>Lorem ipsum caption</caption><tr><td>Lorem ipsum dolor</td></tr></table>`);
+
+        result = this.par.handleTables(`{|
+|+Lorem ipsum caption
+|}`);
+        expect(result).htmlToBeEqual(`<table><caption>Lorem ipsum caption</caption><tr><td></td></tr></table>`);
+
+        result = this.par.handleTables(`{|
+|-
+|Lorem ipsum dolor
+|+Lorem ipsum caption
+|}`);
+        expect(result).htmlToBeEqual(`<table><tr><td>Lorem ipsum dolor</td></tr><caption>Lorem ipsum caption</caption></table>`);
+
+        result = this.par.handleTables(`{|
+|-
+|Lorem ipsum dolor
+|+Lorem ipsum caption
+|-
+|Lorem ipsum dolor
+|}`);
+        expect(result).htmlToBeEqual(`<table><tr><td>Lorem ipsum dolor</td></tr><caption>Lorem ipsum caption</caption><tr><td>Lorem ipsum dolor</td></tr></table>`);
     });
 });
 

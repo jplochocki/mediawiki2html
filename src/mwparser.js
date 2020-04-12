@@ -135,28 +135,26 @@ export class MWParser {
         const has_opened_tr = []; // Did this table open a <tr> element?
         let indent_level = 0; // table indent level
 
-        text.split(/\r?\n/).forEach(line => {
-            //line = line.trim();
+        text.split(/\r?\n/).forEach(outLine => {
+            let line = outLine.trim();
 
             // add empty lines
             if(line == '') {
-                out += line + '\n';
+                out += outLine + '\n';
                 return;
             }
 
-            const first_character = line[0];
-            const first_two = line.substr(0, 2);
-            let matches = /^(:*)\s*\{\|(.*)$/.exec(line);
+            let first_character = line[0];
+            let first_two = line.substr(0, 2);
+            let matches = /^(:*)\s*\{\|(.*)$/.exec(line);  // matches = ['::{|class="wikitable" style="width: 100%;"', '::', 'class="wikitable" style="width: 100%;"']
 
             if(matches) { // is this start of new table?
-                // matches = ['{|class="wikitable" style="width: 100%;"', '', 'class="wikitable" style="width: 100%;"']
                 indent_level = matches[1].length;
 
-                // FIXME $attributes = $this->mStripState->unstripBoth( $matches[2] );
-                let attributes = matches[2];
-                attributes = Sanitizer.fixTagAttributes(attributes, 'table');
+                let attributes = Sanitizer.fixTagAttributes(matches[2], 'table');
+                attributes = attributes == '' ? '' : ' ' + attributes;
 
-                line = '<dl><dd>'.repeat(indent_level) + `<table ${ attributes }>`;
+                outLine = '<dl><dd>'.repeat(indent_level) + `<table${ attributes }>`;
 
                 td_history.push(false);
                 last_tag_history.push('');
@@ -165,7 +163,7 @@ export class MWParser {
                 has_opened_tr.push(false);
             }
             else if(td_history.length == 0) { // outside of td - do nothing
-                out += line + '\n';
+                out += outLine + '\n';
                 return;
             }
             else if(first_two == '|}') { // table end
@@ -173,10 +171,10 @@ export class MWParser {
                 const last_tag = last_tag_history.pop();
 
                 if(!has_opened_tr.pop())
-                    line = `<tr><td></td></tr>${ line }`;
+                    line = '<tr><td></td></tr>' + line;
 
                 if(tr_history.pop())
-                    line = `</tr>${ line }`;
+                    line = '</tr>' + line;
 
                 if(td_history.pop())
                     line = `</${ last_tag }>${ line }`;
@@ -184,15 +182,15 @@ export class MWParser {
                 tr_attributes.pop();
 
                 if(indent_level > 0)
-                    line = line.rtrim() + '</dd></dl>'.repeat(indent_level)
+                    outLine = line.trimRight() + '</dd></dl>'.repeat(indent_level);
+                else
+					outLine = line;
             }
             else if (first_two === '|-') { // table row
                 line = line.replace(/^\|-/, '');
 
-                //Whats after the tag is now only attributes
-                // FIXME $attributes = $this->mStripState->unstripBoth( $line );
-                let attributes = line;
-                attributes = Sanitizer.fixTagAttributes(attributes, 'tr');
+                // Whats after the tag is now only attributes
+                let attributes = Sanitizer.fixTagAttributes(line, 'tr');
                 tr_attributes.pop();
                 tr_attributes.push(attributes);
 
@@ -207,11 +205,12 @@ export class MWParser {
                 if(td_history.pop())
                     line = `</${ last_tag }>${ line }`;
 
+                outLine = line;
                 tr_history.push(false);
                 td_history.push(false);
                 last_tag_history.push('');
             }
-            else if(first_character == '|' || first_character == '!' || first_two == '|+') { // td, th lub caption
+            else if(first_character == '|' || first_character == '!' || first_two == '|+') { // td, th or caption
                 if(first_two == '|+' ) {
                     first_character = '+';
                     line = line.substr(2);
@@ -223,10 +222,13 @@ export class MWParser {
                 if(first_character == '!')
                     line = StringUtils.replaceMarkup('!!', '||', line);
 
+                outLine = '';
+
                 line.split('||').forEach(cell => {
                     let previous = '';
                     if(first_character != '+') {
                         let tr_after = tr_attributes.pop();
+                        tr_after = tr_after == '' ? '' : ' ' + tr_after;
                         if(!tr_history.pop())
                             previous = `<tr${ tr_after }>\n`;
 
@@ -241,6 +243,11 @@ export class MWParser {
                     if(td_history.pop())
                         previous = `</${ last_tag }>\n${ previous }`;
 
+                    if(tr_history.length == 1 && tr_history[0] && first_character == '+') { // close last tr before caption
+                        previous += '</tr>';
+                        tr_history.pop();
+                    }
+
                     if(first_character == '|')
                         last_tag = 'td';
                     else if(first_character == '!')
@@ -253,34 +260,30 @@ export class MWParser {
                     last_tag_history.push(last_tag);
 
                     // A cell could contain both parameters and data
-                    let cell_data = cell.split(); // FIXME
+                    let cell_data = cell.split('|', 2);
 
                     // T2553: Note that a '|' inside an invalid link should not
                     // be mistaken as delimiting cell parameters
                     // Bug T153140: Neither should language converter markup.
-                    if(/\[\[|-\{/.test(cell_data[0])) // ?
+                    if(/\[\[|-\{/.test(cell_data[0]))
                         cell = `${ previous }<${ last_tag }>${ cell.trim() }`;
-                    else if(cell_data.length == 1) // Whitespace in cells is trimmed
+                    else if(cell_data.length == 1)
                         cell = `${ previous }<${ last_tag }>${ cell_data[0].trim() }`;
                     else {
-                        // $attributes = $this->mStripState->unstripBoth( $cell_data[0] );
-                        let attributes = cell_data[0];
-                        attributes = Sanitizer.fixTagAttributes(attributes, last_tag);
-
-                        // Whitespace in cells is trimmed
+                        let attributes = Sanitizer.fixTagAttributes(cell_data[0], last_tag);
                         cell = `${ previous }<${ last_tag } ${ attributes }>${ cell_data[1].trim() }`;
                     }
 
-                    line = cell;
+                    outLine += cell;
                     td_history.push(true);
                 });
             }
 
-            out += line + '\n';
+            out += outLine + '\n';
         });
 
 
-        //Closing open td, tr && table
+        // Closing open td, tr && table
         while(td_history.length > 0 ) {
             if(td_history.pop())
                 out += '</td>\n';
@@ -294,13 +297,13 @@ export class MWParser {
             out += '</table>\n';
         }
 
-        //Remove trailing line-ending (b/c)
+        // Remove trailing line-ending (b/c)
         if(out.substr(-1) == '\n')
             out = out.substr(0, out.length -1);
 
-        //special case: don't return empty table
-        if(out == '<table>\n<tr><td></td></tr>\n</table>')
-            out = '';
+        // special case: don't return empty table
+        if(/^\s*<table>\s*<tr>\s*<td>\s*<\/td>\s*<\/tr>\s*<\/table>\s*$/.test(out))
+            return '';
 
         return out;
     }
