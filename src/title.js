@@ -149,9 +149,10 @@ export class Title {
      *
      * @param String text
      * @param Object [parserConfig=null]
+     * @param Number [namespace=Title.NS_MAIN]
      * @return Title
      */
-    static newFromText(text, parserConfig=null) {
+    static newFromText(text, parserConfig=null, namespace=Title.NS_MAIN) {
         // DWIM: Integers can be passed in here when page titles are used as array keys.
         if(typeof text != 'string' && typeof text != 'number')
             throw new Error('Text must be a string.');
@@ -167,6 +168,8 @@ export class Title {
         t.mNamespace = Title.NS_MAIN;
 
         t.secureAndSplit();
+        if(namespace != Title.NS_MAIN)
+            t.mNamespace = namespace;
 
         return t;
     }

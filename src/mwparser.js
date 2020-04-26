@@ -35,6 +35,7 @@ import { Sanitizer } from './sanitizer.js';
 import { Title } from './title.js';
 import { StringUtils } from './utils.js';
 import { calcThumbnailSize } from './utils.js';
+import { ImageGalleryBase } from './imagegallery.js';
 
 
 
@@ -65,10 +66,12 @@ export class MWParser {
         this.doubleUnderscores = [];
         this.noGallery = false;
 
-
         // constants
         this.PARSER_MARKER_PREFIX = '\x7f\'"`PARSER-UNIQ-';
         this.PARSER_MARKER_SUFFIX = '-QINU-RESRAP`"\'\x7f';
+
+        // built-in tag hooks
+        this.setFunctionTagHook('gallery', this.renderImageGallery.bind(this));
     }
 
 
@@ -2540,5 +2543,86 @@ ${ out }
         text += _closeParagraph(true);
 
         return text;
+    }
+
+
+    /**
+	 * Renders an image gallery from a text with one line per image.
+	 * text labels may be given by using |-style alternative text. E.g.
+	 *   Image:one.jpg|The number "1"
+	 *   Image:tree.jpg|A tree
+	 * given as text will return the HTML of a gallery with two images,
+	 * labeled 'The number "1"' and
+	 * 'A tree'.
+	 *
+	 * @param string text
+	 * @param array params
+	 * @return string HTML
+	 */
+    renderImageGallery(text, attrs) {
+        const IMAGE_GALLERY_MAGIC_WORDS = ['img_alt', 'img_link'];
+        let ig = ImageGalleryBase.factory(attrs['mode']);
+
+        text.split(/\r?\n/).forEach(line => {
+            let matches = /^([^|]+)(\|(.*))?$/.exec(line); // File:LoremIpsum image1.jpg|Lorem ipsum dolor
+            if(!matches)
+                return;
+
+            if(matches[0].indexOf('%') != -1)
+                matches[1] = encodeURIComponent(matches[1]);
+
+            let title = null;
+            try {
+                title = Title.newFromText(matches[1], this.parserConfig, Title.NS_FILE);
+            }
+            catch(e) {
+                return; // ignore invalid title
+            }
+
+            let label = '';
+			let alt = '';
+			let link = '';
+
+            if(matches[3]) {
+                // look for an |alt= definition while trying not to break existing
+				// captions with multiple pipes (|) in it, until a more sensible grammar
+                // is defined for images in galleries
+                let frame = new Frame(this);
+                matches[3] = this.recursiveTagParse(matches[3].trim(), frame, false);
+
+                let mwREs = IMAGE_GALLERY_MAGIC_WORDS
+                    .map(mw => {
+                        let m = this.magicwords.imageMagicWords[mw]
+                            .reduce((txt, mw) => txt + (txt.length ? '|' : '') + mw.replace('$1', ''), ''); // i.e. ['link=$1']
+
+                        return {
+                            name: mw,
+                            re: new RegExp(`^(${ m })(.*)$`)
+                        };
+                    });
+
+                matches[3].split('|').forEach(param => {
+                    let m = mwREs.find(mw => mw.re.exec(param))
+                    if(m) {
+                        if(m.name == 'img_alt')
+                            alt = this.stripAltTextPrivate(m.re.exec(param)[2]);
+                        else if(m.name == 'img_link') {
+                            let {type, value} = this.parseLinkParameterPrivate(this.stripAltTextPrivate(m.re.exec(param)[2]));
+							if(type == 'link-url')
+								link = value;
+                            else if(type == 'link-title')
+								link = value.getFullURL();
+                        }
+                    }
+                    else
+                        label = param; // Last pipe wins
+
+                });
+            }
+
+            ig.add(title, label, alt, link, []);
+        });
+
+        return ig.toHTML();
     }
 };

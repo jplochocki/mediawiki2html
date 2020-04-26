@@ -30,6 +30,7 @@ import { MWParser } from '../src/mwparser.js';
 import { Title } from '../src/title.js';
 import { getFixture, compareTest, HtmlCompareMatchers } from './test_utils.js';
 import { calcThumbnailSize } from '../src/utils.js';
+import { ImageGalleryBase } from '../src/imagegallery.js';
 
 
 describe('Tests MWParser.handleTables()', function() {
@@ -1882,5 +1883,62 @@ describe('Parser.handleBlockLevels()', function() {
 
         result = this.parser.parse('Lorem ipsum (paragraph)\n<blockquote cite="https://lorem.com">\nLorem ipsum dolor sit amet\n</blockquote>\n* Lorem ipsum (list)');
         expect(result).htmlToBeEqual('<p>Lorem ipsum (paragraph)</p><blockquote cite="https://lorem.com"><p>Lorem ipsum dolor sit amet</p></blockquote><ul><li>Lorem ipsum (list)</li></ul>');
+    });
+});
+
+
+describe('MWParser.renderImageGallery()', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
+    it('basic tests', function() {
+        let result = this.parser.parse('<gallery mode="traditional">\nFile:LoremIpsum image1.jpg|Lorem ipsum dolor\n\nFile:LoremIpsum image2.jpg|Lorem ipsum dolor</gallery>');
+
+        //ImageGalleryBase
+        //add(title, label, alt, link, handlerOpts)
+    });
+
+    it('image parse', function() {
+        let ig = ImageGalleryBase.factory('traditional');
+        spyOn(ig, 'add');
+
+        spyOn(ImageGalleryBase, 'factory').and.returnValue(ig);
+        [
+            {
+                testTxt: 'File:LoremIpsum image.jpg|Lorem ipsum dolor',
+                title: 'File:LoremIpsum image.jpg',
+                label: 'Lorem ipsum dolor',
+                alt: '',
+                link: ''
+            }, {
+                testTxt: 'File:LoremIpsum image.jpg|Lorem ipsum dolor|sit amet', // last pipe is valid label
+                title: 'File:LoremIpsum image.jpg',
+                label: 'sit amet',
+                alt: '',
+                link: ''
+            }
+            , {
+                testTxt: 'File:LoremIpsum image.jpg|link=Lorem Ipsum Page|Lorem ipsum dolor|alt=Lorem ipsum alt', // last pipe is valid label
+                title: 'File:LoremIpsum image.jpg',
+                label: 'Lorem ipsum dolor',
+                alt: 'Lorem ipsum alt',
+                link: '//en.wikipedia.org/w/index.php?title=Lorem_Ipsum_Page'
+            }
+        ].forEach(test => {
+            this.parser.renderImageGallery(test.testTxt, []);
+
+            expect(ig.add).toHaveBeenCalled();
+            let [title, label, alt, link] = ig.add.calls.mostRecent().args;
+
+            expect(title).toBeInstanceOf(Title);
+            expect(title.getPrefixedText()).toEqual(test.title);
+            expect(title.getNamespace()).toEqual(Title.NS_FILE);
+
+            expect(label).toEqual(test.label);
+            expect(alt).toEqual(test.alt);
+            expect(link).toEqual(test.link);
+        });
     });
 });
