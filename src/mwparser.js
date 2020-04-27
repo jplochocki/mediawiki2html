@@ -187,7 +187,7 @@ export class MWParser {
                 if(indent_level > 0)
                     outLine = line.trimRight() + '</dd></dl>'.repeat(indent_level);
                 else
-					outLine = line;
+                    outLine = line;
             }
             else if (first_two === '|-') { // table row
                 line = line.replace(/^\|-/, '');
@@ -2547,21 +2547,23 @@ ${ out }
 
 
     /**
-	 * Renders an image gallery from a text with one line per image.
-	 * text labels may be given by using |-style alternative text. E.g.
-	 *   Image:one.jpg|The number "1"
-	 *   Image:tree.jpg|A tree
-	 * given as text will return the HTML of a gallery with two images,
-	 * labeled 'The number "1"' and
-	 * 'A tree'.
-	 *
-	 * @param string text
-	 * @param array params
-	 * @return string HTML
-	 */
+     * Renders an image gallery from a text with one line per image.
+     * text labels may be given by using |-style alternative text. E.g.
+     *   Image:one.jpg|The number "1"
+     *   Image:tree.jpg|A tree
+     * given as text will return the HTML of a gallery with two images,
+     * labeled 'The number "1"' and
+     * 'A tree'.
+     *
+     * @param string text
+     * @param array params
+     * @return string HTML
+     */
     renderImageGallery(text, attrs) {
         const IMAGE_GALLERY_MAGIC_WORDS = ['img_alt', 'img_link'];
-        let ig = ImageGalleryBase.factory(attrs['mode']);
+
+        let {showfilename=false, caption='', perrow=false, widths=false, heights=false} = attrs;
+        let ig = ImageGalleryBase.factory(attrs['mode'], this, showfilename, caption, perrow, widths, heights);
 
         text.split(/\r?\n/).forEach(line => {
             let matches = /^([^|]+)(\|(.*))?$/.exec(line); // File:LoremIpsum image1.jpg|Lorem ipsum dolor
@@ -2580,12 +2582,12 @@ ${ out }
             }
 
             let label = '';
-			let alt = '';
-			let link = '';
+            let alt = '';
+            let link = '';
 
             if(matches[3]) {
                 // look for an |alt= definition while trying not to break existing
-				// captions with multiple pipes (|) in it, until a more sensible grammar
+                // captions with multiple pipes (|) in it, until a more sensible grammar
                 // is defined for images in galleries
                 let frame = new Frame(this);
                 matches[3] = this.recursiveTagParse(matches[3].trim(), frame, false);
@@ -2608,10 +2610,10 @@ ${ out }
                             alt = this.stripAltTextPrivate(m.re.exec(param)[2]);
                         else if(m.name == 'img_link') {
                             let {type, value} = this.parseLinkParameterPrivate(this.stripAltTextPrivate(m.re.exec(param)[2]));
-							if(type == 'link-url')
-								link = value;
+                            if(type == 'link-url')
+                                link = value;
                             else if(type == 'link-title')
-								link = value.getFullURL();
+                                link = value.getFullURL();
                         }
                     }
                     else
