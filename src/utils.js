@@ -193,11 +193,15 @@ export function calcThumbnailSize(width, height, thumbWidth=false, thumbHeight=f
     if(width <= thumbWidth || (thumbWidth === false && thumbHeight === false))
         return [width, height];
 
-    if(thumbWidth !== false)
-        return [
+    if(thumbWidth !== false) {
+        let result = [
             thumbWidth,
             Math.round((height * thumbWidth) / width)
         ];
+
+        if(!(thumbHeight !== false && result[1] > thumbHeight))
+            return result;
+    }
 
     return [
         Math.round((width * thumbHeight) / height),

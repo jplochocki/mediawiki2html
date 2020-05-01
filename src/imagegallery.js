@@ -29,12 +29,34 @@
 import { Sanitizer } from './sanitizer.js';
 
 
+/**
+ * Base class for image galleries
+ *
+ * @class ImageGalleryBase
+ */
 export class ImageGalleryBase {
-    static factory(mode, parser, showFilename, caption, perRow, widths, heights) {
+    /**
+     * Create new image gallery based on mode name.
+     *
+     * @param String mode
+     * @param Parser parser
+     * @param Boolean [showFilename=false]
+     * @param String [caption]
+     * @param Number|Boolean [perRow]
+     * @param Number|Boolean [widths]
+     * @param Number|Boolean [heights]
+     * @return ImageGalleryBase
+     */
+    static factory(mode, parser, showFilename=false, caption='', perRow=false, widths=false, heights=false) {
         // TODO: more languages
+        // TODO: more modes
         return new TraditionalImageGallery(parser, showFilename, caption, perRow, widths, heights);
     }
 
+
+    /**
+     * @constructor
+     */
     constructor(parser, showFilename, caption, perRow, widths, heights) {
         this.parser = parser;
         this.showFilename = showFilename;
@@ -61,13 +83,27 @@ export class ImageGalleryBase {
     }
 
 
+    /**
+     * Return a HTML representation of the image gallery
+     *
+     * @return String
+     */
     toHTML() {
         return '';
     }
 };
 
 
-class TraditionalImageGallery extends ImageGalleryBase {
+/**
+ * Traditional image gallery
+ *
+ * @class TraditionalImageGallery
+ * @extends ImageGalleryBase
+ */
+export class TraditionalImageGallery extends ImageGalleryBase {
+    /**
+     * @constructor
+     */
     constructor(parser, showFilename, caption, perRow, widths, heights) {
         super(parser, showFilename, caption, perRow, widths, heights);
 
@@ -78,10 +114,15 @@ class TraditionalImageGallery extends ImageGalleryBase {
         this.allPadding = this.thumbPadding + this.GBPadding + this.GBBorders;
     }
 
+
+    /**
+     * Return a HTML representation of the image gallery
+     *
+     * @return String
+     */
     toHTML() {
         let gallAttrs = {
-            'class': 'gallery mw-gallery-traditional',
-            style: ''
+            'class': 'gallery mw-gallery-traditional'
         };
 
         if(this.perRow > 0) {
@@ -100,7 +141,7 @@ class TraditionalImageGallery extends ImageGalleryBase {
             let thumbHtml = '';
 
             if(thumb === false) // We're dealing with a non-image, spit out the name and be done with it
-                thumbHtml = `<div class="thumb" style="height: ${ this.thumbPadding + this.heights }'px;">${ Sanitizer.escapeHTML(title.getText()) }</div>\n`;
+                thumbHtml = `<div class="thumb" style="height: ${ this.thumbPadding + this.heights }px;">${ Sanitizer.escapeHTML(title.getText()) }</div>\n`;
             else {
                 let imgParams = {
                     'alt': alt,
@@ -110,7 +151,7 @@ class TraditionalImageGallery extends ImageGalleryBase {
                     decoding: 'async'
                 };
 
-                if(alt == '' && caption == '')
+                if(alt == '' && label == '')
                     imgParams.alt = title.getText();
 
                 if(this.parser.parserConfig.wgResponsiveImages) { // Linker::processResponsiveImages
@@ -132,10 +173,12 @@ class TraditionalImageGallery extends ImageGalleryBase {
 
                 let linkAttrs = {
                     href: title.getFullURL(),
-                    'class': 'image'
                 };
+
                 if(link)
                     linkAttrs.href = link;
+                else
+                    linkAttrs['class'] = 'image';
 
                 const vpad = (this.thumbPadding + this.heights - thumb.height) / 2;
 
@@ -163,6 +206,10 @@ ${ galleryText }
     }
 
 
+    /**
+     * @private
+     * @param Title title
+     */
     getCaptionHtml(title) {
         let linkAttrs = {
             href: title.getFullURL(),

@@ -115,8 +115,8 @@ export class Sanitizer {
             });
 
         return  a.map(([name, value]) => {
-            name = he.encode(name);
-            value = he.encode(he.escape(value));
+            name = he.encode(name + '');
+            value = he.encode(he.escape(value + ''));
             return `${ name }="${ value }"`;
         }).join(' ');
     }
