@@ -234,7 +234,7 @@ export class MagicWords {
         let out = '';
         const now = new Date();
         const lang = this.parser.parserConfig.language;
-        const title = Title.newFromText(this.parser.parserConfig.pageTitle);
+        const title = Title.newFromText(this.parser.parserConfig.pageTitle, this.parser.parserConfig);
         switch(index) {
             case '!':
                 out = '|';

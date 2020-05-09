@@ -152,7 +152,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
         expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsum</a> dolor');
         expect(par.internalLinks.length).toEqual(1);
         expect(par.internalLinks[0] instanceof Title).toBeTruthy();
-        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum', par.parserConfig).equals(par.internalLinks[0])).toBeTruthy();
 
         par = new MWParser();
         result = par.handleInternalLinks(`Lorem [[Lorem:ipsum|Lorem ipsum]] dolor`);
@@ -160,7 +160,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
         expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem ipsum</a> dolor');
         expect(par.internalLinks.length).toEqual(1);
         expect(par.internalLinks[0] instanceof Title).toBeTruthy();
-        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum', par.parserConfig).equals(par.internalLinks[0])).toBeTruthy();
     });
 
     it('standard link with suffix test', function() {
@@ -170,7 +170,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
         expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsumamet</a> dolor');
         expect(par.internalLinks.length).toEqual(1);
         expect(par.internalLinks[0] instanceof Title).toBeTruthy();
-        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum', par.parserConfig).equals(par.internalLinks[0])).toBeTruthy();
 
         par = new MWParser();
         result = par.handleInternalLinks(`Lorem [[Lorem:ipsum|Lorem ipsum dolor]]amet dolor`);
@@ -178,7 +178,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
         expect(result).toEqual('Lorem <a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem ipsum doloramet</a> dolor');
         expect(par.internalLinks.length).toEqual(1);
         expect(par.internalLinks[0] instanceof Title).toBeTruthy();
-        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum', par.parserConfig).equals(par.internalLinks[0])).toBeTruthy();
     });
 
     it('interwiki link tests', function() {
@@ -193,7 +193,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
             + 'Maecenas <a title="pl:Sagittis:libero" href="//pl.wikipedia.org/w/index.php?title=Sagittis%3Alibero">pl:sagittis:libero</a> eget ante venenatis');
         expect(par.internalLinks.length).toEqual(1);
         expect(par.internalLinks[0] instanceof Title).toBeTruthy();
-        expect(Title.newFromText('Lorem:ipsum').equals(par.internalLinks[0])).toBeTruthy();
+        expect(Title.newFromText('Lorem:ipsum', par.parserConfig).equals(par.internalLinks[0])).toBeTruthy();
 
         expect(par.interwikiLinks.length).toEqual(1);
         expect(par.interwikiLinks[0] instanceof Title).toBeTruthy();
@@ -244,7 +244,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
 
         expect(par.categories[0].title.mNamespace).toEqual(Title.NS_CATEGORY);
         expect(par.categories[0].sortkey).toEqual('');
-        expect(Title.newFromText('Category:LoremIpsum').equals(par.categories[0].title)).toBeTruthy();
+        expect(Title.newFromText('Category:LoremIpsum', par.parserConfig).equals(par.categories[0].title)).toBeTruthy();
 
 
         par = new MWParser();
@@ -257,7 +257,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
 
         expect(par.categories[0].title.mNamespace).toEqual(Title.NS_CATEGORY);
         expect(par.categories[0].sortkey).toEqual('lorem');
-        expect(Title.newFromText('Category:LoremIpsum').equals(par.categories[0].title)).toBeTruthy();
+        expect(Title.newFromText('Category:LoremIpsum', par.parserConfig).equals(par.categories[0].title)).toBeTruthy();
     });
 
     it('prefix test', function() {
@@ -289,7 +289,7 @@ describe('Test MWParser.handleInternalLinks()', function() {
 describe('Test Parser.makeLinkObj', function() {
     it('basic tests', function() {
         const par = new MWParser();
-        let t = Title.newFromText('lorem:ipsum');
+        let t = Title.newFromText('lorem:ipsum', par.parserConfig);
         expect(par.makeLinkObj(t)).toEqual('<a title="Lorem:ipsum" href="//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum">Lorem:ipsum</a>');
 
 
@@ -329,7 +329,7 @@ describe('Test MWParser.parseLinkParameterPrivate', function() {
         expect(r.type).toEqual('link-url');
         expect(r.value).toEqual(url);
 
-        const title = 'Lorem:ipsum', nt = Title.newFromText(title);
+        const title = 'Lorem:ipsum', nt = Title.newFromText(title, par.parserConfig);
         r = par.parseLinkParameterPrivate(title);
         expect(par.internalLinks.length).toEqual(1);
         expect(nt.equals(par.internalLinks[0])).toBeTruthy();

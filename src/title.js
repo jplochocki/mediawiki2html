@@ -1,7 +1,5 @@
 /**
- * Rewritten Title module (includes/Title.php) simplified code from other
- * classes.
- *
+ * Rewritten Title module (includes/Title.php).
  *
  * MIT License
  *
@@ -31,7 +29,17 @@ import { Sanitizer } from './sanitizer.js';
 import { DefaultConfig } from './defaultconfig.js';
 
 
+/**
+ * Title manipulation class
+ *
+ * @class Title
+ * @tutorial title.md
+ */
 export class Title {
+    /**
+     * @constructor
+     * @param {Object|DefaultConfig} [parserConfig]
+     */
     constructor(parserConfig=null) {
         // valid namespace consts
         Title.NS_MAIN = 0;
@@ -58,7 +66,7 @@ export class Title {
             this.parserConfig = new DefaultConfig(parserConfig);
 
         // valid namespace names
-        // FIXME inne języki
+        // FIXME more languages
         this.namespaceNames = {};
 
         this.namespaceNames['en'] = {
@@ -144,15 +152,16 @@ export class Title {
 
 
     /**
-     * Create a new Title from text, such as what one would find in a link. De-
-     * codes any HTML entities in the text.
+     * Create a new Title from text, such as what one would find in a link.
+     * Decodes any HTML entities in the text.
      *
-     * @param String text
-     * @param Object [parserConfig=null]
-     * @param Number [namespace=Title.NS_MAIN]
-     * @return Title
+     * @param {String} text title text
+     * @param {Object|DefaultConfig} parserConfig parser configuration
+     * @param {Number} [namespace=Title.NS_MAIN] title namespace
+     * @return {Title}
+     * @static
      */
-    static newFromText(text, parserConfig=null, namespace=Title.NS_MAIN) {
+    static newFromText(text, parserConfig, namespace=Title.NS_MAIN) {
         // DWIM: Integers can be passed in here when page titles are used as array keys.
         if(typeof text != 'string' && typeof text != 'number')
             throw new Error('Text must be a string.');
@@ -184,7 +193,8 @@ export class Title {
      * namespace prefixes, sets the other forms, and canonicalizes
      * everything.
      *
-     * @return bool True on success
+     * @return {Boolean} True on success
+     * @private
      */
     secureAndSplit() {
         // MediaWikiTitleCodec.splitTitleString short reimplementation
@@ -305,8 +315,8 @@ export class Title {
     /**
      * Check namespace number by its name (return false if namespace not found)
      *
-     * @param String ns
-     * @return Number|Boolean
+     * @param {String} ns namespace name
+     * @return {Number|Boolean} False when namespace unknown
      */
     getNsIndex(ns) {
         let a = Object.keys(this.namespaceNames[this.parserConfig.language]).find(k => k == ns);
@@ -317,8 +327,8 @@ export class Title {
     /**
      * Get the namespace text
      *
-     * @param Number [ns] optional. If not set - this.mNamespace is used
-     * @return string|false
+     * @param {Number|Boolean} [ns=false] optional. If not set - this.mNamespace is used
+     * @return {String|Boolean} return false when unknown namespace id
      */
     getNsText(ns=false) {
         ns = ns === false ? this.mNamespace : ns;
@@ -330,7 +340,9 @@ export class Title {
     /**
      * Get a regex character class describing the legal characters in a link
      *
-     * @return String
+     * @return {String}
+     * @private
+     * @static
      */
     static legalChars() {
         return " %!\"$&'()*,\\-.\\/0-9:;=?@A-Z\\\\^_`a-z~\\x80-\\xFF+";
@@ -343,8 +355,9 @@ export class Title {
      * replacing this regex with something valid will make many titles valid.
      * Previously Title::getTitleInvalidRegex()
      *
-     * @return string Regex string
-     * @since 1.25
+     * @return {RegExp} RegExp object
+     * @private
+     * @static
      */
     static getTitleInvalidRegex() {
         return new RegExp(
@@ -363,7 +376,7 @@ export class Title {
     /**
      * Get the main part with underscores
      *
-     * @return string
+     * @return {String}
      */
     getDBkey() {
         return this.mDbkeyform;
@@ -371,9 +384,9 @@ export class Title {
 
 
     /**
-     * Get the namespace index, i.e. one of the NS_xxxx constants.
+     * Get the namespace index, i.e. one of the Title.NS_xxxx constants.
      *
-     * @return Number
+     * @return {Number}
      */
     getNamespace() {
         return this.mNamespace;
@@ -383,7 +396,7 @@ export class Title {
     /**
      * Get the interwiki prefix
      *
-     * @return String Interwiki prefix
+     * @return {String} Interwiki prefix
      */
     getInterwiki() {
         return this.mInterwiki;
@@ -393,7 +406,7 @@ export class Title {
     /**
      * Is this Title interwiki?
      *
-     * @return bool
+     * @return {Boolean}
      */
     isExternal() {
         return this.mInterwiki != '';
@@ -403,8 +416,8 @@ export class Title {
     /**
      * Check if namespace is valid interwiki name
      *
-     * @param String ns
-     * @return Boolean
+     * @param {String} ns namespace text
+     * @return {Boolean}
      */
     isValidInterwiki(ns) {
         return this.parserConfig.validInterwikiNames.includes(ns);
@@ -412,9 +425,9 @@ export class Title {
 
 
     /**
-     * Get the Title fragment (i.e.\ the bit after the #) in text form
+     * Get the Title fragment (i.e. the bit after the #) in text form
      *
-     * @return string
+     * @return {String}
      */
     getFragment() {
         return this.mFragment;
@@ -424,7 +437,7 @@ export class Title {
     /**
      * Check if a Title fragment is set
      *
-     * @return bool
+     * @return {Boolean}
      */
     hasFragment() {
         return this.mFragment != '';
@@ -434,8 +447,8 @@ export class Title {
     /**
      * Compare with another title.
      *
-     * @param Title title
-     * @return bool
+     * @param {Title} title
+     * @return {Boolean}
      */
     equals(title) {
         // Note: === is necessary for proper matching of number-like titles.
@@ -449,9 +462,9 @@ export class Title {
      * Get the prefixed title with spaces.
      * This is the form usually used for display
      *
-     * @param Boolean [skipInterwiki=false]
-     * @param Boolean [forUrl=false]
-     * @return string The prefixed title, with spaces
+     * @param {Boolean} [skipInterwiki=false]
+     * @param {Boolean} [forUrl=false] encode result for URL
+     * @return {String} The prefixed title, with spaces
      */
     getPrefixedText(skipInterwiki=false, forUrl=false) {
         let t = '';
@@ -478,7 +491,7 @@ export class Title {
     /**
      * Get the text form (spaces not underscores) of the main part
      *
-     * @return String
+     * @return {String}
      */
     getText() {
         return this.mTextform;
@@ -488,7 +501,7 @@ export class Title {
     /**
      * Get the prefixed database key form
      *
-     * @return string
+     * @return {String}
      */
     getPrefixedDBkey() {
         return this.getPrefixedText().replace(/ /g, '_');
@@ -497,6 +510,8 @@ export class Title {
 
     /**
      * Get the URL-encoded form of the main part
+     *
+     * @return {String}
      */
     getPartialURL() {
         return this.mUrlform;
@@ -506,7 +521,7 @@ export class Title {
     /**
      * Check if page exists
      *
-     * @return bool
+     * @return {Boolean}
      */
     exists() {
         if(this.mDbkeyform == '' && this.hasFragment())
@@ -521,7 +536,7 @@ export class Title {
      * "bluelinks"), even if there's no record by this title in the page
      * table?
      *
-     * @return bool
+     * @return {Boolean}
      */
     isAlwaysKnown() {
         if(this.mInterwiki != '')
@@ -546,7 +561,7 @@ export class Title {
      * Does this title refer to a page that can (or might) be meaningfully
      * viewed?
      *
-     * @return bool
+     * @return {Boolean}
      */
     isKnown() {
         return this.isAlwaysKnown() || this.exists();
@@ -557,10 +572,10 @@ export class Title {
      * Get a real URL referring to this title, with interwiki link query and
      * fragment
      *
-     * @param URLSearchParams|Object|Array|String [query]
-     * @param String [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
-     * @param Boolean [skipFragment=false]
-     * @return string The URL
+     * @param {URLSearchParams|Object|Array|String} [query]
+     * @param {String} [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
+     * @param {Boolean} [skipFragment=false]
+     * @return {String} The URL
      */
     getFullURL(query=null, proto='//', skipFragment=false) {
         let url = this.parserConfig.getFullUrl(this, query, proto);
@@ -603,7 +618,7 @@ export class Title {
     /**
      * Get the edit URL for this Title (if not interwiki)
      *
-     * @return String
+     * @return {String}
      */
     getEditURL() {
         if(this.isExternal())
@@ -614,7 +629,9 @@ export class Title {
 
 
     /**
-     * Get url for image (ie. /images/a/af/LoremIpsum.png)
+     * Get relative url for image (ie. /images/a/af/LoremIpsum.png)
+     *
+     * @return {String}
      */
     getImageUrl() {
         let a = md5(this.mUrlform);
@@ -623,7 +640,10 @@ export class Title {
 
 
     /**
-     * Get url for image thumb (ie. /images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png)
+     * Get relative url for image thumb (ie. /images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png)
+     *
+     * @param {Number} width thumb width
+     * @return {String}
      */
     getThumbUrl(width) {
         let a = md5(this.mUrlform);
@@ -633,6 +653,8 @@ export class Title {
 
     /**
      * Get upload link for image file
+     *
+     * @return {String}
      */
     getImageUploadUrl() {
         let q = {
@@ -650,13 +672,12 @@ export class Title {
     /**
      * Get the lowest-level subpage name, i.e. the rightmost part after any slashes
      *
-     * @par Example:
-     * @code
+     * ```javascript
      * Title.newFromText('User:Foo/Bar/Baz').getSubpageText();
-     * # returns: "Baz"
-     * @endcode
+     * // returns: "Baz"
+     * ```
      *
-     * @return string Subpage name
+     * @return {String} Subpage name
      */
     getSubpageText() {
         if(this.namespacesWithSubpages.indexOf(this.mNamespace) == -1)
@@ -669,24 +690,23 @@ export class Title {
     /**
      * Get the title for a subpage of the current page
      *
-     * @par Example:
-     * @code
+     * ```javascript
      * Title.newFromText('User:Foo/Bar/Baz').getSubpage('Asdf');
-     * # returns: Title{User:Foo/Bar/Baz/Asdf}
-     * @endcode
+     * // returns: Title('User:Foo/Bar/Baz/Asdf')
+     * ```
      *
-     * @param string $text The subpage name to add to the title
-     * @return Title|null Subpage title, or null on an error
+     * @param {String} text The subpage name to add to the title
+     * @return {Title|null} Subpage title, or null on an error
      */
     getSubpage(text) {
-        return Title.newFromText(this.getPrefixedText() + '/' + text);
+        return Title.newFromText(this.getPrefixedText() + '/' + text, this.parserConfig);
     }
 
 
     /**
      * Get all subpages of this page.
      *
-     * @return Title[] Title array, or empty array if this page's namespace
+     * @return {Title[]} Title array, or empty array if this page's namespace
      *  doesn't allow subpages
      */
     getSubpages() {
@@ -694,7 +714,7 @@ export class Title {
             return [];
 
         let parts = this.getPrefixedText().split('/');
-        let lastTitle = Title.newFromText(parts.shift());
+        let lastTitle = Title.newFromText(parts.shift(), this.parserConfig);
 
         return parts.map(part => {
             lastTitle = lastTitle.getSubpage(part);
@@ -706,7 +726,7 @@ export class Title {
     /**
      * Does this have subpages?
      *
-     * @return Boolean
+     * @return {Boolean}
      */
     hasSubpages() {
         return this.getSubpages().length > 0;
@@ -716,13 +736,12 @@ export class Title {
     /**
      * Get the base page name without a namespace, i.e. the part before the subpage name
      *
-     * @par Example:
-     * @code
+     * ```javascript
      * Title.newFromText('User:Foo/Bar/Baz').getBaseText();
-     * # returns: 'Foo/Bar'
-     * @endcode
+     * // returns: 'Foo/Bar'
+     * ```
      *
-     * @return string Base name
+     * @return {String} Base name
      */
     getBaseText() {
         if(this.namespacesWithSubpages.indexOf(this.mNamespace) == -1)

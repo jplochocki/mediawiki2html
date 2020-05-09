@@ -27,6 +27,7 @@
 
 
 import { Title } from '../src/title.js';
+import { MWParser } from '../src/mwparser.js';
 
 
 describe('Test Title.secureAndSplit', function() {
@@ -208,11 +209,12 @@ describe('Test Title.secureAndSplit', function() {
 
 describe('Test Title.newFromText', function() {
     it('basic tests', function() {
+        const par = new MWParser();
         expect(() => {
             Title.newFromText(false);
         }).toThrowError(Error, 'Text must be a string.');
 
-        let t = Title.newFromText('lorem:ipsum');
+        let t = Title.newFromText('lorem:ipsum', par.parserConfig);
         expect(t.mDbkeyform).toEqual('Lorem:ipsum');
     });
 });
@@ -250,10 +252,8 @@ describe('Test Title.getNsText', function() {
 
 describe('Test Title.getPrefixedText', function() {
     it('basic tests', function() {
-        let t = Title.newFromText('lorem:ipsum');
-        expect(t.getPrefixedText()).toEqual('Lorem:ipsum');
-
-        t = Title.newFromText('lorem:ipsum');
+        const par = new MWParser();
+        let t = Title.newFromText('lorem:ipsum', par.parserConfig);
         expect(t.getPrefixedText()).toEqual('Lorem:ipsum');
     });
 
@@ -264,7 +264,9 @@ describe('Test Title.getPrefixedText', function() {
     });
 
     it('namespace test', function() {
-        let t = Title.newFromText('Category:LoremIpsum');
+        const par = new MWParser();
+
+        let t = Title.newFromText('Category:LoremIpsum', par.parserConfig);
         expect(t.mNamespace).toEqual(Title.NS_CATEGORY);
         expect(t.getPrefixedText()).toEqual('Category:LoremIpsum');
     });
@@ -273,7 +275,9 @@ describe('Test Title.getPrefixedText', function() {
 
 describe('Test Title.getFullURL', function() {
     it('basic tests', function() {
-        const t = Title.newFromText('Lorem:ipsum');
+        const par = new MWParser();
+
+        const t = Title.newFromText('Lorem:ipsum', par.parserConfig);
         expect(t.getFullURL()).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum');
         expect(t.getFullURL({action: 'edit'})).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit');
         expect(t.getFullURL({action: 'edit', redlink: 1})).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit&redlink=1');
@@ -290,7 +294,9 @@ describe('Test Title.getFullURL', function() {
 
 describe('Test Title.getEditURL', function() {
     it('basic tests', function() {
-        const t = Title.newFromText('Lorem:ipsum');
+        const par = new MWParser();
+
+        const t = Title.newFromText('Lorem:ipsum', par.parserConfig);
         expect(t.getEditURL()).toEqual('//en.wikipedia.org/w/index.php?title=Lorem%3Aipsum&action=edit');
     });
 });
@@ -298,7 +304,9 @@ describe('Test Title.getEditURL', function() {
 
 describe('Test Title.getImageUrl', function() {
     it('basic tests', function() {
-        const t = Title.newFromText('File:LoremIpsum.png');
+        const par = new MWParser();
+
+        const t = Title.newFromText('File:LoremIpsum.png', par.parserConfig);
         expect(t.getImageUrl()).toEqual('/images/a/af/LoremIpsum.png');
     });
 });
@@ -306,7 +314,9 @@ describe('Test Title.getImageUrl', function() {
 
 describe('Test Title.getThumbUrl', function() {
     it('basic tests', function() {
-        const t = Title.newFromText('File:LoremIpsum.png');
+        const par = new MWParser();
+
+        const t = Title.newFromText('File:LoremIpsum.png', par.parserConfig);
         expect(t.getThumbUrl(150)).toEqual('/images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png');
     });
 });
@@ -314,7 +324,9 @@ describe('Test Title.getThumbUrl', function() {
 
 describe('Test Title.getImageUploadUrl', function() {
     it('basic tests', function() {
-        const t = Title.newFromText('File:LoremIpsum.png');
+        const par = new MWParser();
+
+        const t = Title.newFromText('File:LoremIpsum.png', par.parserConfig);
         expect(t.getImageUploadUrl()).toEqual('//en.wikipedia.org/w/index.php?title=Special%3AUpload&wpDestFile=LoremIpsum.png');
     });
 });
@@ -322,15 +334,17 @@ describe('Test Title.getImageUploadUrl', function() {
 
 describe('Test Title.getSubpageText()', function() {
     it('basic tests', function() {
-        let title = Title.newFromText('User:Lorem/Ipsum/Dolor');
+        const par = new MWParser();
+
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor', par.parserConfig);
         expect(title.getSubpageText()).toEqual('Dolor');
 
         // no subpages in title
-        title = Title.newFromText('User:Lorem');
+        title = Title.newFromText('User:Lorem', par.parserConfig);
         expect(title.getSubpageText()).toEqual('Lorem');
 
         // namespace without subpages support
-        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor', par.parserConfig);
         expect(title.getSubpageText()).toEqual('Lorem/Ipsum/Dolor');
     });
 });
@@ -338,7 +352,9 @@ describe('Test Title.getSubpageText()', function() {
 
 describe('Test Title.getSubpage()', function() {
     it('basic tests', function() {
-        let title = Title.newFromText('User:Lorem/Ipsum/Dolor');
+        const par = new MWParser();
+
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor', par.parserConfig);
         let title2 = title.getSubpage('Sit');
 
         expect(title2).toEqual(jasmine.any(Title));
@@ -354,7 +370,9 @@ describe('Test Title.getSubpage()', function() {
 
 describe('Test Title.getSubpages()', function() {
     it('title with subpages', function() {
-        let subpages = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet').getSubpages();
+        const par = new MWParser();
+
+        let subpages = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet', par.parserConfig).getSubpages();
 
         expect(subpages).toEqual(jasmine.any(Array));
         expect(subpages.length).toEqual(4);
@@ -372,21 +390,23 @@ describe('Test Title.getSubpages()', function() {
         });
 
         // no subpages in title
-        let title = Title.newFromText('User:Lorem');
+        let title = Title.newFromText('User:Lorem', par.parserConfig);
         expect(title.getSubpageText()).toEqual('Lorem');
 
         // namespace without subpages support
-        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor', par.parserConfig);
     });
 
     it('title without subpages or namespace without subpages', function() {
-        let subpages = Title.newFromText('User:Lorem').getSubpages();
+        const par = new MWParser();
+
+        let subpages = Title.newFromText('User:Lorem', par.parserConfig).getSubpages();
 
         expect(subpages).toEqual(jasmine.any(Array));
         expect(subpages.length).toEqual(0);
 
         // namespace without subpages support
-        subpages = Title.newFromText('File:Lorem/Ipsum/Dolor').getSubpages();
+        subpages = Title.newFromText('File:Lorem/Ipsum/Dolor', par.parserConfig).getSubpages();
 
         expect(subpages).toEqual(jasmine.any(Array));
         expect(subpages.length).toEqual(0);
@@ -396,33 +416,37 @@ describe('Test Title.getSubpages()', function() {
 
 describe('Test Title.hasSubpages()', function() {
     it('basic tests', function() {
-        let title = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet');
+        const par = new MWParser();
+
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet', par.parserConfig);
         expect(title.hasSubpages()).toBeTruthy();
 
         // title without subpages
-        title = Title.newFromText('User:Lorem');
+        title = Title.newFromText('User:Lorem', par.parserConfig);
         expect(title.hasSubpages()).toBeFalsy();
 
         // namespace without subpages support
-        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor', par.parserConfig);
         expect(title.hasSubpages()).toBeFalsy();
     });
 });
 
 describe('Test Title.getBaseText()', function() {
     it('basic tests', function() {
-        let title = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet');
+        const par = new MWParser();
+
+        let title = Title.newFromText('User:Lorem/Ipsum/Dolor/Sit/Amet', par.parserConfig);
         expect(title.getBaseText()).toEqual('Lorem/Ipsum/Dolor/Sit');
 
-        title = Title.newFromText('User:Lorem/Ipsum');
+        title = Title.newFromText('User:Lorem/Ipsum', par.parserConfig);
         expect(title.getBaseText()).toEqual('Lorem');
 
         // title without subpages
-        title = Title.newFromText('User:Lorem');
+        title = Title.newFromText('User:Lorem', par.parserConfig);
         expect(title.getBaseText()).toEqual('Lorem');
 
         // namespace without subpages support
-        title = Title.newFromText('File:Lorem/Ipsum/Dolor');
+        title = Title.newFromText('File:Lorem/Ipsum/Dolor', par.parserConfig);
         expect(title.getBaseText()).toEqual('Lorem/Ipsum/Dolor');
     });
 

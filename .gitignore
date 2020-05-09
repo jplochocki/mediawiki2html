@@ -107,3 +107,11 @@ package-lock.json
 001.txt
 temp/
 1*.txt
+
+
+doc/fonts/
+doc/scripts/
+doc/styles
+doc/*.htm
+doc/*.html
+

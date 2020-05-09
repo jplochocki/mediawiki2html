@@ -1,0 +1,20 @@
+{
+    "plugins": [
+        "plugins/markdown"
+    ],
+    
+    
+    "source": {
+        "include": [
+            "src/title.js"
+        ]
+    },
+    
+    
+    "opts": {
+        "destination": "doc",
+        "recurse": true,
+        "private": true,
+        "tutorials": "doc/tutorials"
+    }
+}

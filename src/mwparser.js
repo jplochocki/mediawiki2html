@@ -50,7 +50,7 @@ export class MWParser {
         this.preprocessor = new Preprocessor(this);
         this.magicwords = new MagicWords(this);
 
-        this.pageTitle = Title.newFromText(this.parserConfig.pageTitle);
+        this.pageTitle = Title.newFromText(this.parserConfig.pageTitle, this.parserConfig);
         this.interwikiLinks = [];
         this.internalLinks = [];
         this.externalLinks = [];
@@ -896,7 +896,7 @@ export class MWParser {
         ];
 
         if('manualthumb' in frameParams) { // Use manually specified thumbnail
-            let nt = Title.newFromText(frameParams.manualthumb);
+            let nt = Title.newFromText(frameParams.manualthumb, this.parserConfig);
             if(nt.getNamespace() != Title.NS_FILE)
                 nt.mNamespace = Title.NS_FILE;
             makeThumb_params[0] = nt;
@@ -1623,9 +1623,9 @@ export class MWParser {
 
         // template page
         if(!found || subst !== false) {
-            let templateTitle = Title.newFromText(templateName);
+            let templateTitle = Title.newFromText(templateName, this.parserConfig);
             if(templateName.startsWith(':'))
-                templateTitle = Title.newFromText(templateName.substr(1));
+                templateTitle = Title.newFromText(templateName.substr(1), this.parserConfig);
             else if(templateTitle.mNamespace == Title.NS_MAIN)
                 templateTitle.mNamespace = Title.NS_TEMPLATE;
 
