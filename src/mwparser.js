@@ -26,6 +26,12 @@
  */
 
 
+const isNodeEnv = typeof module === 'object' && module.exports;
+if(isNodeEnv && typeof he == 'undefined') // node tests
+    var he_lib = require('he');
+else
+    var he_lib = he;
+
 
 import { DefaultConfig } from './defaultconfig.js';
 import { Frame } from './frame.js';
@@ -512,7 +518,7 @@ export class MWParser {
                     out = (out + prefix).trimRight() + trail;
 
                     let sortkey = wasblank? '' : txt;
-                    sortkey = he.decode(sortkey).replace(/\n/g, '');
+                    sortkey = he_lib.decode(sortkey).replace(/\n/g, '');
                     // convertCategoryKey() -- skipped
                     this.categories.push({
                         title: nt,
@@ -566,7 +572,7 @@ export class MWParser {
      */
     static makeSelfLinkObj(nt, html='', query='', trail='', prefix='') {
         if(!html)
-            html = he.encode(nt.getPrefixedText());
+            html = he_lib.encode(nt.getPrefixedText());
 
         let inside = '';
         [inside, trail] = this.splitTrail(trail);
@@ -617,10 +623,10 @@ export class MWParser {
         }
 
         if(!html)
-            html = he.encode(nt.getPrefixedText(), {useNamedReferences: true});
+            html = he_lib.encode(nt.getPrefixedText(), {useNamedReferences: true});
 
         let attrs = {
-            title: he.encode(nt.getPrefixedText(), {useNamedReferences: true}),
+            title: he_lib.encode(nt.getPrefixedText(), {useNamedReferences: true}),
             href: nt.getFullURL(query, '//', /* skipFragment */ classes == 'new') // don't include fragment for broken links
         };
         if(classes)

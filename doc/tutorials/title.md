@@ -4,9 +4,6 @@ Usage examples
 ```javascript
 const parser = new MWParser();
 const t = Title.newFromText('Lorem:ipsum', parser.parserConfig);
-
-getPrefixedText
-getFullURL
 ```
 
 

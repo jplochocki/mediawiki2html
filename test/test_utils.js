@@ -26,6 +26,9 @@
  */
 
 
+const isNodeEnv = typeof module === 'object' && module.exports;
+
+
 import { Sanitizer } from '../src/sanitizer.js';
 
 
@@ -33,6 +36,20 @@ import { Sanitizer } from '../src/sanitizer.js';
  * Get fixture file from Karma
  */
 export async function getFixture(file) {
+    if(isNodeEnv) {
+        const fs = require('fs');
+        const path = require('path');
+
+        return new Promise((resolve, reject) => {
+            fs.readFile(path.resolve(__dirname, file), 'utf8', function (err, data) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(data);
+            });
+        });
+    }
+
     const r = await axios.get('/base/test/' + file);
     return r.data;
 }
@@ -139,8 +156,12 @@ function splitHtmlParts(txt) {
  * Makes a comparative test with MediaWiki results
  */
 export async function compareTest(testFilePrefix, testCallback) {
-    document.write('<script type="module" src="/base/node_modules/diff/lib/index.es6.js"></script>');
-    const JsDiff = await import('/base/node_modules/diff/lib/index.es6.js');
+    if(isNodeEnv) // node tests
+        var JsDiff = require('diff');
+    else {
+        document.write('<script type="module" src="/base/node_modules/diff/lib/index.es6.js"></script>');
+        var JsDiff = await import('/base/node_modules/diff/lib/index.es6.js');
+    }
 
     // source dest fixtures - resource preparation
     let source = await getFixture(`${ testFilePrefix }-cmp-tests-source.txt`);

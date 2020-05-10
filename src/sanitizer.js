@@ -26,6 +26,13 @@
  */
 
 
+const isNodeEnv = typeof module === 'object' && module.exports;
+if(isNodeEnv && typeof he == 'undefined') // node tests
+    var he_lib = require('he');
+else
+    var he_lib = he;
+
+
 /**
  * @class Sanitizer
  */
@@ -86,7 +93,7 @@ export class Sanitizer {
             if(!Sanitizer.getAttribNameRegex().test(name))
                 continue;
 
-            attribs[name] = he.decode(value, {
+            attribs[name] = he_lib.decode(value, {
                 isAttributeValue: true
             });
         }
@@ -115,8 +122,8 @@ export class Sanitizer {
             });
 
         return  a.map(([name, value]) => {
-            name = he.encode(name + '');
-            value = he.encode(he.escape(value + ''));
+            name = he_lib.encode(name + '');
+            value = he_lib.encode(he_lib.escape(value + ''));
             return `${ name }="${ value }"`;
         }).join(' ');
     }
@@ -464,7 +471,7 @@ export class Sanitizer {
      */
     static normalizeCss(value) {
         // Decode character references like &#123;
-        value = he.decode(value);
+        value = he_lib.decode(value);
 
         // Decode escape sequences and line continuation
         const space = '[\\x20\\t\\r\\n\\f]';
@@ -481,7 +488,7 @@ export class Sanitizer {
             if(match[1] != '') // Line continuation
                 return '';
             else if(match[2] != '')
-                char = he.decode(`&x${ match[2] };`);
+                char = he_lib.decode(`&x${ match[2] };`);
             else if( $matches[3] !== '' )
                 char = $matches[3];
             else
@@ -582,7 +589,7 @@ export class Sanitizer {
             return '';
 
         text = bits[0][0] == '<' ? '' : bits.shift().replace(/>/g, '&gt;');
-        const tagstack = [];
+        let tagstack = [];
         const tablestack = [];
 
         bits.forEach(bit => {
@@ -696,7 +703,7 @@ export class Sanitizer {
 
                 if(!badtag) {
                     rest = rest.replace(/>/g, '&gt;');
-                    close = (brace == '/>' && slash)? ' /' : '';
+                    let close = (brace == '/>' && slash)? ' /' : '';
                     text += `<${ slash }${ name }${ newparams? ' ' : '' }${ newparams }${ close }>${ rest }`;
                     return;
                 }
@@ -839,7 +846,7 @@ export class Sanitizer {
      * @return string Still normalized, without entities
      */
     static decodeCharReferencesAndNormalize(text) {
-        return he.decode(text); // FIXME
+        return he_lib.decode(text); // FIXME
         // MediaWikiServices::getInstance()->getContentLanguage()->normalize( $text );
     }
 

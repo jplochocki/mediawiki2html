@@ -25,6 +25,13 @@
  */
 
 
+const isNodeEnv = typeof module === 'object' && module.exports;
+if(isNodeEnv && typeof he == 'undefined') // node tests
+    var md5_lib = require('js-md5');
+else
+    var md5_lib = md5;
+
+
 import { Sanitizer } from './sanitizer.js';
 import { DefaultConfig } from './defaultconfig.js';
 
@@ -634,7 +641,7 @@ export class Title {
      * @return {String}
      */
     getImageUrl() {
-        let a = md5(this.mUrlform);
+        let a = md5_lib(this.mUrlform);
         return `${ this.parserConfig.imageFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }`;
     }
 
@@ -646,7 +653,7 @@ export class Title {
      * @return {String}
      */
     getThumbUrl(width) {
-        let a = md5(this.mUrlform);
+        let a = md5_lib(this.mUrlform);
         return `${ this.parserConfig.thumbFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }/${ width }px-${ this.mUrlform }`;
     }
 
