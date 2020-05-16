@@ -26,22 +26,50 @@
  */
 
 
+/**
+ * Default configuration generator for MWParser
+ *
+ * @class DefaultConfig
+ */
 export class DefaultConfig {
     constructor(config=null) {
+        /**
+         * Language of parsed Wiki text (default `en`).
+         *
+         * @type {String}
+         */
         this.language = 'en';
+
         this.useLinkPrefixExtension = false;
         this.isRightAlignedLanguage = false;
+
+        /**
+         * project name (like `$wgSitename`, i.e. used for namespaces
+         * `Title.NS_PROJECT` and `Title.NS_PROJECT_TALK`).
+         *
+         * @type {String}
+         */
         this.projectName = '';
+
+        /**
+         * This page title
+         *
+         * @type {String}
+         */
         this.pageTitle = 'Main page';
+
+
         this.server = `$1${ this.language }.wikipedia.org$2`;
         this.interwikiServer = `$1$3.wikipedia.org$2`;
         this.articlePath = '/w/index.php$1'; // $1 for query, $2 for title itself
         this.queryArticlePath = this.articlePath; // path for article, with query
         this.validInterwikiNames = [];
+
         this.externalLinkTarget = false; // setting to _blank may represent a security risk
         this.defaultThumbSize = 300;
         this.thumbUpright = 0.75;
         this.wgResponsiveImages = true;
+
         this.uploadMissingFileUrl = true;
         this.uploadFileURL = `//${ this.server.replace(/\$(1|2)/g, '') }${ this.articlePath }`;
         this.uploadFileParams = {
@@ -130,7 +158,7 @@ export class DefaultConfig {
     /**
      * Registers new Magic Variables
      *
-     * @return {id: String, synonyms: String[], caseSensitive: Boolean}
+     * @return [{{id: String, synonyms: String[], caseSensitive: Boolean}}]
      */
     registerNewMagicVariables() {
         return [];

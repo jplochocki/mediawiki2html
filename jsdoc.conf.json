@@ -6,7 +6,8 @@
     
     "source": {
         "include": [
-            "src/title.js"
+            "src/title.js",
+            "src/defaultconfig.js"
         ]
     },
     
