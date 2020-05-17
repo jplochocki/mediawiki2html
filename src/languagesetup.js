@@ -26,6 +26,10 @@
  */
 
 
+import languages from './languages.js';
+import { Title, NAMESPACES } from './title.js';
+
+
 /**
  * Language definitions setup class
  *
@@ -34,17 +38,76 @@
 export class LanguageSetup {
     /**
      *
-     * @param {String} langName i.e. 'en'
+     * @param {String} langName short language ID (e.g. '`en`', '`pl`')
      */
-    constructor(langName) {
-        this.specialPageAliases = {}
+    constructor(langName='en') {
+        this.languageName = langName.toLowerCase();
+        this.currentLanguage = languages[this.languageName];
+
+        if(!this.currentLanguage)
+            throw new Error(`Language '${ langName }' not available.`);
+
+        this.defaultLanguage = this;
+        if(this.languageName != 'en') // english is default language
+            this.defaultLanguage = new LanguageSetup('en');
     }
 
 
+    /**
+     * Convert namespace number (e.g. `Title.NS_MAIN` const) or name
+     * (e.g. `NS_MAIN` string) to localized namespace name
+     *
+     * @param {String|Number} namespace
+     * @return {String} returns empty string on unknown namespace
+     */
+    getNamespaceName(namespace) {
+        if(typeof namespace == 'number') {
+            namespace = Object.entries(NAMESPACES).find(([name, value]) => value == namespace);
+            if(!Array.isArray(namespace))
+                return '';
+            namespace = namespace[0].toUpperCase();
+        }
+
+        let a = Object.entries(this.currentLanguage.namespaceNames).find(([name, value]) => name == namespace);
+        if(Array.isArray(a) && Array.isArray(a[1]) && a[1].length > 0)
+            return a[1][0];
+
+        return '';
+    }
+
+
+    /**
+     * Gets name of special page in current language.
+     *
+     * @param {String} enName english page name (e.g. 'upload'). Case
+     * insensitive.
+     * @return {String} returns empty string when page not found
+     */
     getSpecialPageName(enName) {
+        const ns = this.getNamespaceName('NS_SPECIAL');
+
+        let a = this.currentLanguage.specialPageAliases[enName.toLowerCase()];
+        if(Array.isArray(a) && a.length > 0)
+            return `${ ns }:${ a[0] }`;
+
+        // try use english name
+        if(this.languageName != 'en')
+            return this.defaultLanguage.getSpecialPageName(enName);
+
+        return '';
     }
 
 
-    getSpecialPageTitle(enName) {
+    /**
+     * Gets Title object for specjal page (with name in current language)
+     *
+     * @param {String} enName english page name (e.g. 'upload'). Case
+     * insensitive.
+     * @param {DefaultConfig} parserConfig parser config instance for Title
+     * object
+     * @return {Title}
+     */
+    getSpecialPageTitle(enName, parserConfig) {
+        return Title.newFromText(this.getSpecialPageName(enName), parserConfig)
     }
 };

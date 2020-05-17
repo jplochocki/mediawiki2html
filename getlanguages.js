@@ -38,6 +38,12 @@ if(!fs.existsSync(MEDIAWIKI_SOURCE)) {
 console.log('Working from source', MEDIAWIKI_SOURCE, '...');
 
 
+let BEGINNING_COMMENT = fs.readFileSync(__filename, {encoding: 'utf8', flag: 'r'}).split(/\r?\n/);
+BEGINNING_COMMENT = BEGINNING_COMMENT.slice(0, BEGINNING_COMMENT.findIndex(ln => /^\s*\*\/\s*$/.test(ln)) + 1);
+BEGINNING_COMMENT[1] = ' * Language definitions for parser. AUTOMATIC GENERATED (from MediaWiki source). DO NOT EDIT.';
+BEGINNING_COMMENT = BEGINNING_COMMENT.join('\n');
+
+
 let languages = fs.readdirSync(path.join(MEDIAWIKI_SOURCE, 'languages/messages')).map(file => {
     const language = /Messages(.+).php/.exec(file)[1].toLowerCase();
     const lines = fs.readFileSync(path.join(MEDIAWIKI_SOURCE, 'languages/messages', file), {encoding: 'utf8', flag: 'r'}).split(/\r?\n/);
@@ -45,45 +51,93 @@ let languages = fs.readdirSync(path.join(MEDIAWIKI_SOURCE, 'languages/messages')
 });
 
 
-function phpAssociativeArrayItemRe(name, valueIsArray=false) {
+function phpAssociativeArrayItemRe(name, valueIsArray=false, nameIsString=true) {
+    let n = `['"](${ name })['"]`;
+    if(!nameIsString)
+        n = `(${ name })`;
+
     if(valueIsArray)
-        return new RegExp(`^\\s*'(${ name })'\\s*=>\\s*\\[(.*?)\\]\\s*,\\s*$`, 'i');
-    return new RegExp(`^\\s*'(${ name })'\\s*=>\\s*(.*?)\\s*,\\s*$`, 'i');
+        return new RegExp(`^\\s*${ n }\\s*=>\\s*\\[(.*?)\\]\\s*,\\s*$`, 'i');
+    return new RegExp(`^\\s*${ n }\\s*=>\\s*(.*?)\\s*,\\s*$`, 'i');
 }
 
 
+/**
+ * drops " / ' from string begin and end.
+ */
+function extractStringStr(txt) {
+    if(/^\s*(['"])(.*?)\1\s*$/i.test(txt))
+        txt = txt.replace(/^\s*(['"])(.*?)\1\s*$/i, '$2');
+    return txt;
+}
+
+
+const MEDIAWIKI_NAMESACES = [
+    'NS_MEDIA', 'NS_SPECIAL', 'NS_MAIN', 'NS_TALK', 'NS_USER', 'NS_USER_TALK',
+    'NS_PROJECT', 'NS_PROJECT_TALK', 'NS_FILE', 'NS_FILE_TALK', 'NS_MEDIAWIKI',
+    'NS_MEDIAWIKI_TALK', 'NS_TEMPLATE', 'NS_TEMPLATE_TALK', 'NS_HELP',
+    'NS_HELP_TALK', 'NS_CATEGORY', 'NS_CATEGORY_TALK'
+]
+
+
 const EXTRACT_FROM_MESSAGES = [
-    { // find language description
+    {
+
+        // find language description
         find: [
             /^\s*\/\*\*\s*(.+?\s*\([^\)]+?\))/i,  // i.e. /** Chinese (Macau)
             /^\s*\/\*\*\s*(.+?)/i            // i.e. /** Laki
         ],
         saveAs: 'languageDescription'
-    },
-    { // language fallback
+    }, {
+
+        // language fallback
         find: [
             /\s*\$fallback\s*=\s*'([^\']+?)'/i // i.e. $fallback = 'zh-hk, zh-hant, zh-hans';
         ],
         saveAs: (language, txt) => {
             language.fallback = txt.split(/,\s*/);
         }
-    },
-    { // interesting specjal pages
+    }, {
+
+        // interesting specjal pages
         from: /\$specialPageAliases\s*=\s*\[/i,
         to: /\s*\]\s*;\s*/i,
 
         find: [
-            phpAssociativeArrayItemRe('Upload', true)
+            phpAssociativeArrayItemRe('Upload', /* valueIsArray */ true)
         ],
 
         saveAs: (language, name, value) => {
             if(!language.specialPageAliases)
                 language.specialPageAliases = {}
 
+            name = name.toLowerCase();
             if(!language.specialPageAliases[name])
                 language.specialPageAliases[name] = [];
             value = value.split(/(?:'|")(.*?)(?:'|"),?\s*/).filter(Boolean).filter(a => !/^\s+$/.test(a));
             language.specialPageAliases[name].push.apply(language.specialPageAliases[name], value)
+        }
+    }, {
+
+        // title namespaces
+        from: /\$namespaceNames\s*=\s*\[/i,
+        to: /\s*\]\s*;\s*/i,
+
+        find: [
+            ...MEDIAWIKI_NAMESACES.map(name => phpAssociativeArrayItemRe(name, /* valueIsArray */ false, /* nameIsString */ false))
+        ],
+        findAll: true,
+
+        saveAs: (language, name, value) => {
+            if(!language.namespaceNames) {
+                language.namespaceNames = Object.fromEntries(MEDIAWIKI_NAMESACES.map(name => [name, []]));
+                language.namespaceNames['NS_PROJECT'] = ['$1'];
+            }
+
+            let a = extractStringStr(value);
+            if(a)
+                language.namespaceNames[name].push(a);
         }
     }
 ];
@@ -110,7 +164,9 @@ EXTRACT_FROM_MESSAGES.forEach(fnd => {
                         fnd.saveAs(lang, a[1], a[2], a[3], a[4]);
                     else
                         lang[fnd.saveAs] = a[1];
-                    return true;
+
+                    if(!fnd.findAll)
+                        return true;
                 }
             });
         });
@@ -170,12 +226,12 @@ while(true) {
 let outLangs = {};
 
 languages.forEach(lng => {
-    let {language, languageDescription = '', specialPageAliases = []} = lng;
+    let {language, languageDescription = '', specialPageAliases = [], namespaceNames} = lng;
     outLangs[language] = {
         languageDescription,
-        specialPageAliases
+        specialPageAliases,
+        namespaceNames
     };
 });
 
-fs.writeFileSync(path.resolve(__dirname, 'src/languages.js'), 'export default ' + JSON.stringify(outLangs, null, 4) + ';', {encoding: 'utf8'});
-
+fs.writeFileSync(path.resolve(__dirname, 'src/languages.js'), BEGINNING_COMMENT + '\n\n\nexport default ' + JSON.stringify(outLangs, null, 4) + ';', {encoding: 'utf8'});

@@ -26,6 +26,10 @@
  */
 
 
+import { LanguageSetup } from './languagesetup.js';
+import languages from './languages.js';
+
+
 /**
  * Default configuration generator for MWParser
  *
@@ -39,6 +43,8 @@ export class DefaultConfig {
          * @type {String}
          */
         this.language = 'en';
+        this.contentLanguage = new LanguageSetup(this.language);
+
 
         this.useLinkPrefixExtension = false;
         this.isRightAlignedLanguage = false;

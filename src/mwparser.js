@@ -53,6 +53,7 @@ import { ImageGalleryBase } from './imagegallery.js';
 export class MWParser {
     constructor(config=null) {
         this.parserConfig = new DefaultConfig(config);
+        this.contentLanguage = this.parserConfig.contentLanguage; // alias for language funcs
         this.preprocessor = new Preprocessor(this);
         this.magicwords = new MagicWords(this);
 

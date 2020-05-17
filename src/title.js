@@ -25,6 +25,9 @@
  */
 
 
+/**
+ * @private
+ */
 const isNodeEnv = typeof module === 'object' && module.exports;
 if(isNodeEnv && typeof he == 'undefined') // node tests
     var md5_lib = require('js-md5');
@@ -45,35 +48,15 @@ import { DefaultConfig } from './defaultconfig.js';
 export class Title {
     /**
      * @constructor
-     * @param {Object|DefaultConfig} [parserConfig]
+     * @param {Object|DefaultConfig} parserConfig
      */
-    constructor(parserConfig=null) {
-        // valid namespace consts
-        Title.NS_MAIN = 0;
-        Title.NS_TALK = 1;
-        Title.NS_USER = 2;
-        Title.NS_USER_TALK = 3;
-        Title.NS_PROJECT = 4;
-        Title.NS_PROJECT_TALK = 5;
-        Title.NS_FILE = 6;
-        Title.NS_FILE_TALK = 7;
-        Title.NS_MEDIAWIKI = 8;
-        Title.NS_MEDIAWIKI_TALK = 9;
-        Title.NS_TEMPLATE = 10;
-        Title.NS_TEMPLATE_TALK = 11;
-        Title.NS_HELP = 12;
-        Title.NS_HELP_TALK = 13;
-        Title.NS_CATEGORY = 14;
-        Title.NS_CATEGORY_TALK = 15;
-        Title.NS_SPECIAL = -1;
-
+    constructor(parserConfig) {
         if(parserConfig instanceof DefaultConfig)
             this.parserConfig = parserConfig;
         else
             this.parserConfig = new DefaultConfig(parserConfig);
 
         // valid namespace names
-        // FIXME more languages
         this.namespaceNames = {};
 
         this.namespaceNames['en'] = {
@@ -135,19 +118,6 @@ export class Title {
             Title.NS_HELP_TALK,
             Title.NS_CATEGORY_TALK
         ];
-
-        if(this.parserConfig.projectName) {
-            Object.values(this.namespaceNames).forEach(names => {
-                names[Title.NS_PROJECT] = names[Title.NS_PROJECT].replace('$1', this.parserConfig.projectName);
-                names[Title.NS_PROJECT_TALK] = names[Title.NS_PROJECT_TALK].replace('$1', this.parserConfig.projectName);
-            });
-        }
-        else { // no project name = don't resolve NS_PROJECT / NS_PROJECT_TALK names
-            Object.values(this.namespaceNames).forEach(names => {
-                delete names[Title.NS_PROJECT];
-                delete names[Title.NS_PROJECT_TALK];
-            });
-        }
 
         this.mNamespace = Title.NS_MAIN;
         this.mDbkeyform = null;
@@ -761,4 +731,49 @@ export class Title {
         parts.pop();
         return parts.reduce((txt, part) => txt + (txt != '' ? '/' : '') + part, '');
     }
-}
+};
+
+
+// valid namespace consts
+Title.NS_MAIN = 0;
+Title.NS_TALK = 1;
+Title.NS_USER = 2;
+Title.NS_USER_TALK = 3;
+Title.NS_PROJECT = 4;
+Title.NS_PROJECT_TALK = 5;
+Title.NS_FILE = 6;
+Title.NS_FILE_TALK = 7;
+Title.NS_MEDIAWIKI = 8;
+Title.NS_MEDIAWIKI_TALK = 9;
+Title.NS_TEMPLATE = 10;
+Title.NS_TEMPLATE_TALK = 11;
+Title.NS_HELP = 12;
+Title.NS_HELP_TALK = 13;
+Title.NS_CATEGORY = 14;
+Title.NS_CATEGORY_TALK = 15;
+Title.NS_SPECIAL = -1;
+
+
+/**
+ * Valid namespace IDs and numbers mapping
+ * @const
+*/
+export const NAMESPACES = {
+    NS_MAIN: 0,
+    NS_TALK: 1,
+    NS_USER: 2,
+    NS_USER_TALK: 3,
+    NS_PROJECT: 4,
+    NS_PROJECT_TALK: 5,
+    NS_FILE: 6,
+    NS_FILE_TALK: 7,
+    NS_MEDIAWIKI: 8,
+    NS_MEDIAWIKI_TALK: 9,
+    NS_TEMPLATE: 10,
+    NS_TEMPLATE_TALK: 11,
+    NS_HELP: 12,
+    NS_HELP_TALK: 13,
+    NS_CATEGORY: 14,
+    NS_CATEGORY_TALK: 15,
+    NS_SPECIAL: -1,
+};
