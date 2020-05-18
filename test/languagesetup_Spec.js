@@ -61,6 +61,45 @@ describe('LanguageSetup.getNamespaceName()', function() {
         expect(lang.getNamespaceName(Title.NS_MAIN - 10)).toEqual('');
         expect(lang.getNamespaceName('NS_LOREM_IPSUM')).toEqual('');
     });
+
+    it('project name set or not', function() {
+        // project name not set
+        let lang = new LanguageSetup('en');
+
+        expect(lang.getNamespaceName(Title.NS_PROJECT)).toEqual('');
+        expect(lang.getNamespaceName('NS_PROJECT')).toEqual('');
+
+        expect(lang.getNamespaceName(Title.NS_PROJECT_TALK)).toEqual('');
+        expect(lang.getNamespaceName('NS_PROJECT_TALK')).toEqual('');
+
+        // project name set
+        lang = new LanguageSetup('en', 'LoremIpsum');
+
+        expect(lang.getNamespaceName(Title.NS_PROJECT)).toEqual('LoremIpsum');
+        expect(lang.getNamespaceName('NS_PROJECT')).toEqual('LoremIpsum');
+
+        expect(lang.getNamespaceName(Title.NS_PROJECT_TALK)).toEqual('LoremIpsum_talk');
+        expect(lang.getNamespaceName('NS_PROJECT_TALK')).toEqual('LoremIpsum_talk');
+    });
+});
+
+
+describe('LanguageSetup.getNamespaceIndex', function() {
+    it('basic tests', function() {
+        let lang = new LanguageSetup('en');
+
+        expect(lang.getNamespaceIndex('LoremIpsum')).toBeFalsy();
+        expect(lang.getNamespaceIndex('File')).toBe(Title.NS_FILE);
+        expect(lang.getNamespaceIndex('Talk')).toBe(Title.NS_TALK);
+        expect(lang.getNamespaceIndex('User')).toBe(Title.NS_USER);
+
+        lang = new LanguageSetup('pl');
+
+        expect(lang.getNamespaceIndex('LoremIpsum')).toBeFalsy();
+        expect(lang.getNamespaceIndex('Plik')).toBe(Title.NS_FILE);
+        expect(lang.getNamespaceIndex('Dyskusja')).toBe(Title.NS_TALK);
+        expect(lang.getNamespaceIndex('Użytkownik')).toBe(Title.NS_USER);
+    });
 });
 
 

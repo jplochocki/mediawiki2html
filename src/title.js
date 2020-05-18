@@ -55,6 +55,7 @@ export class Title {
             this.parserConfig = parserConfig;
         else
             this.parserConfig = new DefaultConfig(parserConfig);
+        this.contentLanguage = this.parserConfig.contentLanguage;
 
         // valid namespace names
         this.namespaceNames = {};
@@ -296,8 +297,7 @@ export class Title {
      * @return {Number|Boolean} False when namespace unknown
      */
     getNsIndex(ns) {
-        let a = Object.keys(this.namespaceNames[this.parserConfig.language]).find(k => k == ns);
-        return (a == undefined) ? false : this.namespaceNames[this.parserConfig.language][a];
+        return this.contentLanguage.getNamespaceIndex(ns);
     }
 
 
@@ -309,8 +309,8 @@ export class Title {
      */
     getNsText(ns=false) {
         ns = ns === false ? this.mNamespace : ns;
-        let a = Object.entries(this.namespaceNames[this.parserConfig.language]).find(([k, v]) => v == ns);
-        return a ? a[0] : false;
+        let a = this.contentLanguage.getNamespaceName(ns);
+        return a ? a : false;
     }
 
 

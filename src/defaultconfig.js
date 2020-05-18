@@ -43,14 +43,17 @@ export class DefaultConfig {
          * @type {String}
          */
         this.language = 'en';
-        this.contentLanguage = new LanguageSetup(this.language);
+
+        this.contentLanguage = new LanguageSetup(
+            config && config.language? config.language : 'en',
+            config && config.projectName? config.projectName : '');
 
 
         this.useLinkPrefixExtension = false;
         this.isRightAlignedLanguage = false;
 
         /**
-         * project name (like `$wgSitename`, i.e. used for namespaces
+         * project name (like `$wgSitename`, e.g. used for namespaces
          * `Title.NS_PROJECT` and `Title.NS_PROJECT_TALK`).
          *
          * @type {String}

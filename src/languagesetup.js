@@ -38,18 +38,34 @@ import { Title, NAMESPACES } from './title.js';
 export class LanguageSetup {
     /**
      *
-     * @param {String} langName short language ID (e.g. '`en`', '`pl`')
+     * @param {String} [langName='en'] short language ID (e.g. '`en`', '`pl`')
+     * @param {String} [projectName] optional project name
+     * (for `NS_PROJECT` and `NS_PROJECT_TALK` namespaces)
      */
-    constructor(langName='en') {
+    constructor(langName='en', projectName='') {
         this.languageName = langName.toLowerCase();
-        this.currentLanguage = languages[this.languageName];
+        this.currentLanguage = JSON.parse(JSON.stringify(languages[this.languageName])); // deep copy of language
 
         if(!this.currentLanguage)
             throw new Error(`Language '${ langName }' not available.`);
 
         this.defaultLanguage = this;
         if(this.languageName != 'en') // english is default language
-            this.defaultLanguage = new LanguageSetup('en');
+            this.defaultLanguage = new LanguageSetup('en', projectName);
+
+
+        // complete project name in currentLanguage
+        if(projectName) {
+            let project = Object.entries(this.currentLanguage.namespaceNames).find(([k, v]) => k == 'NS_PROJECT')[1];
+            let project_talk = Object.entries(this.currentLanguage.namespaceNames).find(([k, v]) => k == 'NS_PROJECT_TALK')[1];
+
+            project.forEach((a, idx) => project[idx] = a.replace('$1', projectName));
+            project_talk.forEach((a, idx) => project_talk[idx] = a.replace('$1', projectName));
+        }
+        else { // no project name = don't resolve NS_PROJECT / NS_PROJECT_TALK names
+            delete this.currentLanguage.namespaceNames['NS_PROJECT'];
+            delete this.currentLanguage.namespaceNames['NS_PROJECT_TALK'];
+        }
     }
 
 
@@ -73,6 +89,25 @@ export class LanguageSetup {
             return a[1][0];
 
         return '';
+    }
+
+
+    /**
+     * Convert namespace name (e.g. `File`) to index (i.e. Title.NS_FILE).
+     *
+     * @param {String} nsName
+     * @return {Number|Boolean} namespace number (or false if not found)
+     */
+    getNamespaceIndex(nsName) {
+        nsName = nsName.toLowerCase();
+        let a = Object.entries(this.currentLanguage.namespaceNames).find(([_, nsNamesInLang]) => nsNamesInLang.some(name => name.toLowerCase() == nsName));
+        if(!a)
+            return false;
+
+        a = Object.entries(NAMESPACES).find(([name, value]) => name == a[0]);
+
+        //let a = Object.keys(this.namespaceNames[this.parserConfig.language]).find(k => k == ns);
+        return (a == undefined) ? false : a[1];
     }
 
 
