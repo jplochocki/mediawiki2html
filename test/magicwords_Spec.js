@@ -65,7 +65,7 @@ describe('MagicWords tests', function() {
 
     it('expandMagicVariable() date time tests', function() {
         jasmine.clock().install();
-        jasmine.clock().mockDate(new Date(Date.UTC(2020, 1, 22, 18, 1, 2)));
+        jasmine.clock().mockDate(new Date('2/22/2020 6:01:00 PM UTC'));
 
         let par = new MWParser();
         let result = par.magicwords.expandMagicVariable('currentmonth');
@@ -108,7 +108,7 @@ describe('MagicWords tests', function() {
         expect(result).toEqual('6');
 
         result = par.magicwords.expandMagicVariable('currenttimestamp');
-        expect(result).toEqual('202002221912');
+        expect(result).toEqual('202002221910');
 
         jasmine.clock().uninstall();
     });
