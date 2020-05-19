@@ -1,0 +1,18 @@
+language: node_js
+node_js:
+    - 14
+
+addons:
+apt:
+    sources:
+        -google-chrome
+    packages:
+        -google-chrome-stable
+        -google-chrome-beta
+
+before_install:
+    -export CHROME_BIN=chromium-browser
+
+script:
+    browsers-test
+    node-test

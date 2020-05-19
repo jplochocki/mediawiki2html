@@ -4,8 +4,9 @@
   "description": "MediaWiki wiki markup to HTML converter",
   "main": "dist/mwparser.js",
   "scripts": {
-    "test": "export CHROME_BIN=/usr/bin/chromium-browser;node_modules/karma/bin/karma start ./karma.conf.js",
+    "test": "node_modules/karma/bin/karma start ./karma.conf.js",
     "build": "node_modules/.bin/webpack",
+    "browsers-test": "node_modules/karma/bin/karma start ./karma-all.conf.js", 
     "node-test": "./node_modules/.bin/jasmine --config=node-jasmine.json"
   },
   "repository": {
