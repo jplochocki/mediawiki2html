@@ -41,6 +41,9 @@ describe('LanguageSetup.getNamespaceName()', function() {
         expect(lang.getNamespaceName(Title.NS_USER)).toEqual('User');
         expect(lang.getNamespaceName('NS_USER')).toEqual('User');
 
+        expect(lang.getNamespaceName(Title.NS_MEDIA)).toEqual('Media');
+        expect(lang.getNamespaceName('NS_MEDIA')).toEqual('Media');
+
         // wrong numbers / names
         expect(lang.getNamespaceName(Title.NS_CATEGORY_TALK + 10)).toEqual('');
         expect(lang.getNamespaceName(Title.NS_MAIN - 10)).toEqual('');
@@ -55,6 +58,9 @@ describe('LanguageSetup.getNamespaceName()', function() {
 
         expect(lang.getNamespaceName(Title.NS_USER)).toEqual('Użytkownik');
         expect(lang.getNamespaceName('NS_USER')).toEqual('Użytkownik');
+
+        expect(lang.getNamespaceName(Title.NS_MEDIA)).toEqual('Media');
+        expect(lang.getNamespaceName('NS_MEDIA')).toEqual('Media');
 
         // wrong numbers / names
         expect(lang.getNamespaceName(Title.NS_CATEGORY_TALK + 10)).toEqual('');

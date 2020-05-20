@@ -57,53 +57,6 @@ export class Title {
             this.parserConfig = new DefaultConfig(parserConfig);
         this.contentLanguage = this.parserConfig.contentLanguage;
 
-        // valid namespace names
-        this.namespaceNames = {};
-
-        this.namespaceNames['en'] = {
-            'Media': Title.NS_MEDIA,
-            'Special': Title.NS_SPECIAL,
-            'Talk': Title.NS_TALK,
-            'User': Title.NS_USER,
-            'User_talk': Title.NS_USER_TALK,
-            '$1': Title.NS_PROJECT,
-            '$1_talk': Title.NS_PROJECT_TALK,
-            'File': Title.NS_FILE,
-            'File_talk': Title.NS_FILE_TALK,
-            'MediaWiki': Title.NS_MEDIAWIKI,
-            'MediaWiki_talk': Title.NS_MEDIAWIKI_TALK,
-            'Template': Title.NS_TEMPLATE,
-            'Template_talk': Title.NS_TEMPLATE_TALK,
-            'Help': Title.NS_HELP,
-            'Help_talk': Title.NS_HELP_TALK,
-            'Category': Title.NS_CATEGORY,
-            'Category_talk': Title.NS_CATEGORY_TALK
-        };
-
-        this.namespaceNames['pl'] = {
-            'Media': Title.NS_MEDIA,
-            'Specjalna': Title.NS_SPECIAL,
-            'Dyskusja': Title.NS_TALK,
-            'Użytkownik': Title.NS_USER,
-            'Użytkowniczka': Title.NS_USER,
-            'Dyskusja_użytkownika': Title.NS_USER_TALK,
-            'Dyskusja_użytkowniczki': Title.NS_USER_TALK,
-            '$1': Title.NS_PROJECT,
-            'Dyskusja_$1': Title.NS_PROJECT_TALK,
-            'Plik': Title.NS_FILE,
-            'Grafika': Title.NS_FILE,
-            'Dyskusja_pliku': Title.NS_FILE_TALK,
-            'Dyskusja_grafiki': Title.NS_FILE_TALK,
-            'MediaWiki': Title.NS_MEDIAWIKI,
-            'Dyskusja_MediaWiki': Title.NS_MEDIAWIKI_TALK,
-            'Szablon': Title.NS_TEMPLATE,
-            'Dyskusja_szablonu': Title.NS_TEMPLATE_TALK,
-            'Pomoc': Title.NS_HELP,
-            'Dyskusja_pomocy': Title.NS_HELP_TALK,
-            'Kategoria': Title.NS_CATEGORY,
-            'Dyskusja_kategorii': Title.NS_CATEGORY_TALK
-        };
-
         this.namespacesWithSubpages = [
             Title.NS_TALK,
             Title.NS_USER,
@@ -752,6 +705,7 @@ Title.NS_HELP_TALK = 13;
 Title.NS_CATEGORY = 14;
 Title.NS_CATEGORY_TALK = 15;
 Title.NS_SPECIAL = -1;
+Title.NS_MEDIA = -2;
 
 
 /**
@@ -776,4 +730,5 @@ export const NAMESPACES = {
     NS_CATEGORY: 14,
     NS_CATEGORY_TALK: 15,
     NS_SPECIAL: -1,
+    NS_MEDIA: -2,
 };
