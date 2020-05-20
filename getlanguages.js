@@ -139,6 +139,49 @@ const EXTRACT_FROM_MESSAGES = [
             if(a)
                 language.namespaceNames[name].push(a);
         }
+    }, {
+
+        // title namespaces aliases ($namespaceAliases)
+        from: /\$namespaceAliases\s*=\s*\[(?!\s*];)/i,
+        to: /\s*\]\s*;\s*/i,
+
+        find: [
+            phpAssociativeArrayItemRe('.*', /* valueIsArray */ false, /* nameIsString */ true)
+        ],
+        findAll: true,
+
+        saveAs: (language, nsAlias, nsName) => {
+            // 'Grafika' => NS_FILE,
+            if(!language.namespaceNames[nsName])
+                return;
+            language.namespaceNames[nsName].push(nsAlias);//extractStringStr(nsAlias)
+            language.namespaceNames[nsName] = Array.from(new Set(language.namespaceNames[nsName])); // reduce duplicates
+        }
+    }, {
+
+        // title namespaces gender aliases ($namespaceGenderAliases)
+        from: /^\s*\$namespaceGenderAliases\s*=\s*\[(?!\s*];)/i,
+        to: /\s*\]\s*;\s*/i,
+
+        find: [
+            phpAssociativeArrayItemRe('.*', /* valueIsArray */ true, /* nameIsString */ false)
+        ],
+        findAll: true,
+
+        saveAs: (language, nsName, genderAliases) => {
+            // NS_USER => [ 'male' => 'Użytkownik', 'female' => 'Użytkowniczka' ]
+            nsName = nsName.trim();
+            if(!language.namespaceNames[nsName])
+                return;
+
+            let a = /^\s*'male'\s*=>\s*'(.*?)'\s*,\s*'female'\s*=>\s*'(.*?)'\s*$/i.exec(genderAliases);
+            if(!genderAliases)
+                return;
+
+            language.namespaceNames[nsName].push(a[1]);
+            language.namespaceNames[nsName].push(a[2]);
+            language.namespaceNames[nsName] = Array.from(new Set(language.namespaceNames[nsName])); // reduce duplicates
+        }
     }
 ];
 

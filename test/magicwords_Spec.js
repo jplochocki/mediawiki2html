@@ -65,7 +65,8 @@ describe('MagicWords tests', function() {
 
     it('expandMagicVariable() date time tests', function() {
         jasmine.clock().install();
-        jasmine.clock().mockDate(new Date('2/22/2020 6:01:00 PM UTC'));
+        let d = new Date('2/22/2020 6:01:00 PM UTC');
+        jasmine.clock().mockDate(d);
 
         let par = new MWParser();
         let result = par.magicwords.expandMagicVariable('currentmonth');
@@ -96,10 +97,10 @@ describe('MagicWords tests', function() {
         expect(result).toEqual('2020');
 
         result = par.magicwords.expandMagicVariable('currenttime');
-        expect(result).toEqual('19:01');
+        expect(result).toEqual(`${ d.getHours() }:01`);
 
         result = par.magicwords.expandMagicVariable('currenthour');
-        expect(result).toEqual('19');
+        expect(result).toEqual(d.getHours() + '');
 
         result = par.magicwords.expandMagicVariable('currentweek');
         expect(result).toEqual('9');
@@ -108,7 +109,12 @@ describe('MagicWords tests', function() {
         expect(result).toEqual('6');
 
         result = par.magicwords.expandMagicVariable('currenttimestamp');
-        expect(result).toEqual('202002221910');
+        expect(result).toEqual(d.toLocaleDateString('en', {year: 'numeric'})
+                    + d.toLocaleDateString('en', {month: '2-digit'})
+                    + d.toLocaleDateString('en', {day: '2-digit'})
+                    + d.toLocaleTimeString('en', {hour: '2-digit', hour12: false})
+                    + d.toLocaleTimeString('en', {minute: '2-digit'})
+                    + d.toLocaleTimeString('en', {second: '2-digit'}));
 
         jasmine.clock().uninstall();
     });
