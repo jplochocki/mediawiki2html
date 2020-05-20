@@ -6,14 +6,13 @@ node_js:
 
 addons:
     - chrome: stable
-    - firefox: "76"
+    - firefox: latest
 
 services:
     - xvfb
 
 before_script:
     - git clone https://github.com/wikimedia/mediawiki.git --branch REL1_34 --single-branch --depth 1 mediawiki-src
-    - ls -la
     - node getlanguages.js mediawiki-src
 
 script:
