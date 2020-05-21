@@ -56,116 +56,16 @@ export async function getFixture(file) {
 
 
 /**
- * Parse HTML text to parts, ie. from text:
- *
- * ```html
- * 'Lorem ipsum <a href="http://lorem.com" class="image">dolor sit <img alt="LoremIpsum.png" src="/images/a/af/LoremIpsum.png" width="313" height="490" /></a>
- * ```
- *
- * you should get:
- *
- * ```javascript
- * [
- *     {
- *         "type": "text",
- *         "text": "Lorem ipsum"
- *     },
- *     {
- *         "type": "tag",
- *         "tagName": "a",
- *         "attributes": {
- *             "href": "http://lorem.com",
- *             "class": "image"
- *         },
- *         "isEndTag": false
- *     },
- *     {
- *         "type": "text",
- *         "text": "dolor sit"
- *     },
- *     {
- *         "type": "tag",
- *         "tagName": "img",
- *         "attributes": {
- *             "alt": "LoremIpsum.png",
- *             "src": "/images/a/af/LoremIpsum.png",
- *             "width": "313",
- *             "height": "490"
- *         },
- *         "isEndTag": false
- *     },
- *     {
- *         "type": "tag",
- *         "tagName": "a",
- *         "attributes": {},
- *         "isEndTag": true
- *     }
- * ]
- * ```
- *
- * @param String txt
- * @return Array
- */
-function splitHtmlParts(txt) {
-    let bits = [];
-    txt.split(/(<)/g).forEach(a => {
-        if(bits.length > 0 && bits[bits.length -1] == '<')
-            bits[bits.length -1] += a
-        else if(a)
-            bits.push(a);
-    });
-
-    let result = [];
-    bits.forEach(bit => {
-        bit = bit.trim()
-        if(bit.indexOf('<') == -1 && bit) { // text only in bit
-            result.push({
-                type: 'text',
-                text: bit
-            });
-            return;
-        }
-
-        // tag in bit
-        let m = /^<(\/?)([A-Za-z][^\s/>]*?)\s+([^>]*?)(\/?>)([^<]*)$/gi.exec(bit.replace(/(\/)?>/g, ' $1>'));
-        let [, isEndTag, tagName, attributes, , rest] = m;
-
-        attributes = Sanitizer.decodeTagAttributes(attributes);
-        isEndTag = isEndTag != '';
-
-        result.push({
-            type: 'tag',
-            tagName,
-            attributes,
-            isEndTag,
-        });
-
-        // text pos after tag
-        if(rest.trim())
-            result.push({
-                type: 'text',
-                text: rest.trim()
-            });
-    });
-
-    return result;
-}
-
-
-/**
  * Makes a comparative test with MediaWiki results
  */
 export async function compareTest(testFilePrefix, testCallback) {
-    if(isNodeEnv) // node tests
-        var JsDiff = require('diff');
-    else {
-        document.write('<script type="module" src="/base/node_modules/diff/lib/index.es6.js"></script>');
-        var JsDiff = await import('/base/node_modules/diff/lib/index.es6.js');
-    }
+    jasmine.addMatchers(HtmlCompareMatchers);
 
     // source dest fixtures - resource preparation
     let source = await getFixture(`${ testFilePrefix }-cmp-tests-source.txt`);
     let dest = await getFixture(`${ testFilePrefix }-cmp-tests-result.txt`);
+
+
 
     source = source.split(/\n?(-=-=-=-\[.*\]-=-=-=-)\n/);
     let tests = [], lastTestName = '';
@@ -180,9 +80,8 @@ export async function compareTest(testFilePrefix, testCallback) {
         else {
             tests.push({
                 name: lastTestName,
-                from: it,
+                sourceWikiTxt: it,
                 mediaWikiResult: '',
-                mediaWikiResult_parts: []
             });
         }
     });
@@ -199,46 +98,15 @@ export async function compareTest(testFilePrefix, testCallback) {
         else {
             let a = tests.find(t => t.name == lastTestName);
             a.mediaWikiResult = it;
-            a.mediaWikiResult_parts = splitHtmlParts(it);
         }
     });
 
     // call test & compare
     tests.forEach(test => {
-        let result = testCallback(test.from);
-        let result_parts = splitHtmlParts(result);
-
-        let r = JsDiff.diffJson(test.mediaWikiResult_parts, result_parts);
-        if(r.length > 1) {
-            let out = `${ colors.red }test diff: ${ test.name }${ colors.reset } (${ test.from })\n\n`
-
-            r.forEach(a => {
-                if(a.added)
-                    out += colors.green + '+' + a.value + colors.reset + '\n';
-                else if(a.removed)
-                    out += colors.red + '-' + a.value + colors.reset + '\n';
-                else
-                    out += ' ', a.value + '\n';
-            });
-            console.log(out);
-
-            console.log('MediaWiki:', test.mediaWikiResult);
-            console.log('Our:', result);
-        }
-    })
+        let ourResult = testCallback(test.sourceWikiTxt);
+        expect(ourResult).withContext(`compareTest for ${ testFilePrefix } in case ${ test.name }`).htmlToBeEqual(test.mediaWikiResult);
+     });
 }
-
-
-const colors = {
-    reset: '\0o33[0m',
-    green: '\0o33[32m',
-    red: '\0o33[31m',
-    black: '\0o33[30m',
-    blue: '\0o33[34m',
-    cyan: '\0o33[36m',
-    purple: '\0o33[35m',
-    brown: '\0o33[33m'
-};
 
 
 /**
