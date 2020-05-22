@@ -35,146 +35,80 @@ export class MagicWords {
         this.parser = parser;
 
         this.variables = [
-            ['!', ['!'], true],
-            ['currentmonth', ['CURRENTMONTH', 'CURRENTMONTH2'], true],
-            ['currentmonth1', ['CURRENTMONTH1'], true],
-            ['currentmonthname', ['CURRENTMONTHNAME'], true],
-            ['currentmonthnamegen', ['CURRENTMONTHNAMEGEN'], true],
-            ['currentmonthabbrev', ['CURRENTMONTHABBREV'], true],
-            ['currentday', ['CURRENTDAY'], true],
-            ['currentday2', ['CURRENTDAY2'], true],
-            ['currentdayname', ['CURRENTDAYNAME'], true],
-            ['currentyear', ['CURRENTYEAR'], true],
-            ['currenttime', ['CURRENTTIME'], true],
-            ['currenthour', ['CURRENTHOUR'], true],
-            ['localmonth', ['LOCALMONTH', 'LOCALMONTH2'], true],
-            ['localmonth1', ['LOCALMONTH1'], true],
-            ['localmonthname', ['LOCALMONTHNAME'], true],
-            ['localmonthnamegen', ['LOCALMONTHNAMEGEN'], true],
-            ['localmonthabbrev', ['LOCALMONTHABBREV'], true],
-            ['localday', ['LOCALDAY'], true],
-            ['localday2', ['LOCALDAY2'], true],
-            ['localdayname', ['LOCALDAYNAME'], true],
-            ['localyear', ['LOCALYEAR'], true],
-            ['localtime', ['LOCALTIME'], true],
-            ['localhour', ['LOCALHOUR'], true],
-            ['numberofarticles', ['NUMBEROFARTICLES'], true],
-            ['numberoffiles', ['NUMBEROFFILES'], true],
-            ['numberofedits', ['NUMBEROFEDITS'], true],
-            ['articlepath', ['ARTICLEPATH'], false],
-            ['pageid', ['PAGEID'], false],
-            ['sitename', ['SITENAME'], true],
-            ['server', ['SERVER'], false],
-            ['servername', ['SERVERNAME'], false],
-            ['scriptpath', ['SCRIPTPATH'], false],
-            ['stylepath', ['STYLEPATH'], false],
-            ['pagename', ['PAGENAME'], true],
-            ['pagenamee', ['PAGENAMEE'], true],
-            ['fullpagename', ['FULLPAGENAME'], true],
-            ['fullpagenamee', ['FULLPAGENAMEE'], true],
-            ['namespace', ['NAMESPACE'], true],
-            ['namespacee', ['NAMESPACEE'], true],
-            ['namespacenumber', ['NAMESPACENUMBER'], true],
-            ['currentweek', ['CURRENTWEEK'], true],
-            ['currentdow', ['CURRENTDOW'], true],
-            ['localweek', ['LOCALWEEK'], true],
-            ['localdow', ['LOCALDOW'], true],
-            ['revisionid', ['REVISIONID'], true],
-            ['revisionday', ['REVISIONDAY'], true],
-            ['revisionday2', ['REVISIONDAY2'], true],
-            ['revisionmonth', ['REVISIONMONTH'], true],
-            ['revisionmonth1', ['REVISIONMONTH1'], true],
-            ['revisionyear', ['REVISIONYEAR'], true],
-            ['revisiontimestamp', ['REVISIONTIMESTAMP'], true],
-            ['revisionuser', ['REVISIONUSER'], true],
-            ['revisionsize', ['REVISIONSIZE'], true],
-            ['subpagename', ['SUBPAGENAME'], true],
-            ['subpagenamee', ['SUBPAGENAMEE'], true],
-            ['talkspace', ['TALKSPACE'], true],
-            ['talkspacee', ['TALKSPACEE'], true],
-            ['subjectspace', ['SUBJECTSPACE', 'ARTICLESPACE'], true],
-            ['subjectspacee', ['SUBJECTSPACEE', 'ARTICLESPACEE'], true],
-            ['talkpagename', ['TALKPAGENAME'], true],
-            ['talkpagenamee', ['TALKPAGENAMEE'], true],
-            ['subjectpagename', ['SUBJECTPAGENAME', 'ARTICLEPAGENAME'], true],
-            ['subjectpagenamee', ['SUBJECTPAGENAMEE', 'ARTICLEPAGENAMEE'], true],
-            ['numberofusers', ['NUMBEROFUSERS'], true],
-            ['numberofactiveusers', ['NUMBEROFACTIVEUSERS'], true],
-            ['numberofpages', ['NUMBEROFPAGES'], true],
-            ['currentversion', ['CURRENTVERSION'], true],
-            ['rootpagename', ['ROOTPAGENAME'], true],
-            ['rootpagenamee', ['ROOTPAGENAMEE'], true],
-            ['basepagename', ['BASEPAGENAME'], true],
-            ['basepagenamee', ['BASEPAGENAMEE'], true],
-            ['currenttimestamp', ['CURRENTTIMESTAMP'], true],
-            ['localtimestamp', ['LOCALTIMESTAMP'], true],
-            ['directionmark', ['DIRECTIONMARK', 'DIRMARK'], true],
-            ['contentlanguage', ['CONTENTLANGUAGE', 'CONTENTLANG'], true],
-            ['pagelanguage', ['PAGELANGUAGE'], true],
-            ['numberofadmins', ['NUMBEROFADMINS'], true],
-            ['cascadingsources', ['CASCADINGSOURCES'], true],
-        ].map(([id, synonyms, caseSensitive]) => ({
-            id,
-            synonyms,
-            caseSensitive,
-            synonymsRE: new RegExp('^(' + synonyms.join('|') + ')$', caseSensitive? '' : 'i')
-        }));
+            '!', 'currentmonth', 'currentmonth1', 'currentmonthname',
+            'currentmonthnamegen', 'currentmonthabbrev', 'currentday',
+            'currentday2', 'currentdayname', 'currentyear', 'currenttime',
+            'currenthour', 'localmonth', 'localmonth1', 'localmonthname',
+            'localmonthnamegen', 'localmonthabbrev', 'localday', 'localday2',
+            'localdayname', 'localyear', 'localtime', 'localhour',
+            'numberofarticles', 'numberoffiles', 'numberofedits',
+            'articlepath', 'pageid', 'sitename', 'server', 'servername',
+            'scriptpath', 'stylepath', 'pagename', 'pagenamee', 'fullpagename',
+            'fullpagenamee', 'namespace', 'namespacee', 'namespacenumber',
+            'currentweek', 'currentdow', 'localweek', 'localdow', 'revisionid',
+            'revisionday', 'revisionday2', 'revisionmonth', 'revisionmonth1',
+            'revisionyear', 'revisiontimestamp', 'revisionuser',
+            'revisionsize', 'subpagename', 'subpagenamee', 'talkspace',
+            'talkspacee', 'subjectspace', 'subjectspacee', 'talkpagename',
+            'talkpagenamee', 'subjectpagename', 'subjectpagenamee',
+            'numberofusers', 'numberofactiveusers', 'numberofpages',
+            'currentversion', 'rootpagename', 'rootpagenamee', 'basepagename',
+            'basepagenamee', 'currenttimestamp', 'localtimestamp',
+            'directionmark',  'contentlanguage',  'pagelanguage',
+            'numberofadmins', 'cascadingsources',
+        ].map(mwId => {
+            let mw = this.parser.contentLanguage.getMagicWordDefinition(mwId);
+            if(!mw)
+                return false;
+
+            let {synonyms, caseSensitive} = mw;
+            return {
+                id: mwId,
+                synonyms,
+                caseSensitive,
+                synonymsRE: new RegExp('^(' + synonyms.join('|') + ')$', caseSensitive? '' : 'i')
+            };
+        }).filter(Boolean);
 
         this.variables = [...this.variables, ...this.parser.parserConfig.registerNewMagicVariables()];
 
         this.doubleUnderscores = [
-            ['notoc', ['__NOTOC__'], false],
-            ['nogallery', ['__NOGALLERY__'], false],
-            ['forcetoc', ['__FORCETOC__'], false],
-            ['toc', ['__TOC__'], false],
-            ['noeditsection', ['__NOEDITSECTION__'], false],
-            ['newsectionlink', ['__NEWSECTIONLINK__'], true],
-            ['nonewsectionlink', ['__NONEWSECTIONLINK__'], true],
-            ['notitleconvert', ['__NOTITLECONVERT__', '__NOTC__'], false],
-            ['nocontentconvert', ['__NOCONTENTCONVERT__', '__NOCC__'], false],
-            ['hiddencat', ['__HIDDENCAT__'], true],
-            ['expectunusedcategory', ['__EXPECTUNUSEDCATEGORY__'], true],
-            ['index', ['__INDEX__'], true],
-            ['noindex', ['__NOINDEX__'], true],
-            ['staticredirect', ['__STATICREDIRECT__'], false],
-        ].map(([id, synonyms, caseSensitive]) => ({
-            id,
-            synonyms,
-            caseSensitive,
-            synonymsRE: new RegExp('(' + synonyms.join('|') + ')', caseSensitive? 'g' : 'gi')
-        }));
+            'notoc', 'nogallery', 'forcetoc', 'toc', 'noeditsection',
+            'newsectionlink', 'nonewsectionlink', 'notitleconvert',
+            'nocontentconvert', 'hiddencat', 'expectunusedcategory',
+            'index', 'noindex', 'staticredirect',
+        ].map(mwId => {
+            let mw = this.parser.contentLanguage.getMagicWordDefinition(mwId);
+            if(!mw)
+                return false;
+
+            let {synonyms, caseSensitive} = mw;
+            return {
+                id: mwId,
+                synonyms,
+                caseSensitive,
+                synonymsRE: new RegExp('(' + synonyms.join('|') + ')', caseSensitive? 'g' : 'gi')
+            };
+        }).filter(Boolean);
 
         this.substIDs = [
             'subst',
             'safesubst',
         ];
 
-        this.imageMagicWords = {
-            img_thumbnail: ['thumb', 'thumbnail'],
-            img_manualthumb: ['thumbnail=$1', 'thumb=$1'],
-            img_right: ['right'],
-            img_left: ['left'],
-            img_none: ['none'],
-            img_width: ['$1px'],
-            img_center: ['center', 'centre'],
-            img_framed: ['frame', 'framed', 'enframed'],
-            img_frameless: ['frameless'],
-            img_lang: ['lang=$1'],
-            img_page: ['page=$1', 'page $1'],
-            img_upright: ['upright', 'upright=$1', 'upright $1'],
-            img_border: ['border'],
-            img_baseline: ['baseline'],
-            img_sub: ['sub'],
-            img_super: ['super', 'sup'],
-            img_top: ['top'],
-            img_text_top: ['text-top'],
-            img_middle: ['middle'],
-            img_bottom: ['bottom'],
-            img_text_bottom: ['text-bottom'],
-            img_link: ['link=$1'],
-            img_alt: ['alt=$1'],
-            img_class: ['class=$1'],
-        };
+        this.imageMagicWords = Object.fromEntries([
+            'img_thumbnail', 'img_manualthumb', 'img_right', 'img_left',
+            'img_none', 'img_width', 'img_center', 'img_framed',
+            'img_frameless', 'img_lang', 'img_page', 'img_upright',
+            'img_border', 'img_baseline', 'img_sub', 'img_super', 'img_top',
+            'img_text_top', 'img_middle', 'img_bottom', 'img_text_bottom',
+            'img_link', 'img_alt', 'img_class',
+        ].map(mwId => {
+            let mw = this.parser.contentLanguage.getMagicWordDefinition(mwId);
+            if(mw)
+                return [mwId, mw.synonyms];
+            return false;
+        }).filter(Boolean));
     }
 
 

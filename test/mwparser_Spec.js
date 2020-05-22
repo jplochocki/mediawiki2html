@@ -1424,7 +1424,7 @@ describe('horizontal lines', function() {
 describe('Parser.handleDoubleUnderscore()', function() {
     it('__TOC__ basic tests', function() {
         let parser = new MWParser();
-        let result = parser.handleDoubleUnderscore('Lorem ipsum __TOC__ dolor __ToC__ sit amet.');
+        let result = parser.handleDoubleUnderscore('Lorem ipsum __TOC__ dolor __TOC__ sit amet.');
         expect(result).toEqual('Lorem ipsum <!--MWTOC\'"--> dolor  sit amet.');
         expect(parser.showToc).toBeTruthy();
         expect(parser.forceTocPosition).toBeTruthy();

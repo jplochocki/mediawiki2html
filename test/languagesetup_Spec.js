@@ -136,3 +136,20 @@ describe('LanguageSetup.getSpecialPageTitle', function() {
         expect(result.getPrefixedText()).toEqual('Special:Upload');
     });
 });
+
+
+describe('LanguageSetup.getMagicWordDefinition', function() {
+    it('Basic tests', function() {
+        let lang = new LanguageSetup('en');
+        let result = lang.getMagicWordDefinition('redirect');
+
+        expect(result.caseSensitive).toBeFalsy();
+        expect(result.synonyms).toEqual(['#REDIRECT']);
+
+        lang = new LanguageSetup('pl');
+        result = lang.getMagicWordDefinition('redirect');
+
+        expect(result.caseSensitive).toBeFalsy();
+        expect(result.synonyms).toEqual(['#PATRZ', '#PRZEKIERUJ', '#TAM', '#REDIRECT']);
+    });
+});

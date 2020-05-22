@@ -145,4 +145,24 @@ export class LanguageSetup {
     getSpecialPageTitle(enName, parserConfig) {
         return Title.newFromText(this.getSpecialPageName(enName), parserConfig)
     }
+
+
+    /**
+     * get Magic Word definition
+     *
+     * @param {String} mwId
+     * @return {{caseSensitive: Boolean, synonyms: String[]}} returns null on
+     * unknown Magic Word
+     */
+    getMagicWordDefinition(mwId) {
+        let mw = Object.entries(this.currentLanguage.magicWords).find(([id, def]) => id == mwId);
+        if(mw)
+            return mw[1];
+
+        mw = Object.entries(this.defaultLanguage.magicWords).find(([id, def]) => id == mwId); // try in english
+        if(mw)
+            return mw[1];
+
+        return null;
+    }
 };

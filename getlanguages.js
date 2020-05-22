@@ -182,6 +182,41 @@ const EXTRACT_FROM_MESSAGES = [
             language.namespaceNames[nsName].push(a[2]);
             language.namespaceNames[nsName] = Array.from(new Set(language.namespaceNames[nsName])); // reduce duplicates
         }
+    }, {
+
+        // magic words
+        from: /^\s*\$magicWords\s*=\s*\[(?!\s*];)/i,
+        to: /\s*\]\s*;\s*/i,
+
+        find: [
+            phpAssociativeArrayItemRe('.*', /* valueIsArray */ true, /* nameIsString */ true)
+        ],
+        findAll: true,
+
+        saveAs: (language, mwId, mwSynonyms) => {
+            mwId = mwId.trim();
+            try {
+                mwSynonyms = eval(`[${ mwSynonyms }]`);
+            }
+            catch(e) {
+                console.error(e);
+                return;
+            }
+
+            if(!language.magicWords)
+                language.magicWords = {};
+
+            let caseSensitive = false;
+            if(mwSynonyms[0] == 1 || mwSynonyms[0] == 0) {
+                caseSensitive = mwSynonyms[0] == 1;
+                mwSynonyms.shift();
+            }
+
+            language.magicWords[mwId] = {
+                caseSensitive,
+                synonyms: mwSynonyms
+            };
+        }
     }
 ];
 
@@ -269,11 +304,12 @@ while(true) {
 let outLangs = {};
 
 languages.forEach(lng => {
-    let {language, languageDescription = '', specialPageAliases = [], namespaceNames} = lng;
+    let {language, languageDescription = '', specialPageAliases = [], namespaceNames, magicWords = {}} = lng;
     outLangs[language] = {
         languageDescription,
         specialPageAliases,
-        namespaceNames
+        namespaceNames,
+        magicWords
     };
 });
 
