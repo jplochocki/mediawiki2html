@@ -47,7 +47,6 @@ import { DefaultConfig } from './defaultconfig.js';
  */
 export class Title {
     /**
-     * @constructor
      * @param {Object|DefaultConfig} parserConfig
      */
     constructor(parserConfig) {
@@ -508,7 +507,7 @@ export class Title {
      * @return {String} The URL
      */
     getFullURL(query=null, proto='//', skipFragment=false) {
-        let url = this.parserConfig.getFullUrl(this, query, proto);
+        let url = this.parserConfig.getFullURL(this, query, proto);
         if(url)
             return url;
 
@@ -525,18 +524,18 @@ export class Title {
 
         const longQuery = Array.from(query.values()).length > 1 || !query.has('title');
         query = query.toString();
-        if(query[0] != '?')
-            query = '?' + query;
 
         // interwiki
-        let server = this.parserConfig.server;
+        url = this.parserConfig.baseUrlForTitle;
+        if(longQuery)
+            url = this.parserConfig.baseUrlForQuery;
         if(this.isExternal())
-            server = this.parserConfig.interwikiServer.replace(/\$3/g, this.mInterwiki);
+            url = this.parserConfig.interwikiUrl.replace(/\$LANGUAGE/g, this.mInterwiki);
 
         // generate url
-        url = longQuery ? this.parserConfig.queryArticlePath : this.parserConfig.articlePath;
-        url = url.replace(/\$1/g, query).replace(/\$2/g, this.getPrefixedText(true, true));
-        url = server.replace(/\$1/g, proto).replace(/\$2/g, url);
+        url = url.replace(/\$PROTOCOL/g, proto)
+            .replace(/\$TITLE/g, this.getPrefixedText(true, true))
+            .replace(/\$QUERY/g, query);
 
         if(!skipFragment && this.mFragment != '')
             url += '#' + this.mFragment;
@@ -559,25 +558,33 @@ export class Title {
 
 
     /**
-     * Get relative url for image (ie. /images/a/af/LoremIpsum.png)
+     * Get url for image (ie. /images/a/af/LoremIpsum.png)
      *
      * @return {String}
      */
-    getImageUrl() {
-        let a = md5_lib(this.mUrlform);
-        return `${ this.parserConfig.imageFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }`;
+    getImageURL() {
+        let a = this.parserConfig.getImageURL(this);
+        if(a)
+            return a;
+
+        a = md5_lib(this.mUrlform);
+        return `/images/${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }`;
     }
 
 
     /**
-     * Get relative url for image thumb (ie. /images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png)
+     * Get url for image thumb (ie. /images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png)
      *
      * @param {Number} width thumb width
      * @return {String}
      */
-    getThumbUrl(width) {
-        let a = md5_lib(this.mUrlform);
-        return `${ this.parserConfig.thumbFileUrl }${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }/${ width }px-${ this.mUrlform }`;
+    getThumbURL(width) {
+        let a = this.parserConfig.getThumbURL(this);
+        if(a)
+            return a;
+
+        a = md5_lib(this.mUrlform);
+        return `/images/thumb/${ a[0] }/${ a[0] + a[1] }/${ this.mUrlform }/${ width }px-${ this.mUrlform }`;
     }
 
 
@@ -586,16 +593,12 @@ export class Title {
      *
      * @return {String}
      */
-    getImageUploadUrl() {
-        let q = {
-            ...this.parserConfig.uploadFileParams
-        };
+    getImageUploadURL(proto='//') {
+        let t = this.parserConfig.contentLanguage.getSpecialPageTitle('upload', this.parserConfig);
 
-        if(q.wpDestFile)
-            q.wpDestFile = this.getPartialURL();
-        q = '?' + new URLSearchParams(q).toString();
-
-        return this.parserConfig.uploadFileURL.replace(/\$1/g, q);
+        return t.getFullURL({
+                wpDestFile: this.getPartialURL()
+            }, proto);
     }
 
 

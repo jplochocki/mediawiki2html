@@ -45,7 +45,7 @@ describe('TraditionalImageGallery tests', function() {
     });
 
     function cfg_makeThumb(title, width=false, height=false, doNotZoomIn=false) {
-            let w, h, url = title.getImageUrl()
+            let w, h, url = title.getImageURL()
 
             if(title.getPrefixedText() == 'File:Lorem Image 1.jpg' | title.getPrefixedText() == 'File:Lorem Image 2.jpg')
                 [w, h] = [622, 940];
@@ -54,7 +54,7 @@ describe('TraditionalImageGallery tests', function() {
 
             if((width !== false || height !== false) && width < w) {
                 [w, h] = calcThumbnailSize(w, h, width, height);
-                url = title.getThumbUrl(w);
+                url = title.getThumbURL(w);
             }
 
             return {

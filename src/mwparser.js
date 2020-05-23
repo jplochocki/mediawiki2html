@@ -336,7 +336,7 @@ export class MWParser {
 
         // prefix
         let prefix = '', first_prefix = false;
-        if(this.parserConfig.useLinkPrefixExtension) {
+        if(this.contentLanguage.useLinkPrefixExtension) {
             // Match the end of a line for a word that's not followed by whitespace,
             // e.g. in the case of 'The Arab al[[Razi]]', 'al' will be matched
             // FIXME more languages
@@ -355,7 +355,7 @@ export class MWParser {
             }
 
             // prefix - cd.
-            if(this.parserConfig.useLinkPrefixExtension) {
+            if(this.contentLanguage.useLinkPrefixExtension) {
                 let m = /((?:.|\n)*)((?:\b|^)[a-z1-9]+)$/iu.exec(out)
                 if(m) {
                     out = m[1];
@@ -538,7 +538,7 @@ export class MWParser {
             // NS_MEDIA is a pseudo-namespace for linking directly to a file
             if(ns == Title.NS_MEDIA) {
                 const cls = nt.exists() ? 'internal' : 'new';
-                const url = cls == 'new' ? nt.getImageUploadUrl() : nt.getImageUrl();
+                const url = cls == 'new' ? nt.getImageUploadURL() : nt.getImageURL();
 
                 out += `${ prefix }<a href="${ url }" class="${ cls }" title="${ nt.getText() }">${ txt }</a>${ trail }`;
                 return;
@@ -943,7 +943,7 @@ export class MWParser {
             // If a thumbnail width has not been provided, it is set
             // to the default user option as specified in Language*.php
             if(frameParams.align == '')
-                frameParams.align = this.parserConfig.isRightAlignedLanguage ? 'left' : 'right';
+                frameParams.align = this.contentLanguage.isRightAlignedLanguage ? 'left' : 'right';
 
             let outerWidth = ( thumb ? thumb.width : handlerParams.width ) + 2;
             if(isNaN(outerWidth) || !imageExists)
@@ -1039,7 +1039,7 @@ export class MWParser {
             const label = frameParams.title ? frameParams.title : title.getPrefixedText();
 
             if(this.parserConfig.uploadMissingFileUrl)
-                out = `<a href="${ title.getImageUploadUrl() }" class="new" title="${ title.getPrefixedText() }">${ label }</a>`;
+                out = `<a href="${ title.getImageUploadURL() }" class="new" title="${ title.getPrefixedText() }">${ label }</a>`;
             else {
                 const cls = title.isExternal() ? 'class="extiw"' : '';
                 out = `<a href="${ title.getFullURL() }" ${ cls } title="${ title.getPrefixedText() }">${ label }</a>`;
@@ -1409,7 +1409,8 @@ export class MWParser {
 
             url = encodeURI(url);
 
-            let isExternalServer = !(new RegExp('^(http:\\/\\/|https:\\/\\/)' + this.parserConfig.server + '\\/[^@]+').test(url));
+            let t = new URL(Title.newFromText(this.parserConfig.pageTitle, this.parserConfig).getFullURL(null, 'https://'));
+            let isExternalServer = t.host.toLowerCase() != new URL(url).host.toLowerCase();
             let rel = isExternalServer ? 'nofollow' : '';
 
             if(this.parserConfig.externalLinkTarget && !['_self', '_parent', '_top'].includes(this.parserConfig.externalLinkTarget))

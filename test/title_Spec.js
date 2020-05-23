@@ -302,32 +302,32 @@ describe('Test Title.getEditURL', function() {
 });
 
 
-describe('Test Title.getImageUrl', function() {
+describe('Test Title.getImageURL', function() {
     it('basic tests', function() {
         const par = new MWParser();
 
         const t = Title.newFromText('File:LoremIpsum.png', par.parserConfig);
-        expect(t.getImageUrl()).toEqual('/images/a/af/LoremIpsum.png');
+        expect(t.getImageURL()).toEqual('/images/a/af/LoremIpsum.png');
     });
 });
 
 
-describe('Test Title.getThumbUrl', function() {
+describe('Test Title.getThumbURL', function() {
     it('basic tests', function() {
         const par = new MWParser();
 
         const t = Title.newFromText('File:LoremIpsum.png', par.parserConfig);
-        expect(t.getThumbUrl(150)).toEqual('/images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png');
+        expect(t.getThumbURL(150)).toEqual('/images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png');
     });
 });
 
 
-describe('Test Title.getImageUploadUrl', function() {
+describe('Test Title.getImageUploadURL', function() {
     it('basic tests', function() {
         const par = new MWParser();
 
         const t = Title.newFromText('File:LoremIpsum.png', par.parserConfig);
-        expect(t.getImageUploadUrl()).toEqual('//en.wikipedia.org/w/index.php?title=Special%3AUpload&wpDestFile=LoremIpsum.png');
+        expect(t.getImageUploadURL()).toEqual('//en.wikipedia.org/w/index.php?title=Special%3AUpload&wpDestFile=LoremIpsum.png');
     });
 });
 

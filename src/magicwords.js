@@ -334,7 +334,7 @@ export class MagicWords {
                 break;
 
             case 'articlepath':
-                out = this.parser.parserConfig.articlePath;
+                out = new URL(title.getFullURL(null, 'https://')).pathname;
                 break;
 
             case 'sitename':
@@ -343,7 +343,7 @@ export class MagicWords {
 
             case 'servername':
             case 'server':
-                out = this.parser.parserConfig.server;
+                out = new URL(title.getFullURL(null, 'https://')).host;
                 break;
 
             case 'scriptpath':
@@ -352,7 +352,7 @@ export class MagicWords {
                 break;
 
             case 'directionmark':
-                out = this.parser.parserConfig.isRightAlignedLanguage ? '&rlm;' : '&lrm;';
+                out = this.parser.contentLanguage.isRightAlignedLanguage ? '&rlm;' : '&lrm;';
                 break;
 
             case 'contentlanguage':

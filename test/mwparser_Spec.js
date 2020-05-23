@@ -261,9 +261,9 @@ describe('Test MWParser.handleInternalLinks()', function() {
     });
 
     it('prefix test', function() {
-        let par = new MWParser({
-            useLinkPrefixExtension: true
-        });
+        let par = new MWParser();
+        par.contentLanguage.useLinkPrefixExtension = true;
+
         let result = par.handleInternalLinks(
             `Lorem ipsum amet[[Lorem:ipsum]]dolor ipsum bamet[[Lorem:ipsum|ipsum]]dolor ipsum2.`);
         expect(result).toEqual(
@@ -582,7 +582,7 @@ describe('Test MWParser.makeImage', function() {
 describe('Compare MWParser.handleInternalLinks results with MediaWiki for image links (test makeImage + makeImageHTML)', function() {
     beforeEach(function() {
         this.parser = new MWParser({
-            uploadFileURL: '/index.php$1',
+            baseUrlForQuery: '/index.php?$QUERY',
 
             titleExists(title) {
                 if(title.getPrefixedText() == 'File:LoremIpsum not-existing.png')
@@ -590,7 +590,7 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki for image 
                 return true;
             },
 
-            getFullUrl(title, query=null, proto='//') {
+            getFullURL(title, query=null, proto='//') {
                 if(title.getPrefixedText() == 'File:LoremIpsum.png')
                     return '/index.php/File:LoremIpsum.png';
                 if(title.getPrefixedText() == 'Lorem:Ipsum')
@@ -599,7 +599,7 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki for image 
             },
 
             makeThumb(title, width=false, height=false, doNotZoomIn=false) {
-                let w, h, url = title.getImageUrl()
+                let w, h, url = title.getImageURL()
 
                 if(title.getPrefixedText() == 'File:LoremIpsum.png')
                     [w, h] = [313, 490];
@@ -610,7 +610,7 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki for image 
 
                 if((width !== false || height !== false) && width < w) {
                     [w, h] = calcThumbnailSize(w, h, width, height);
-                    url = title.getThumbUrl(w);
+                    url = title.getThumbURL(w);
                 }
 
                 return {
@@ -640,10 +640,8 @@ describe('Compare MWParser.handleInternalLinks results with MediaWiki for image 
 describe('Compare MWParser.handleInternalLinks results with MediaWiki for internal links', function() {
     beforeEach(function() {
         this.parser = new MWParser({
-            server: '$2',
-            articlePath: '/index.php/$2',
-            queryArticlePath: '/index.php$1',
-            uploadFileURL: '/index.php$1',
+            baseUrlForTitle: '/index.php/$TITLE',
+            baseUrlForQuery: '/index.php?$QUERY',
 
             titleExists(title) {
                 if(title.getPrefixedText() == 'Lorem ipsum not existing' || title.getPrefixedText() == 'Media:LoremIpsum not-existing.png')

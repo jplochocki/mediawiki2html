@@ -95,7 +95,7 @@ const EXTRACT_FROM_MESSAGES = [
         find: [
             /\s*\$fallback\s*=\s*'([^\']+?)'/i // i.e. $fallback = 'zh-hk, zh-hant, zh-hans';
         ],
-        saveAs: (language, txt) => {
+        saveAs(language, txt) {
             language.fallback = txt.split(/,\s*/);
         }
     }, {
@@ -108,7 +108,7 @@ const EXTRACT_FROM_MESSAGES = [
             phpAssociativeArrayItemRe('Upload', /* valueIsArray */ true)
         ],
 
-        saveAs: (language, name, value) => {
+        saveAs(language, name, value) {
             if(!language.specialPageAliases)
                 language.specialPageAliases = {}
 
@@ -129,7 +129,7 @@ const EXTRACT_FROM_MESSAGES = [
         ],
         findAll: true,
 
-        saveAs: (language, name, value) => {
+        saveAs(language, name, value) {
             if(!language.namespaceNames) {
                 language.namespaceNames = Object.fromEntries(MEDIAWIKI_NAMESACES.map(name => [name, []]));
                 language.namespaceNames['NS_PROJECT'] = ['$1'];
@@ -150,7 +150,7 @@ const EXTRACT_FROM_MESSAGES = [
         ],
         findAll: true,
 
-        saveAs: (language, nsAlias, nsName) => {
+        saveAs(language, nsAlias, nsName) {
             // 'Grafika' => NS_FILE,
             if(!language.namespaceNames[nsName])
                 return;
@@ -168,7 +168,7 @@ const EXTRACT_FROM_MESSAGES = [
         ],
         findAll: true,
 
-        saveAs: (language, nsName, genderAliases) => {
+        saveAs(language, nsName, genderAliases) {
             // NS_USER => [ 'male' => 'Użytkownik', 'female' => 'Użytkowniczka' ]
             nsName = nsName.trim();
             if(!language.namespaceNames[nsName])
@@ -193,7 +193,7 @@ const EXTRACT_FROM_MESSAGES = [
         ],
         findAll: true,
 
-        saveAs: (language, mwId, mwSynonyms) => {
+        saveAs(language, mwId, mwSynonyms) {
             mwId = mwId.trim();
             try {
                 mwSynonyms = eval(`[${ mwSynonyms }]`);
@@ -216,6 +216,28 @@ const EXTRACT_FROM_MESSAGES = [
                 caseSensitive,
                 synonyms: mwSynonyms
             };
+        }
+    }, {
+
+        // right-to-left written language
+        find: [
+            /^\s*\$rtl\s*=\s*(.+?)\s*;\s*$/i
+        ],
+
+        saveAs(language, value) {
+            value = value.trim().toLowerCase();
+            language.isRightAlignedLanguage = value == 'true';
+        }
+    }, {
+
+        // link prefix extension
+        find: [
+            /^\s*\$linkPrefixExtension\s*=\s*(.+?)\s*;\s*$/i
+        ],
+
+        saveAs(language, value) {
+            value = value.trim().toLowerCase();
+            language.useLinkPrefixExtension = value == 'true';
         }
     }
 ];
@@ -304,11 +326,16 @@ while(true) {
 let outLangs = {};
 
 languages.forEach(lng => {
-    let {language, languageDescription = '', specialPageAliases = [], namespaceNames, magicWords = {}} = lng;
+    let {language, languageDescription = '', specialPageAliases = [],
+        namespaceNames, magicWords = {}, isRightAlignedLanguage = false,
+        useLinkPrefixExtension = false} = lng;
+
     outLangs[language] = {
         languageDescription,
-        specialPageAliases,
+        isRightAlignedLanguage,
+        useLinkPrefixExtension,
         namespaceNames,
+        specialPageAliases,
         magicWords
     };
 });

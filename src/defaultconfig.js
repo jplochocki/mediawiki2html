@@ -49,9 +49,6 @@ export class DefaultConfig {
             config && config.projectName? config.projectName : '');
 
 
-        this.useLinkPrefixExtension = false;
-        this.isRightAlignedLanguage = false;
-
         /**
          * project name (like `$wgSitename`, e.g. used for namespaces
          * `Title.NS_PROJECT` and `Title.NS_PROJECT_TALK`).
@@ -60,18 +57,52 @@ export class DefaultConfig {
          */
         this.projectName = '';
 
+
         /**
-         * This page title
+         * This page title. Currently used for edit section links in **TOC** and
+         * for some **Magic Variables** (e.g  `{{PAGENAME}}`, `{{FULLPAGENAME}}`,
+         * `{{NAMESPACE}}`).
          *
          * @type {String}
          */
         this.pageTitle = 'Main page';
 
 
-        this.server = `$1${ this.language }.wikipedia.org$2`;
-        this.interwikiServer = `$1$3.wikipedia.org$2`;
-        this.articlePath = '/w/index.php$1'; // $1 for query, $2 for title itself
-        this.queryArticlePath = this.articlePath; // path for article, with query
+        /**
+         * Base template for wiki page URL with query.
+         * Template params:
+         * * `$PROTOCOL` - protocol scheme (e.g. '`https://`')
+         * * `$QUERY` - query part of url
+         *
+         * @type {String}
+         */
+        this.baseUrlForQuery = `$PROTOCOL${ this.language }.wikipedia.org/w/index.php?$QUERY`;
+
+
+        /**
+         * Base template for wiki page URL only (without query).
+         * Template params:
+         * * `$PROTOCOL` - protocol scheme (e.g. '`https://`')
+         * * `$TITLE` - title
+         * * `$QUERY` - query part of url (optional; don't use with $TITLE)
+         *
+         * @type {String}
+         */
+        this.baseUrlForTitle = this.baseUrlForQuery;
+
+
+        /**
+         * Base template for wiki URLs. Template params:
+         * * `$PROTOCOL` - protocol scheme  (e.g. '`https://`')
+         * * `$LANGUAGE` - interwiki language
+         * * `$QUERY` - query part of url
+         *
+         * @type {String}
+         */
+        this.interwikiUrl = `$PROTOCOL$LANGUAGE.wikipedia.org/w/index.php?$QUERY`;
+
+
+
         this.validInterwikiNames = [];
 
         this.externalLinkTarget = false; // setting to _blank may represent a security risk
@@ -80,13 +111,7 @@ export class DefaultConfig {
         this.wgResponsiveImages = true;
 
         this.uploadMissingFileUrl = true;
-        this.uploadFileURL = `//${ this.server.replace(/\$(1|2)/g, '') }${ this.articlePath }`;
-        this.uploadFileParams = {
-            title: 'Special:Upload',
-            wpDestFile: true
-        };
-        this.imageFileUrl = '/images/';
-        this.thumbFileUrl = '/images/thumb/';
+
 
         // override default config with user defined
         if(config)
@@ -97,8 +122,8 @@ export class DefaultConfig {
     /**
      * Check if title exists (also test if file exists)
      *
-     * @param Title|String title
-     * @return Boolean
+     * @param {Title|String} title
+     * @return {Boolean}
      */
     titleExists(title) {
         return true;
@@ -106,16 +131,16 @@ export class DefaultConfig {
 
 
     /**
-     * Overrides Title.getFullUrl if return truthy. Use for generate your own
+     * Overrides Title.getFullURL if return truthy. Use for generate your own
      * url for title.
      *
-     * @param Title title
-     * @param URLSearchParams|Object|Array|String [query]
-     * @param String [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
-     * @return String
+     * @param {Title} title
+     * @param {URLSearchParams|Object|Array|String} [query]
+     * @param {String} [proto='//'] Protocol type to use in URL ('//' - relative, 'http://', 'https://')
+     * @return {String}
      */
-    getFullUrl(title, query=null, proto='//') {
-        return '';
+    getFullURL(title, query=null, proto='//') {
+        return false;
     }
 
 
@@ -123,8 +148,8 @@ export class DefaultConfig {
      * Function is checking if image can be displayed
      * (false - display image page link instead)
      *
-     * @param Title title
-     * @return Boolean
+     * @param {Title} title
+     * @return {Boolean}
      */
     allowImageDisplay(title) {
         return true;
@@ -142,6 +167,27 @@ export class DefaultConfig {
         //     width: 0,
         //     height: 0
         // };
+    }
+
+
+    /**
+     * Get url for image (ie. /images/a/af/LoremIpsum.png). Overrides Title.getImageURL if return truthy.
+     *
+     * @return {String}
+     */
+    getImageURL(title) {
+        return false;
+    }
+
+
+    /**
+     * Get relative url for image thumb (ie. /images/thumb/a/af/LoremIpsum.png/150px-LoremIpsum.png). Overrides Title.getThumbURL if return truthy.
+     *
+     * @param {Number} width thumb width
+     * @return {String}
+     */
+    getThumbURL(width) {
+        return false;
     }
 
 
