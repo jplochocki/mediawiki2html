@@ -116,3 +116,4 @@ doc/*.htm
 doc/*.html
 
 src/languages.js
+coverage/*
