@@ -1940,3 +1940,39 @@ describe('MWParser.renderImageGallery()', function() {
         });
     });
 });
+
+
+describe('MWParser.preTagHook', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
+    it('basic tests', function() {
+        let result = this.parser.parse('Lorem ipsum <pre>dolor</pre> sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum</p><pre>dolor</pre><p>sit amet.</p>');
+    });
+
+    it('pre tag attributes', function() {
+        let result = this.parser.parse('Lorem ipsum <pre class="lorem-class" script="should not pass">dolor</pre> sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum</p><pre class="lorem-class">dolor</pre><p>sit amet.</p>');
+    });
+
+    it('<nowiki> inside <pre>', function() {
+        let result = this.parser.parse('Lorem ipsum <pre>Lorem ipsum <nowiki>dolor</nowiki> sit amet</pre> sit amet.');
+        expect(result).htmlToBeEqual('<p>Lorem ipsum</p><pre>Lorem ipsum dolor sit amet</pre><p>sit amet.</p>');
+    });
+});
+
+
+describe('MWParser.nowikiTagHook', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+        jasmine.addMatchers(HtmlCompareMatchers);
+    });
+
+    it('basic tests', function() {
+        let result = this.parser.parse("'''Lorem''' ipsum <nowiki>Lorem ipsum ''dolor'' sit {{amet}}</nowiki> sit ''amet''.");
+        expect(result).htmlToBeEqual('<p><b>Lorem</b> ipsum Lorem ipsum &#39;&#39;dolor&#39;&#39; sit &#123;&#123;amet&#125;&#125; sit <i>amet</i>.</p>');
+    });
+});

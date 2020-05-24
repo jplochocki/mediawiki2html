@@ -79,6 +79,8 @@ export class MWParser {
 
         // built-in tag hooks
         this.setFunctionTagHook('gallery', this.renderImageGallery.bind(this));
+        this.setFunctionTagHook('pre', this.preTagHook.bind(this));
+        this.setFunctionTagHook('nowiki', this.nowikiTagHook.bind(this));
     }
 
 
@@ -1499,13 +1501,14 @@ export class MWParser {
         if(this.functionTagHooks[params.tagName]) {
             out = this.functionTagHooks[params.tagName](params.tagText, params.attributes, this, frame);
         } else {
+
             // not known tag - print out
-            let attrs = Sanitizer.safeEncodeTagAttributes(attributes);
+            let attrs = Sanitizer.safeEncodeTagAttributes(params.attributes);
             attrs = attrs[0] == ' ' ? attrs : ' ' + attrs;
             if(params.tagText == '')
                 out = `<${ params.tagName }${ attrs }/>`;
             else
-                out = `<${ params.tagName }${ attrs }>${ tagText }</${ params.tagName }>`;
+                out = `<${ params.tagName }${ attrs }>${ params.tagText }</${ params.tagName }>`;
         }
         return out;
     }
@@ -2634,5 +2637,30 @@ ${ out }
         });
 
         return ig.toHTML();
+    }
+
+
+    /**
+     * <pre> tag hook
+     *
+     */
+    preTagHook(text, attrs) {
+        text = StringUtils.delimiterReplaceCallback('<nowiki>', '</nowiki>', (a) => a[1], text, 'i');
+
+		attrs = Sanitizer.validateTagAttributes(attrs, 'pre');
+        attrs = Sanitizer.safeEncodeTagAttributes(attrs);
+        attrs = attrs ? ' ' + attrs : '';
+		text = text.replace(/>/g, '&gt;').replace(/</g, '&lt;');
+
+        return `<pre${ attrs }>${ text }</pre>`;
+    }
+
+
+    /**
+     * <nowiki> tag hook
+     *
+     */
+    nowikiTagHook(text, attrs) {
+        return Sanitizer.escapeWikiText(text);
     }
 };
