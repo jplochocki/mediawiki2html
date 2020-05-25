@@ -1464,7 +1464,7 @@ export class MWParser {
      * @return Array
      */
     getStripList() {
-        return ['pre', 'nowiki', 'gallery', 'indicator', ...Object.keys(this.functionTagHooks)];
+        return Array.from(new Set(['pre', 'nowiki', 'gallery', 'indicator', ...Object.keys(this.functionTagHooks)]));
     }
 
 
@@ -2643,6 +2643,9 @@ ${ out }
     /**
      * <pre> tag hook
      *
+     * @param {String} text
+     * @param {Object} attrs
+     * @return {String}
      */
     preTagHook(text, attrs) {
         text = StringUtils.delimiterReplaceCallback('<nowiki>', '</nowiki>', (a) => a[1], text, 'i');
@@ -2659,6 +2662,10 @@ ${ out }
     /**
      * <nowiki> tag hook
      *
+     * @param {String} text
+     * @param {Object} attrs
+     * @return {String}
+
      */
     nowikiTagHook(text, attrs) {
         return Sanitizer.escapeWikiText(text);

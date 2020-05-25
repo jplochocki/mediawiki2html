@@ -59,14 +59,10 @@ module.exports = function(config) {
             'test/render-mw-fixtures.js'
         ],
 
-        preprocessors: {
-            'src/*.js': ['coverage']
-        },
-        
+
         plugins: [
             'karma-jasmine',
-            'karma-firefox-launcher',
-            'karma-coverage'
+            'karma-firefox-launcher'
         ],
 
         // preprocess matching files before serving them to the browser
@@ -75,7 +71,7 @@ module.exports = function(config) {
         // test results reporter to use
         // possible values: 'dots', 'progress'
         // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-        reporters: ['progress', 'coverage'],
+        reporters: ['progress'],
 
 
         // web server port
@@ -106,15 +102,6 @@ module.exports = function(config) {
 
         // Concurrency level
         // how many browser should be started simultaneous
-        concurrency: Infinity,
-        
-        coverageReporter: {
-            includeAllSources: true,
-            dir: 'coverage/',
-            reporters: [
-                { type: "html", subdir: "html" },
-                { type: 'text-summary' }
-            ]
-        }
+        concurrency: Infinity
     })
 }

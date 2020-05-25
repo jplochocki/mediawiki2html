@@ -232,8 +232,11 @@ export class Preprocessor {
             return false;
 
         let tagName =  bits.slice(startTagIdx + 1, endIdx).join('').trim();
-        if(tagName[0] == '/') // ignore end tag here
+        if(tagName[0] == '/') {  // ignore end tag here
+            if(xmlishElements.includes(tagName.substr(1)))
+                return [startTagIdx + 2, headingIndex];
             return false;
+        }
 
         let noCloseTag = /\/$/.test(tagName);
         if(noCloseTag)
@@ -254,16 +257,6 @@ export class Preprocessor {
             for(let j = endIdx + 1; j < bits.length; j++) {
                 if(bits[j] == '<' && bits[j + 1] == '/' + tagName && bits[j + 2] == '>') {
                     foundEndTagIdx = j + 2;
-                    break;
-                }
-                else if(bits[j] == '<') {
-                    let n = (bits[j + 1] + '').trim().split(/(\s+)/)[0];
-                    if(!xmlishElements.includes(n)) {
-                        tagText += bits[j];
-                        continue;
-                    }
-
-                    foundEndTagIdx = false;
                     break;
                 }
                 else

@@ -813,3 +813,34 @@ describe('template params', function() {
         expect(result).toEqual(['Lorem {{{1 sit amet.']);
     });
 });
+
+
+describe('Preprocessor.parseExtTag', function() {
+    beforeEach(function() {
+        this.parser = new MWParser();
+    });
+
+    it('bug fix - nowiki inside pre (one tag inside another)', function() {
+        let result = this.parser.preprocessor.preprocessToObj('Lorem ipsum <pre>Lorem ipsum <nowiki>dolor</nowiki> sit amet</pre> sit amet.', false);
+        expect(result).toEqual(['Lorem ipsum ', {
+            type: 'ext-tag',
+            tagName: 'pre',
+            attributes: {},
+            noCloseTag: false,
+            tagText: 'Lorem ipsum <nowiki>dolor</nowiki> sit amet'
+        }, ' sit amet.']);
+    });
+
+    it('bug fix - ommit unknown end tag', function() {
+        let result = this.parser.preprocessor.preprocessToObj('Lorem ipsum <pre>Lorem ipsum <pre>dolor</pre> sit amet</pre> sit amet.', false);
+        expect(result).toEqual(['Lorem ipsum ', {
+            type: 'ext-tag',
+            tagName: 'pre',
+            attributes: {},
+            noCloseTag: false,
+            tagText: 'Lorem ipsum <pre>dolor'
+        }, ' sit amet sit amet.']);
+
+        // FIXME: should work for all tags types
+    });
+});

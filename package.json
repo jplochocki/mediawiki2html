@@ -1,5 +1,5 @@
 {
-  "name": "mediawiki2html",
+  "name": "@jplochocki/mediawiki2html",
   "version": "0.0.1",
   "description": "MediaWiki wiki markup to HTML converter",
   "main": "dist/mwparser.js",

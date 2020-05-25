@@ -1,0 +1,19 @@
+coverage/*
+doc/*
+node_modules/*
+src/*
+temp/*
+test/*
+.git/*
+001.txt
+1 mw.txt
+getlanguages.js
+jsdoc.conf.json
+karma.conf.js
+karma-all.conf.js
+node-jasmine.json
+webpack.config.js
+.babelrc
+.gitignore
+.travis.yml
+*.tgz
